@@ -1,0 +1,252 @@
+﻿.mekton-fusion .sheet-header {
+  align-items: center;
+  gap: 1rem;
+}
+
+.mekton-fusion .actor-portrait {
+  width: 120px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.mekton-fusion .actor-image {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+
+.mekton-fusion .actor-image-wrapper {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.mekton-fusion .actor-hp-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mekton-fusion .actor-hp-bar-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.mekton-fusion .actor-hp-bar-label {
+  font-weight: 600;
+}
+
+.mekton-fusion .actor-hp-bar-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(0, 0, 0, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.mekton-fusion .actor-hp-bar-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.mekton-fusion .actor-hp-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--hp-percent, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c0392b, #e67e22);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.2);
+  transition: width 0.2s ease-in-out;
+}
+
+.mekton-fusion .actor-hp-bar[data-empty="true"] .actor-hp-bar-value {
+  opacity: 0.6;
+}
+
+.mekton-fusion .actor-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.mekton-fusion .actor-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(0, 0, 0, 0.35);
+  font-size: 2rem;
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.mekton-fusion .actor-image:focus {
+  outline: 2px solid rgba(204, 0, 0, 0.4);
+}
+
+.mekton-fusion .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.mekton-fusion .stat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.mekton-fusion .stat-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mekton-fusion .stat-input {
+  width: 4.5rem;
+  text-align: center;
+}
+
+.mekton-fusion .stat-roll {
+  justify-self: end;
+}
+
+.mekton-fusion .stat-roll:hover,
+.mekton-fusion .stat-roll:focus {
+  box-shadow: 0 0 0 2px rgba(204, 0, 0, 0.2);
+}
+
+.mekton-fusion .skills-table-wrapper {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mekton-fusion .skills-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.mekton-fusion .skills-table thead {
+  background: rgba(0, 0, 0, 0.05);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.mekton-fusion .skills-table th,
+.mekton-fusion .skills-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+
+.mekton-fusion .skills-table tbody tr:last-child th,
+.mekton-fusion .skills-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mekton-fusion .skills-check-col {
+  width: 36px;
+  text-align: center;
+}
+
+.mekton-fusion .skill-check {
+  text-align: center;
+}
+
+.mekton-fusion .skill-check input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mekton-fusion .skill-name {
+  font-weight: 600;
+}
+
+.mekton-fusion .skill-stat-display {
+  font-weight: 600;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.mekton-fusion .skill-rank,
+.mekton-fusion .skill-ip {
+  width: 4rem;
+  text-align: center;
+}
+
+.mekton-fusion .skills-actions {
+  text-align: right;
+}
+
+.mekton-fusion .skills-empty {
+  text-align: center;
+  font-style: italic;
+  padding: 1.5rem 0;
+}
+
+.mekton-fusion .skills-actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
+.mekton-fusion .actor-summary {
+  gap: 0.5rem;
+}
+
+.mekton-fusion .actor-derived {
+  display: flex;
+  gap: 1rem;
+}
+
+.mekton-fusion .actor-hp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.mekton-fusion .actor-hp span {
+  font-variant-numeric: tabular-nums;
+}
+
+.mekton-fusion .actor-hp label {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: rgba(0, 0, 0, 0.6);
+}

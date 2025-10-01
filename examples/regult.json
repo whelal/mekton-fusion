@@ -1,0 +1,106 @@
+{
+  "name": "Zentraedi Regult",
+  "type": "mecha",
+  "system": {
+    "frame": {
+      "name": "Regult",
+      "scale": "mecha",
+      "tonnage": 10,
+      "power": 100
+    },
+    "move": {
+      "groundMA": 6,
+      "airMA": 0,
+      "spaceMA": 0
+    },
+    "locations": {
+      "HEAD": {
+        "kills": {
+          "max": 8,
+          "value": 8
+        },
+        "armor": {
+          "sp": 40,
+          "ablate": true
+        }
+      },
+      "TORSO": {
+        "kills": {
+          "max": 24,
+          "value": 24
+        },
+        "armor": {
+          "sp": 50,
+          "ablate": true
+        }
+      },
+      "RLEG": {
+        "kills": {
+          "max": 18,
+          "value": 18
+        },
+        "armor": {
+          "sp": 45,
+          "ablate": true
+        }
+      },
+      "LLEG": {
+        "kills": {
+          "max": 18,
+          "value": 18
+        },
+        "armor": {
+          "sp": 45,
+          "ablate": true
+        }
+      }
+    },
+    "powergrid": {
+      "used": 0,
+      "max": 100
+    }
+  },
+  "items": [
+    {
+      "name": "Twin Laser",
+      "type": "weapon",
+      "system": {
+        "scale": "mecha",
+        "skill": "Gunnery",
+        "damage": {
+          "kills": 2,
+          "mode": "beam"
+        },
+        "range": {
+          "short": 6,
+          "medium": 12,
+          "long": 24,
+          "extreme": 48
+        },
+        "rof": 3
+      }
+    },
+    {
+      "name": "Micro-Missiles",
+      "type": "weapon",
+      "system": {
+        "scale": "mecha",
+        "skill": "Gunnery",
+        "damage": {
+          "kills": 2,
+          "mode": "explosive"
+        },
+        "range": {
+          "short": 8,
+          "medium": 16,
+          "long": 32,
+          "extreme": 64
+        },
+        "ammo": {
+          "capacity": 12,
+          "current": 12
+        }
+      }
+    }
+  ]
+}

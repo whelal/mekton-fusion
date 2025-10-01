@@ -1,0 +1,83 @@
+{
+  "name": "VF-1D (Frame Example)",
+  "type": "mecha",
+  "system": {
+    "frame": {
+      "name": "VF-1D",
+      "scale": "mecha",
+      "tonnage": 12,
+      "power": 120
+    },
+    "move": {
+      "groundMA": 5,
+      "airMA": 10,
+      "spaceMA": 0
+    },
+    "locations": {
+      "HEAD": {
+        "kills": {
+          "max": 10,
+          "value": 10
+        },
+        "armor": {
+          "sp": 50,
+          "ablate": true
+        }
+      },
+      "TORSO": {
+        "kills": {
+          "max": 30,
+          "value": 30
+        },
+        "armor": {
+          "sp": 80,
+          "ablate": true
+        }
+      },
+      "RARM": {
+        "kills": {
+          "max": 15,
+          "value": 15
+        },
+        "armor": {
+          "sp": 60,
+          "ablate": true
+        }
+      },
+      "LARM": {
+        "kills": {
+          "max": 15,
+          "value": 15
+        },
+        "armor": {
+          "sp": 60,
+          "ablate": true
+        }
+      },
+      "RLEG": {
+        "kills": {
+          "max": 20,
+          "value": 20
+        },
+        "armor": {
+          "sp": 70,
+          "ablate": true
+        }
+      },
+      "LLEG": {
+        "kills": {
+          "max": 20,
+          "value": 20
+        },
+        "armor": {
+          "sp": 70,
+          "ablate": true
+        }
+      }
+    },
+    "powergrid": {
+      "used": 0,
+      "max": 120
+    }
+  }
+}

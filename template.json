@@ -1,0 +1,40 @@
+{
+  "Actor": {
+    "types": ["character", "npc"],
+    "templates": {
+      "base": {
+        "stats": {
+          "INT": { "value": 5 },
+          "REF": { "value": 5 },
+          "TECH": { "value": 5 },
+          "COOL": { "value": 5 },
+          "ATTR": { "value": 5 },
+          "LUCK": { "value": 5 },
+          "MA": { "value": 5 },
+          "BODY": { "value": 5 },
+          "EMP": { "value": 5 }
+        },
+        "skills": {},
+        "spells": {}
+      }
+    },
+    "character": { "templates": ["base"] },
+    "npc": { "templates": ["base"] }
+  },
+  "Item": {
+    "types": ["skill", "spell"],
+    "templates": {
+      "base": {
+        "description": "",
+        "weight": 0
+      }
+    },
+    "weapon": { "templates": ["base"] },
+    "armor": { "templates": ["base"] },
+    "spell": {
+      "templates": ["base"],
+      "school": "",
+      "staminaCost": 0
+    }
+  }
+}

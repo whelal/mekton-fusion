@@ -1,0 +1,59 @@
+<section class="mf-sheet">
+  <header class="mf-header">
+    <input class="mf-name" type="text" name="name" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/>
+    <span class="mf-type">{{actor.type}}</span>
+  </header>
+
+  <nav class="sheet-tabs tabs" data-group="primary">
+    <a class="item" data-tab="stats">{{localize "MF.TabStats"}}</a>
+    <a class="item" data-tab="skills">{{localize "MF.TabSkills"}}</a>
+    <a class="item" data-tab="spells">{{localize "MF.TabSpells"}}</a>
+  </nav>
+
+  <section class="sheet-body">
+    <!-- Stats -->
+    <div class="tab" data-group="primary" data-tab="stats">
+      <div class="mf-grid">
+        {{#each system.stats as |s key|}}
+          <div class="mf-stat">
+            <label>{{key}}</label>
+            <input type="number" name="system.stats.{{key}}.value" value="{{s.value}}" min="0" />
+          </div>
+        {{/each}}
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="tab" data-group="primary" data-tab="skills">
+      {{#if (gt (length-of system.skills) 0)}}
+        <ul class="mf-list">
+          {{#each system.skills as |sk skName|}}
+            <li class="mf-row">
+              <span class="mf-key">{{skName}}</span>
+              <input type="number" name="system.skills.{{skName}}.rank" value="{{sk.rank}}" min="0"/>
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="mf-empty">{{localize "MF.NoSkills"}}</p>
+      {{/if}}
+    </div>
+
+    <!-- Spells -->
+    <div class="tab" data-group="primary" data-tab="spells">
+      {{#if (gt (length-of system.spells) 0)}}
+        <ul class="mf-list">
+          {{#each system.spells as |sp spName|}}
+            <li class="mf-row">
+              <span class="mf-key">{{spName}}</span>
+              <input type="text" name="system.spells.{{spName}}.school" value="{{sp.school}}" placeholder="{{localize 'MF.School'}}"/>
+              <input type="number" name="system.spells.{{spName}}.cost" value="{{sp.cost}}" min="0"/>
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="mf-empty">{{localize "MF.NoSpells"}}</p>
+      {{/if}}
+    </div>
+  </section>
+</section>

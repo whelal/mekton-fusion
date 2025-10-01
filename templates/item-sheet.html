@@ -1,0 +1,27 @@
+<form class="flexcol">
+  <header class="sheet-header flexrow">
+    <h1><input name="name" type="text" value="{{item.name}}" placeholder="Item Name"/></h1>
+  </header>
+
+  <section class="sheet-body">
+
+    {{#if (isType item.type "spell")}}
+      <div class="form-group">
+        <label>School</label>
+        <input type="text" name="system.school" value="{{system.school}}"/>
+      </div>
+      <div class="form-group">
+        <label>Cost</label>
+        <input type="number" name="system.cost" value="{{system.cost}}"/>
+      </div>
+      <div class="form-group">
+        <label>Test Stat</label>
+        <input type="text" name="system.test" value="{{system.test}}"/>
+      </div>
+      <div class="form-group">
+        <label>Effect</label>
+        <textarea name="system.effect">{{system.effect}}</textarea>
+      </div>
+    {{/if}}
+  </section>
+</form>

@@ -1,0 +1,313 @@
+<form class="flexcol">
+  <header class="sheet-header flexrow">
+    <div class="actor-portrait">
+      <div class="actor-image-wrapper">
+        <button type="button" class="actor-image" data-action="edit-actor-image" title="Set portrait">
+          {{#if actor.img}}
+            <img src="{{actor.img}}" alt="{{actor.name}}" />
+          {{else}}
+            <span class="actor-image-placeholder">+</span>
+          {{/if}}
+        </button>
+      </div>
+      <div
+        class="actor-hp-bar"
+        data-empty="{{#unless hp.visible}}true{{/unless}}"
+        style="--hp-percent: {{hp.percent}}%;"
+        role="progressbar"
+        aria-label="HP"
+        aria-valuemin="0"
+        aria-valuenow="{{hp.current}}"
+        aria-valuemax="{{hp.max}}"
+        aria-valuetext="{{hp.display}}"
+        aria-hidden="{{#if hp.visible}}false{{else}}true{{/if}}"
+      >
+        <div class="actor-hp-bar-header">
+          <span class="actor-hp-bar-label">HP</span>
+          <span class="actor-hp-bar-value">{{hp.display}}</span>
+        </div>
+        <div class="actor-hp-bar-track">
+          <div class="actor-hp-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+    <div class="actor-summary flexcol">
+      <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Name"/></h1>
+      <div class="actor-derived">
+        <div class="actor-hp">
+          <label for="actor-hp-current">HP</label>
+          <div class="actor-hp-inputs">
+            <input id="actor-hp-current" class="hp-input" type="number" name="system.hp.current" value="{{hp.current}}" min="0" step="1"/>
+            <span>/</span>
+            <input id="actor-hp-max" class="hp-input" type="number" name="system.hp.max" value="{{hp.max}}" min="0" step="1"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="sheet-tabs tabs">
+    <a class="item" data-tab="stats">Stats</a>
+    <a class="item" data-tab="skills">Skills</a>
+    <a class="item" data-tab="equipment">Equipment</a>
+    <a class="item" data-tab="magic">Magic</a>
+    <a class="item" data-tab="psionics">Psionics</a>
+  </nav>
+
+  <section class="sheet-body">
+  <!-- Stats tab -->
+  <div class="tab" data-tab="stats">
+    <div class="stats-grid">
+      {{#each stats as |val key|}}
+        <div class="stat-row">
+          <label class="stat-label" for="stat-{{key}}">{{key}}</label>
+          <input id="stat-{{key}}" class="stat-input" type="number" name="system.stats.{{key}}" value="{{val}}"/>
+          <button type="button" class="stat-roll" data-action="roll" data-stat="{{key}}">Roll</button>
+        </div>
+      {{/each}}
+    </div>
+  </div>
+
+  <!-- Skills tab -->
+  <div class="tab" data-tab="skills">
+    <div class="skills-table-wrapper">
+      <table class="skills-table">
+        <thead>
+          <tr>
+            <th scope="col" class="skills-check-col">Fav</th>
+            <th scope="col">Skill</th>
+            <th scope="col">Stat</th>
+            <th scope="col">Rank</th>
+            <th scope="col">IP</th>
+            <th scope="col" class="skills-actions-col">&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+        {{#if skills.length}}
+          {{#each skills as |skill|}}
+          <tr class="item" data-item-id="{{skill.id}}">
+            <td class="skill-check">
+              <input type="checkbox" class="skill-favorite" data-skill-id="{{skill.id}}" {{#if skill.system.favorite}}checked{{/if}} />
+            </td>
+            <th scope="row" class="skill-name">{{skill.name}}</th>
+            <td class="skill-stat-display">{{skill.system.stat}}</td>
+            <td>
+              <input class="skill-rank" type="number" data-skill-id="{{skill.id}}" value="{{skill.system.rank}}" min="0" step="1" placeholder="5"/>
+            </td>
+            <td>
+              <input class="skill-ip" type="number" data-skill-id="{{skill.id}}" value="{{skill.system.ip}}" min="0" step="1" placeholder="0"/>
+            </td>
+            <td class="skills-actions">
+              <button type="button" data-action="roll" data-skill-id="{{skill.id}}">Roll</button>
+            </td>
+          </tr>
+          {{/each}}
+        {{else}}
+          <tr>
+            <td colspan="6" class="skills-empty">No skills found.</td>
+          </tr>
+        {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Equipment tab -->
+  <div class="tab" data-tab="equipment">
+    <div class="equipment-table-wrapper">
+      <table class="equipment-table">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col" class="equipment-weight-col">Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each equipmentEntries as |entry idx|}}
+          <tr>
+            <td>
+              <input type="text" name="system.equipment.entries.{{idx}}.name" value="{{entry.name}}" placeholder="Item name"/>
+            </td>
+            <td>
+              <input type="number" name="system.equipment.entries.{{idx}}.weight" value="{{entry.weight}}" min="0" step="0.1" placeholder="0"/>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    <div class="equipment-summary">
+      <span>Total Weight:</span>
+      <span>{{equipmentTotalWeight}}</span>
+    </div>
+  </div>
+
+  <!-- Magic tab -->
+
+  <div class="tab" data-tab="magic">
+
+    <div class="magic-controls">
+
+      <div class="magic-vigor">
+
+        <label>Vigor</label>
+
+        <input type="number" name="system.magic.vigor" value="{{actor.system.magic.vigor}}" min="0" step="1"/>
+
+        <span>/</span>
+
+        <input type="number" name="system.magic.maxVigor" value="{{actor.system.magic.maxVigor}}" min="0" step="1"/>
+
+      </div>
+
+      <button type="button" class="magic-add-spell" data-action="add-spell">Add Spell</button>
+
+    </div>
+
+    <div class="skills-table-wrapper">
+
+      <table class="skills-table magic-table">
+
+        <thead>
+
+          <tr>
+
+            <th scope="col" class="magic-fav-col">Fav</th>
+            <th scope="col">Spell</th>
+
+            <th scope="col">Cost</th>
+
+            <th scope="col">Test</th>
+
+            <th scope="col">Effect</th>
+
+            <th scope="col" class="skills-actions-col">&nbsp;</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+        {{#if spells.length}}
+
+          {{#each spells as |spell|}}
+
+          <tr class="item" data-item-id="{{spell.id}}">
+            <td class="spell-fav">
+              <input type="checkbox" class="spell-favorite" data-spell-id="{{spell.id}}" {{#if spell.system.favorite}}checked{{/if}} />
+            </td>
+            <th scope="row" class="spell-name">{{spell.name}}</th>
+
+            <td>
+
+              <input class="spell-field spell-cost" type="number" data-spell-id="{{spell.id}}" data-field="system.cost" value="{{spell.system.cost}}" min="0" step="1"/>
+
+            </td>
+
+            <td>
+
+              <input class="spell-field spell-test" type="text" data-spell-id="{{spell.id}}" data-field="system.test" value="{{spell.system.test}}"/>
+
+            </td>
+
+            <td class="spell-effect-cell">
+
+              <textarea class="spell-field spell-effect" data-spell-id="{{spell.id}}" data-field="system.effect" rows="2" placeholder="Describe the effect">{{spell.system.effect}}</textarea>
+
+            </td>
+
+            <td class="skills-actions">
+
+              <button type="button" data-action="open-spell" data-spell-id="{{spell.id}}">Edit</button>
+
+              <button type="button" data-action="cast" data-spell-id="{{spell.id}}">Cast</button>
+
+              <button type="button" data-action="delete-spell" data-spell-id="{{spell.id}}">Delete</button>
+
+            </td>
+
+          </tr>
+
+          {{/each}}
+
+        {{else}}
+
+          <tr>
+
+            <td colspan="6" class="magic-empty">No spells recorded.</td>
+
+          </tr>
+
+        {{/if}}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+  <!-- Psionics tab -->
+  <div class="tab" data-tab="psionics">
+    <div class="flexrow">
+      <div>
+        <label>Psi Points</label>
+        <input type="number" name="system.psi.points" value="{{psi.points}}" min="0" step="1"/>
+        <span>/</span>
+        <input type="number" name="system.psi.maxPoints" value="{{psi.maxPoints}}" min="0" step="1"/>
+      </div>
+    </div>
+    <div class="skills-table-wrapper">
+      <table class="skills-table">
+        <thead>
+          <tr>
+            <th scope="col" class="skills-check-col">Fav</th>
+            <th scope="col">Skill</th>
+            <th scope="col">Stat</th>
+            <th scope="col">Rank</th>
+            <th scope="col">IP</th>
+            <th scope="col" class="skills-actions-col">&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+        {{#if psionicSkills.length}}
+          {{#each psionicSkills as |skill|}}
+          <tr class="item" data-item-id="{{skill.id}}">
+            <td class="skill-check">
+              <input type="checkbox" class="skill-favorite" data-skill-id="{{skill.id}}" {{#if skill.system.favorite}}checked{{/if}} />
+            </td>
+            <th scope="row" class="skill-name">{{skill.name}}</th>
+            <td class="skill-stat-display">{{skill.system.stat}}</td>
+            <td>
+              <input class="skill-rank" type="number" data-skill-id="{{skill.id}}" value="{{skill.system.rank}}" min="0" step="1" placeholder="5"/>
+            </td>
+            <td>
+              <input class="skill-ip" type="number" data-skill-id="{{skill.id}}" value="{{skill.system.ip}}" min="0" step="1" placeholder="0"/>
+            </td>
+            <td class="skills-actions">
+              <button type="button" data-action="roll" data-skill-id="{{skill.id}}">Roll</button>
+            </td>
+          </tr>
+          {{/each}}
+        {{else}}
+          <tr>
+            <td colspan="6" class="skills-empty">No psionic skills found.</td>
+          </tr>
+        {{/if}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  </section>
+</form>
+
+
+
+
+
+
+
+
+
