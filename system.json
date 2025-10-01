@@ -10,8 +10,46 @@
   "bugs": "https://github.com/whelal/mekton-fusion/issues",
   "license": "MIT",
 
-  "esmodules": ["scripts/sheets/mekton-fusion.js"],
+  "scripts": [],
+  "esmodules": [
+    "module/script/sheets/mekton-fusion.js"
+    
+  ],
+
   "styles": ["styles/mekton-fusion.css"],
-  "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
-  "packs": []
-}
+
+  "packs": [],
+
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ],
+
+  "documentTypes": {
+    "Actor": {
+      "types": ["character", "npc", "vehicle"],
+      "templates": ["baseActor"]
+    }
+  },
+
+  "template": "templates", 
+  "initiative": "1d10 + @system.abilities.ref.value",
+
+  "schema": {
+    "system": {
+      "meta": { "role": "", "level": 1 },
+      "abilities": {
+        "ref": { "value": 5 },
+        "int": { "value": 5 },
+        "cool": { "value": 5 },
+        "tech": { "value": 5 },
+        "will": { "value": 5 },
+        "body": { "value": 5 },
+        "luck": { "value": 5 },
+        "move": { "value": 5 },
+        "emp": { "value": 5 }
+      },
+      "skills": {},
+        "witcher": { "sp": 0 } 
+      }
+    }
+  }

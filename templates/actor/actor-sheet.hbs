@@ -1,0 +1,61 @@
+<form class="{{cssClass}} flexcol" autocomplete="off">
+  <header class="sheet-header flexrow">
+    <img class="profile" src="{{actor.img}}" data-edit="img" title="{{actor.name}}"/>
+    <div class="header-fields">
+      <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Name"/></h1>
+
+      <div class="grid two-col">
+        <div class="resource">
+          <label>Role</label>
+          <input name="system.meta.role" type="text" value="{{system.meta.role}}"/>
+        </div>
+        <div class="resource">
+          <label>Level</label>
+          <input name="system.meta.level" type="number" value="{{system.meta.level}}"/>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="sheet-tabs tabs">
+    <a class="item" data-tab="stats">Stats</a>
+    <a class="item" data-tab="skills">Skills</a>
+    <a class="item" data-tab="spells">Spells</a>
+  </nav>
+
+  <section class="sheet-body">
+    <div class="tab stats" data-tab="stats">
+      <div class="grid three-col">
+        <div class="ability"><label>REF</label><input name="system.abilities.ref.value"  type="number" value="{{system.abilities.ref.value}}"/></div>
+        <div class="ability"><label>INT</label><input name="system.abilities.int.value"  type="number" value="{{system.abilities.int.value}}"/></div>
+        <div class="ability"><label>BODY</label><input name="system.abilities.body.value" type="number" value="{{system.abilities.body.value}}"/></div>
+        <div class="ability"><label>TECH</label><input name="system.abilities.tech.value" type="number" value="{{system.abilities.tech.value}}"/></div>
+        <div class="ability"><label>WILL</label><input name="system.abilities.will.value" type="number" value="{{system.abilities.will.value}}"/></div>
+        <div class="ability"><label>COOL</label><input name="system.abilities.cool.value" type="number" value="{{system.abilities.cool.value}}"/></div>
+        <div class="ability"><label>LUCK</label><input name="system.abilities.luck.value" type="number" value="{{system.abilities.luck.value}}"/></div>
+        <div class="ability"><label>MOVE</label><input name="system.abilities.move.value" type="number" value="{{system.abilities.move.value}}"/></div>
+        <div class="ability"><label>EMP</label><input name="system.abilities.emp.value"   type="number" value="{{system.abilities.emp.value}}"/></div>
+      </div>
+    </div>
+
+    <div class="tab skills" data-tab="skills">
+      {{#each system.skills as |sk key|}}
+        <div class="skill-row">
+          <label>{{sk.label}}</label>
+          <input name="system.skills.{{key}}.value" type="number" value="{{sk.value}}"/>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="tab spells" data-tab="spells">
+      {{#each items as |it|}}
+        {{#if (eq it.type "spell")}}
+          <div class="item-row" data-item-id="{{it.id}}">
+            <span class="item-name">{{it.name}}</span>
+            <a class="item-control item-edit">Edit</a>
+          </div>
+        {{/if}}
+      {{/each}}
+    </div>
+  </section>
+</form>
