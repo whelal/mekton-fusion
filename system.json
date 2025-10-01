@@ -10,7 +10,7 @@
   "bugs": "https://github.com/whelal/mekton-fusion/issues",
   "license": "MIT",
 
-  "esmodules": ["scripts/mekton-fusion.js"],
+  "esmodules": ["scripts/sheets/mekton-fusion.js"],
   "styles": ["styles/mekton-fusion.css"],
   "languages": [{ "lang": "en", "name": "English", "path": "lang/en.json" }],
   "packs": []

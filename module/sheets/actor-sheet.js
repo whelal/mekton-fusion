@@ -11,16 +11,10 @@
 
   getData(options) {
     const base = super.getData(options);
-    // Ensure we always have the containers the template expects
     base.system = base.actor.system ?? {};
     base.system.stats = base.system.stats ?? {};
     base.system.skills = base.system.skills ?? {};
     base.system.spells = base.system.spells ?? {};
     return base;
-  }
-
-  activateListeners(html) {
-    super.activateListeners(html);
-    // Add listeners later for editing stats/skills/spells
   }
 }
