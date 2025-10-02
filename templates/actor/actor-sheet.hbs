@@ -2,49 +2,101 @@
   <header class="sheet-header flexrow">
     <img class="profile" src="{{actor.img}}" data-edit="img" title="{{actor.name}}"/>
     <div class="header-fields">
-      <h1><input name="name" type="text" value="{{actor.name}}" placeholder="Name"/></h1>
-
-      <div class="grid two-col">
-        <div class="resource">
-          <label>Role</label>
-          <input name="system.meta.role" type="text" value="{{system.meta.role}}"/>
+      <h1><input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/></h1>
+      
+      <div class="header-stats flexrow">
+        <div class="header-field">
+          <label>ROLE</label>
+          <input name="system.meta.role" type="text" value="{{system.meta.role}}" placeholder="rocker"/>
         </div>
-        <div class="resource">
-          <label>Level</label>
-          <input name="system.meta.level" type="number" value="{{system.meta.level}}"/>
+        <div class="header-field">
+          <label>AGE</label>
+          <input name="system.meta.age" type="number" value="{{system.meta.age}}" placeholder="35"/>
+        </div>
+        <div class="header-field">
+          <label>POINTS</label>
+          <input name="system.meta.points" type="number" value="{{system.meta.points}}" placeholder="75"/>
         </div>
       </div>
     </div>
   </header>
 
   <nav class="sheet-tabs tabs">
-    <a class="item" data-tab="stats">Stats</a>
-    <a class="item" data-tab="skills">Skills</a>
-    <a class="item" data-tab="spells">Spells</a>
+    <a class="item" data-tab="stats">{{localize 'MF.TabStats'}}</a>
+    <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
+    <a class="item" data-tab="spells">{{localize 'MF.TabSpells'}}</a>
   </nav>
 
   <section class="sheet-body">
     <div class="tab stats" data-tab="stats">
-      <div class="grid three-col">
-        <div class="ability"><label>REF</label><input name="system.abilities.ref.value"  type="number" value="{{system.abilities.ref.value}}"/></div>
-        <div class="ability"><label>INT</label><input name="system.abilities.int.value"  type="number" value="{{system.abilities.int.value}}"/></div>
-        <div class="ability"><label>BODY</label><input name="system.abilities.body.value" type="number" value="{{system.abilities.body.value}}"/></div>
-        <div class="ability"><label>TECH</label><input name="system.abilities.tech.value" type="number" value="{{system.abilities.tech.value}}"/></div>
-        <div class="ability"><label>WILL</label><input name="system.abilities.will.value" type="number" value="{{system.abilities.will.value}}"/></div>
-        <div class="ability"><label>COOL</label><input name="system.abilities.cool.value" type="number" value="{{system.abilities.cool.value}}"/></div>
-        <div class="ability"><label>LUCK</label><input name="system.abilities.luck.value" type="number" value="{{system.abilities.luck.value}}"/></div>
-        <div class="ability"><label>MOVE</label><input name="system.abilities.move.value" type="number" value="{{system.abilities.move.value}}"/></div>
-        <div class="ability"><label>EMP</label><input name="system.abilities.emp.value"   type="number" value="{{system.abilities.emp.value}}"/></div>
+      <div class="stats-container">
+        <div class="stats-row flexrow">
+          {{#each system.stats as |s key|}}
+            <div class="stat-box" data-stat="{{key}}">
+              <div class="stat-header">{{key}}</div>
+              <div class="stat-value-row flexrow">
+                <input name="system.stats.{{key}}.value" type="number" value="{{s.value}}" class="stat-input"/>
+                <div class="stat-modifier">+ 0</div>
+              </div>
+              <div class="stat-total">{{s.value}}</div>
+              <button type="button" class="stat-roll" data-ability="{{key}}" title="Roll {{key}}">
+                <i class="fas fa-dice-d20"></i>
+              </button>
+            </div>
+          {{/each}}
+        </div>
       </div>
     </div>
 
     <div class="tab skills" data-tab="skills">
-      {{#each system.skills as |sk key|}}
-        <div class="skill-row">
-          <label>{{sk.label}}</label>
-          <input name="system.skills.{{key}}.value" type="number" value="{{sk.value}}"/>
-        </div>
-      {{/each}}
+      <div class="skill-controls flexrow">
+        <label><input type="checkbox" class="skill-filter-fav" {{#if _skillViewState.favOnly}}checked{{/if}}> {{localize 'MF.FilterFavOnly'}}</label>
+        <label>{{localize 'MF.SortBy'}}:
+          <select class="skill-sort-by">
+            <option value="name">{{localize 'MF.SortName'}}</option>
+            <option value="stat">{{localize 'MF.SortStat'}}</option>
+            <option value="rank">{{localize 'MF.SortRank'}}</option>
+            <option value="total">{{localize 'MF.SortTotal'}}</option>
+          </select>
+        </label>
+        <button type="button" class="skill-sort-dir" data-dir="asc" title="Toggle direction">▲</button>
+        {{#unless hasSkillItems}}
+          <button type="button" class="seed-skills" title="Add Default Skills">Add Skills</button>
+        {{/unless}}
+      </div>
+      {{#if hasSkillItems}}
+        {{#each skillGroups as |group|}}
+          <h3 class="skill-category-header">{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}</h3>
+          <table class="skills-table">
+            <thead>
+              <tr>
+                <th>{{localize 'MF.ColFav'}}</th>
+                <th>{{localize 'MF.ColName'}}</th>
+                <th>{{localize 'MF.ColStat'}}</th>
+                <th>{{localize 'MF.ColRank'}}</th>
+                <th>{{localize 'MF.ColTotal'}}</th>
+                <th>{{localize 'MF.Roll'}}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each group.skills as |sk|}}
+                <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="{{group.category}}">
+                  <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
+                  <td class="skill-name">{{sk.name}} {{#if sk.hard}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                  <td class="skill-stat">{{sk.stat}}</td>
+                  <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
+                  <td class="skill-total">{{sk.total}}</td>
+                  <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
+                  <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        {{/each}}
+      {{else}}
+        <p class="mf-empty">{{localize 'MF.NoSkills'}}</p>
+      {{/if}}
     </div>
 
     <div class="tab spells" data-tab="spells">
@@ -52,7 +104,7 @@
         {{#if (eq it.type "spell")}}
           <div class="item-row" data-item-id="{{it.id}}">
             <span class="item-name">{{it.name}}</span>
-            <a class="item-control item-edit">Edit</a>
+            <a class="item-control item-edit">{{localize 'MF.Edit'}}</a>
           </div>
         {{/if}}
       {{/each}}

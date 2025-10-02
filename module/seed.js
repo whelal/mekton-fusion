@@ -2,8 +2,9 @@ import { CP2020_SKILLS } from "./data/skills.js";
 import { WITCHER_SIGNS } from "./data/spells.js";
 
 
-const HARD_MECHA_GUNNERY = "Mecha Gunnery [H]";
-const LEGACY_MECHA_GUNNERY_NAMES = ["Mecha Gunnery", "Mecha Gunnery (H)"]; // Clean up legacy variants
+const HARD_MECHA_GUNNERY = "Mecha Gunnery (H)";
+// Legacy variants we want to collapse into canonical HARD_MECHA_GUNNERY
+const LEGACY_MECHA_GUNNERY_NAMES = ["Mecha Gunnery", "Mecha Gunnery [H]"];
 
 async function ensureFolder(name, type) {
   let folder = game.folders.find(f => f.name === name && f.type === type);
@@ -14,9 +15,11 @@ async function ensureFolder(name, type) {
 function prepareSkillSystem(source = {}) {
   const sys = foundry.utils.deepClone(source);
   if (sys.stat) sys.stat = String(sys.stat).toUpperCase();
-  if (sys.rank === undefined || sys.rank === null) sys.rank = 5;
-  if (sys.favorite === undefined || sys.favorite === null) sys.favorite = false;
-  if (sys.ip === undefined || sys.ip === null) sys.ip = 0;
+  if (sys.category) sys.category = String(sys.category);
+  if (sys.rank === undefined || sys.rank === null) sys.rank = 0;
+  if (sys.favorite == null) sys.favorite = false;
+  if (sys.ip == null) sys.ip = 0;
+  if (sys.hard == null) sys.hard = /\(H\)|\[H\]/i.test(source?.name || "") ? true : false;
   return sys;
 }
 
@@ -95,7 +98,9 @@ async function ensureActorHasSkills(actor) {
 
     const currentSystem = current.system ?? {};
     const patch = {};
-    if (!currentSystem.stat) patch["system.stat"] = skill.system.stat;
+  if (!currentSystem.stat) patch["system.stat"] = skill.system.stat;
+  if (skill.system.category && !currentSystem.category) patch["system.category"] = skill.system.category;
+  if (currentSystem.hard == null && skill.system.hard) patch["system.hard"] = true;
     if (currentSystem.rank === undefined || currentSystem.rank === null) patch["system.rank"] = skill.system.rank;
     if (currentSystem.favorite === undefined || currentSystem.favorite === null) patch["system.favorite"] = skill.system.favorite;
     if (currentSystem.ip === undefined || currentSystem.ip === null) patch["system.ip"] = skill.system.ip;
@@ -151,75 +156,80 @@ async function ensureActorHasCoreItems(actor) {
   };
 }
 
-export async function syncActorSkills(actor) {
+export async function syncActorCoreItems(actor) {
   return ensureActorHasCoreItems(actor);
 }
 
 export async function seedWorldData() {
-  const skillFolder = await ensureFolder("CP2020 Skills", "Item");
-  const spellFolder = await ensureFolder("Witcher Signs", "Item");
+  try {
+    const skillFolder = await ensureFolder("CP2020 Skills", "Item");
+    const spellFolder = await ensureFolder("Witcher Signs", "Item");
 
-  const existing = new Map(game.items.map(item => [item.name, item]));
-  const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
-  const hardSkill = existing.get(HARD_MECHA_GUNNERY);
-  let canonicalSkill = hardSkill ?? null;
+    const existing = new Map(game.items.map(item => [item.name, item]));
+    const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
+    const hardSkill = existing.get(HARD_MECHA_GUNNERY);
+    let canonicalSkill = hardSkill ?? null;
 
-  for (const legacyName of legacyNames) {
-    const legacySkill = existing.get(legacyName);
-    if (!legacySkill) continue;
-    if (canonicalSkill) {
-      await legacySkill.delete();
+    for (const legacyName of legacyNames) {
+      const legacySkill = existing.get(legacyName);
+      if (!legacySkill) continue;
+      if (canonicalSkill) {
+        await legacySkill.delete();
+        existing.delete(legacyName);
+        continue;
+      }
+
+      await legacySkill.update({ name: HARD_MECHA_GUNNERY });
       existing.delete(legacyName);
-      continue;
+      existing.set(HARD_MECHA_GUNNERY, legacySkill);
+      canonicalSkill = legacySkill;
+    }
+    const toCreate = [];
+    const updates = [];
+    const processEntry = (entry, folderId) => {
+      const desired = normaliseSeedData(entry, folderId);
+      const current = existing.get(entry.name);
+
+      if (!current) {
+        toCreate.push(desired);
+        return;
+      }
+
+      const needsUpdate = !foundry.utils.objectsEqual(current.system, desired.system);
+      if (needsUpdate) updates.push(current.update({ system: desired.system }));
+    };
+
+    for (const s of CP2020_SKILLS) processEntry(s, skillFolder.id);
+    for (const sp of WITCHER_SIGNS) processEntry(sp, spellFolder.id);
+
+    if (toCreate.length) {
+      await Item.createDocuments(toCreate);
+      ui.notifications.info(`Seeded ${toCreate.length} Items (skills/spells).`);
     }
 
-    await legacySkill.update({ name: HARD_MECHA_GUNNERY });
-    existing.delete(legacyName);
-    existing.set(HARD_MECHA_GUNNERY, legacySkill);
-    canonicalSkill = legacySkill;
-  }
-  const toCreate = [];
-  const updates = [];
-  const processEntry = (entry, folderId) => {
-    const desired = normaliseSeedData(entry, folderId);
-    const current = existing.get(entry.name);
-
-    if (!current) {
-      toCreate.push(desired);
-      return;
+    if (updates.length) {
+      await Promise.all(updates);
+      ui.notifications.info(`Updated ${updates.length} existing Items.`);
     }
 
-    const needsUpdate = !foundry.utils.objectsEqual(current.system, desired.system);
-    if (needsUpdate) updates.push(current.update({ system: desired.system }));
-  };
+    let createdCount = 0;
+    let updatedCount = 0;
+    for (const actor of game.actors.contents ?? []) {
+      const { created, updated } = await ensureActorHasCoreItems(actor);
+      createdCount += created;
+      updatedCount += updated;
+    }
 
-  for (const s of CP2020_SKILLS) processEntry(s, skillFolder.id);
-  for (const sp of WITCHER_SIGNS) processEntry(sp, spellFolder.id);
+    if (createdCount || updatedCount) {
+      ui.notifications.info(`Synced actor items: ${createdCount} added, ${updatedCount} refreshed.`);
+    }
 
-  if (toCreate.length) {
-    await Item.createDocuments(toCreate);
-    ui.notifications.info(`Seeded ${toCreate.length} Items (skills/spells).`);
-  }
-
-  if (updates.length) {
-    await Promise.all(updates);
-    ui.notifications.info(`Updated ${updates.length} existing Items.`);
-  }
-
-  let createdCount = 0;
-  let updatedCount = 0;
-  for (const actor of game.actors.contents ?? []) {
-    const { created, updated } = await ensureActorHasCoreItems(actor);
-    createdCount += created;
-    updatedCount += updated;
-  }
-
-  if (createdCount || updatedCount) {
-    ui.notifications.info(`Synced actor items: ${createdCount} added, ${updatedCount} refreshed.`);
-  }
-
-  if (!toCreate.length && !updates.length && !createdCount && !updatedCount) {
-    ui.notifications.info("No new Items to seed.");
+    if (!toCreate.length && !updates.length && !createdCount && !updatedCount) {
+      ui.notifications.info("No new Items to seed.");
+    }
+  } catch (err) {
+    console.error("mekton-fusion | Seeding failed", err);
+    ui.notifications.error("Mekton Fusion seeding failed. See console.");
   }
 }
 

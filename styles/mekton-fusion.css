@@ -9,3 +9,124 @@
 .mf-row { display: grid; grid-template-columns: 1fr 120px 120px; gap: 8px; align-items: center; padding: 4px 0; }
 .mf-key { font-weight: 600; }
 .mf-empty { opacity: 0.7; font-style: italic; padding: 6px 0; }
+
+/* Cyberpunk 2020 style header */
+.mekton-fusion.sheet.actor .sheet-header {
+  background: #000;
+  color: #fff;
+  padding: 0.5rem;
+  border: 2px solid #fff;
+  margin-bottom: 1rem;
+}
+
+.mekton-fusion.sheet.actor .header-stats {
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.mekton-fusion.sheet.actor .header-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  color: #000;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #000;
+  min-width: 80px;
+}
+
+.mekton-fusion.sheet.actor .header-field label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.mekton-fusion.sheet.actor .header-field input {
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #000;
+  width: 100%;
+}
+
+/* Cyberpunk 2020 style stats */
+.mekton-fusion.sheet.actor .stats-container {
+  background: #f5f5f5;
+  padding: 1rem;
+  border: 2px solid #000;
+}
+
+.mekton-fusion.sheet.actor .stats-row {
+  gap: 0.5rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.mekton-fusion.sheet.actor .stat-box {
+  background: #fff;
+  border: 2px solid #000;
+  padding: 0.5rem;
+  text-align: center;
+  min-width: 80px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mekton-fusion.sheet.actor .stat-header {
+  font-weight: bold;
+  font-size: 0.8rem;
+  background: #000;
+  color: #fff;
+  padding: 0.2rem;
+  margin: -0.5rem -0.5rem 0.2rem -0.5rem;
+}
+
+.mekton-fusion.sheet.actor .stat-value-row {
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.mekton-fusion.sheet.actor .stat-input {
+  width: 40px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: 1px solid #000;
+  background: #fff;
+}
+
+.mekton-fusion.sheet.actor .stat-modifier {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.mekton-fusion.sheet.actor .stat-total {
+  font-weight: bold;
+  font-size: 1.2rem;
+  background: #f0f0f0;
+  border: 1px solid #000;
+  padding: 0.2rem;
+  margin: 0.2rem 0;
+}
+
+.mekton-fusion.sheet.actor .stat-roll {
+  background: #000;
+  color: #fff;
+  border: 1px solid #fff;
+  padding: 0.3rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.mekton-fusion.sheet.actor .stat-roll:hover {
+  background: #333;
+}
+
+/* Legacy styles for compatibility */
+.mekton-fusion.sheet.actor .ability .flexrow { display:flex; gap:0.4rem; align-items:center; }
+.mekton-fusion.sheet.actor .ability button.ability-roll { padding: 0 0.5rem; }

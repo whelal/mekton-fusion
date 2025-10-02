@@ -2,17 +2,22 @@ export class ActorDataModel extends foundry.abstract.DataModel {
     static defineSchema() {
         const fields = foundry.data.fields;
         return {
+            meta: new fields.SchemaField({
+                role: new fields.StringField({initial: ""}),
+                age: new fields.NumberField({initial: 25, min: 0, integer: true}),
+                points: new fields.NumberField({initial: 0, min: 0, integer: true})
+            }),
             stats: new fields.SchemaField({
-                INT: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                REF: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                TECH: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                COOL: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                ATTR: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                LUCK: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                MA: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                BODY: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                EMP: new fields.NumberField({initial: 5, min: 0, integer: true}),
-                EDU: new fields.NumberField({initial: 5, min: 0, integer: true})
+                INT: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                REF: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                TECH: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                COOL: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                ATTR: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                LUCK: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                MA: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                BODY: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                EMP: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                EDU: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) })
             }),
             hp: new fields.SchemaField({
                 current: new fields.NumberField({initial: 10, min: 0, integer: true}),

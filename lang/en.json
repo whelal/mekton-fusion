@@ -5,5 +5,30 @@
   "MF.TabSpells": "Spells",
   "MF.NoSkills": "No skills yet.",
   "MF.NoSpells": "No spells yet.",
-  "MF.School": "School"
+  "MF.School": "School",
+  "MF.Role": "Role",
+  "MF.Level": "Level",
+  "MF.Roll": "Roll",
+  "MF.Edit": "Edit",
+  "MF.StatRollTooltip": "Roll this stat",
+  "MF.ColFav": "Fav",
+  "MF.ColName": "Name",
+  "MF.ColStat": "Stat",
+  "MF.ColRank": "Rank",
+  "MF.ColTotal": "Total",
+  "MF.SkillCat.ATTR": "Attractiveness",
+  "MF.SkillCat.COOL": "Cool",
+  "MF.SkillCat.EMP": "Empathy",
+  "MF.SkillCat.INT": "Intelligence",
+  "MF.SkillCat.REF:Combat": "Reflexes: Combat",
+  "MF.SkillCat.REF:Mecha": "Reflexes: Mecha",
+  "MF.SkillCat.REF:Utility": "Reflexes: Utility",
+  "MF.SkillCat.TECH": "Technical",
+  "MF.SkillCat.PSI": "Psionics"
+  ,"MF.FilterFavOnly": "Show Favorites Only"
+  ,"MF.SortBy": "Sort By"
+  ,"MF.SortName": "Name"
+  ,"MF.SortStat": "Stat"
+  ,"MF.SortRank": "Rank"
+  ,"MF.SortTotal": "Total"
 }
