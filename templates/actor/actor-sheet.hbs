@@ -24,6 +24,7 @@
   <nav class="sheet-tabs tabs">
     <a class="item" data-tab="stats">{{localize 'MF.TabStats'}}</a>
     <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
+    <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
     <a class="item" data-tab="spells">{{localize 'MF.TabSpells'}}</a>
   </nav>
 
@@ -108,6 +109,39 @@
           </div>
         {{/if}}
       {{/each}}
+    </div>
+
+    <div class="tab psi" data-tab="psi">
+      {{#if hasPsiSkills}}
+        <table class="skills-table psi-skills">
+          <thead>
+            <tr>
+              <th>{{localize 'MF.ColFav'}}</th>
+              <th>{{localize 'MF.ColName'}}</th>
+              <th>{{localize 'MF.ColStat'}}</th>
+              <th>{{localize 'MF.ColRank'}}</th>
+              <th>{{localize 'MF.ColTotal'}}</th>
+              <th>{{localize 'MF.Roll'}}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each psiSkills as |sk|}}
+              <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="PSI">
+                <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
+                <td class="skill-name">{{sk.name}} {{#if sk.hard}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                <td class="skill-stat">{{sk.stat}}</td>
+                <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
+                <td class="skill-total">{{sk.total}}</td>
+                <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
+                <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="mf-empty">{{localize 'MF.NoPsiSkills'}}</p>
+      {{/if}}
     </div>
   </section>
 </form>

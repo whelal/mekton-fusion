@@ -85,12 +85,12 @@ export const CP2020_SKILLS = [
   { name: "Mechanics", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0 } },
 
   // EMP - Psionics (Expanded) (using EMP stat but PSI category)
-  { name: "Stat Boost (phys)", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Stat Boost (ment)", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Telekinesis", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Levitation", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Illusion Generation", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Danger Sense", type: "skill", system: { stat: "EMP", category: "PSI", rank: 0, favorite: false, ip: 0 } }
+  { name: "Stat Boost (phys)", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Stat Boost (ment)", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Telekinesis", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Levitation", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Illusion Generation", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Danger Sense", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } }
 ];
 
 export const PSIONIC_SKILL_NAMES = Object.freeze([

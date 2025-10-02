@@ -1,7 +1,7 @@
 // Centralized defaults for stats and skills
 export const STAT_DEFAULT_VALUES = Object.freeze({
   INT: 5, REF: 5, TECH: 5, COOL: 5, ATTR: 5,
-  LUCK: 5, MA: 5, BODY: 5, EMP: 5, EDU: 5
+  LUCK: 5, MA: 5, BODY: 5, EMP: 5, EDU: 5, PSI: 5
 });
 
 export function applyStatDefaults(stats = {}, defaults = STAT_DEFAULT_VALUES) {

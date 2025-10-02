@@ -17,7 +17,8 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 MA: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
                 BODY: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
                 EMP: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
-                EDU: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) })
+                EDU: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
+                PSI: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) })
             }),
             hp: new fields.SchemaField({
                 current: new fields.NumberField({initial: 10, min: 0, integer: true}),

@@ -16,7 +16,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       submitOnChange: true,
       submitOnClose: true,
       closeOnSubmit: true,
-      scrollY: [".tab.stats", ".tab.skills", ".tab.spells"]
+  scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells"]
     });
   }
 
@@ -119,7 +119,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.system.stats = applyStatDefaults(ctx.system.stats || {});
 
     // Ensure stats container exists / normalize values
-    const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU"];
+  const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU", "PSI"];
     for (const k of statKeys) {
       const path = `stats.${k}.value`;
       const v = foundry.utils.getProperty(ctx.system, path);
@@ -176,9 +176,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     });
 
-    // Group by category preserving alphabetical order of categories
+    // Separate PSI category into its own tab
+    const psiSkills = flatSkills.filter(sk => sk.category === 'PSI');
+    const nonPsi = flatSkills.filter(sk => sk.category !== 'PSI');
+
+    // Group non-PSI categories
     const byCategory = new Map();
-    for (const sk of flatSkills) {
+    for (const sk of nonPsi) {
       if (!byCategory.has(sk.category)) byCategory.set(sk.category, []);
       byCategory.get(sk.category).push(sk);
     }
@@ -187,8 +191,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .map(([category, skills]) => ({ category, skills: skills.sort((a,b)=>a.name.localeCompare(b.name)) }));
 
     ctx.skillGroups = grouped;
-    ctx.skillItems = flatSkills; // keep flat for any legacy usage
-    ctx.hasSkillItems = flatSkills.length > 0;
+    ctx.psiSkills = psiSkills.sort((a,b)=>a.name.localeCompare(b.name));
+    ctx.skillItems = flatSkills; // full flat list
+    ctx.hasSkillItems = nonPsi.length > 0;
+    ctx.hasPsiSkills = psiSkills.length > 0;
 
     return ctx;
   }

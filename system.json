@@ -48,7 +48,8 @@
         "MA": { "value": 5 },
         "BODY": { "value": 5 },
         "EMP": { "value": 5 },
-        "EDU": { "value": 5 }
+  "EDU": { "value": 5 },
+  "PSI": { "value": 5 }
       },
       "skills": {},
       "witcher": { "sp": 0 } 
