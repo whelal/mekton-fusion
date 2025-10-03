@@ -73,7 +73,9 @@
       </div>
       {{#if hasSkillItems}}
         {{#each skillGroups as |group|}}
-          <h3 class="skill-category-header">{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}</h3>
+          <h3 class="skill-category-header">
+            {{#if (eq group.category 'REF:COMBAT')}}Combat{{else}}{{#if (eq group.category 'REF:MECHA')}}Mecha{{else}}{{#if (eq group.category 'REF:UTILITY')}}Utility{{else}}{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}{{/if}}{{/if}}{{/if}}
+          </h3>
           <table class="skills-table">
             <thead>
               <tr>
@@ -136,6 +138,7 @@
             </select>
           </label>
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStatePsi.dir}}" title="Toggle direction">{{#if (eq _skillViewStatePsi.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+            <button type="button" class="psi-add-power" title="{{localize 'MF.AddPsiPower'}}">+</button>
         </div>
         <table class="skills-table psi-skills">
           <thead>

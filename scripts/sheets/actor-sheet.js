@@ -268,6 +268,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".skill-fav", ev => this._onToggleFavorite(ev));
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
+  html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
 
     const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
@@ -420,6 +421,32 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (err) {
       console.error("mekton-fusion | Manual seeding failed", err);
       ui.notifications.error("Failed to add skills. See console for details.");
+    }
+  }
+
+  /** Create a new custom Psionic power (skill item with category PSI). */
+  async _onAddPsiPower(ev) {
+    ev.preventDefault();
+    try {
+      const doc = await this.actor.createEmbeddedDocuments("Item", [{
+        name: game.i18n.localize('MF.NewPsiPower') || 'New Psionic Power',
+        type: 'skill',
+        system: {
+          stat: 'PSI',
+          category: 'PSI',
+          rank: 0,
+          favorite: false,
+          hard: false
+        }
+      }]);
+      if (doc?.length) {
+        const created = doc[0];
+        ui.notifications.info(game.i18n.format('MF.CreatedPsiPower', { name: created.name }));
+        this.render(false);
+      }
+    } catch (e) {
+      console.error('mekton-fusion | Failed to create psi power', e);
+      ui.notifications.error(game.i18n.localize('MF.ErrorCreatePsiPower') || 'Failed to create power');
     }
   }
 }

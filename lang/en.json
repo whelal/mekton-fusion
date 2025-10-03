@@ -35,4 +35,8 @@
   ,"MF.SortTotal": "Total"
   ,"MF.ShowAllSkills": "Show All Skills"
   ,"MF.ShowFavOnly": "Show Favorites Only"
+  ,"MF.AddPsiPower": "Add Psionic Power"
+  ,"MF.NewPsiPower": "New Psionic Power"
+  ,"MF.CreatedPsiPower": "Created psionic power: {name}"
+  ,"MF.ErrorCreatePsiPower": "Failed to create psionic power"
 }
