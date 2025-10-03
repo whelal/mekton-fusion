@@ -119,6 +119,24 @@
 
     <div class="tab psi" data-tab="psi">
       {{#if hasPsiSkills}}
+        <div class="skill-controls flexrow psi-controls">
+          <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewState.favOnly}}">
+            {{#if _skillViewState.favOnly}}
+              {{localize 'MF.ShowAllSkills'}}
+            {{else}}
+              {{localize 'MF.ShowFavOnly'}}
+            {{/if}}
+          </button>
+          <label>{{localize 'MF.SortBy'}}:
+            <select class="skill-sort-by">
+              <option value="name">{{localize 'MF.SortName'}}</option>
+              <option value="stat">{{localize 'MF.SortStat'}}</option>
+              <option value="rank">{{localize 'MF.SortRank'}}</option>
+              <option value="total">{{localize 'MF.SortTotal'}}</option>
+            </select>
+          </label>
+          <button type="button" class="skill-sort-dir" data-dir="{{_skillViewState.dir}}" title="Toggle direction">{{#if (eq _skillViewState.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+        </div>
         <table class="skills-table psi-skills">
           <thead>
             <tr>

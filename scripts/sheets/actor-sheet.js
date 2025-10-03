@@ -203,7 +203,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .map(([category, skills]) => ({ category, skills: skills.sort((a,b)=>a.name.localeCompare(b.name)) }));
 
     ctx.skillGroups = grouped;
-    ctx.psiSkills = psiSkills.sort((a,b)=>a.name.localeCompare(b.name));
+  // psiSkills already included in flatSkills and sorted above; preserve ordering
+  ctx.psiSkills = psiSkills;
     ctx.skillItems = flatSkills; // full flat list
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
