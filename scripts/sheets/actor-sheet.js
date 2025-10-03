@@ -4,7 +4,12 @@ import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaul
 export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   constructor(...args) {
     super(...args);
-    this._skillViewState = { favOnly: false, sortBy: 'name', dir: 'asc' };
+    // Per-tab (skills, psi) view state; loaded from user flag lazily
+    this._tabViewState = {
+      skills: { favOnly: false, sortBy: 'name', dir: 'asc' },
+      psi: { favOnly: false, sortBy: 'name', dir: 'asc' }
+    };
+    this._viewStateLoaded = false;
   }
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -133,6 +138,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       else ctx.system.skills[key] = { label: key, value: this.constructor._num(sk, 0) };
     }
 
+    // Load persisted per-tab view state once
+    if (!this._viewStateLoaded) {
+      try {
+        const saved = await game.user.getFlag('mekton-fusion', 'tabViewState');
+        if (saved && typeof saved === 'object') {
+          for (const tab of ['skills','psi']) {
+            if (saved[tab]) this._tabViewState[tab] = foundry.utils.mergeObject(this._tabViewState[tab], saved[tab]);
+          }
+        }
+      } catch (e) { console.warn('mekton-fusion | Failed loading tabViewState flag', e); }
+      this._viewStateLoaded = true;
+      // Prepare debounced saver
+      this._saveViewState = foundry.utils.debounce(async () => {
+        try { await game.user.setFlag('mekton-fusion', 'tabViewState', this._tabViewState); }
+        catch (e) { console.warn('mekton-fusion | Failed saving tabViewState', e); }
+      }, 300);
+    }
+
+    const vsSkills = this._tabViewState.skills;
+    const vsPsi = this._tabViewState.psi;
+
     // Build skill Items listing (preferred representation)
     const skillItems = this.actor.items.filter(i => i.type === "skill");
     let needsPsiFix = false;
@@ -168,29 +194,33 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     }
 
-    // Apply favorites filter - show all skills unless favOnly is checked
-    if (this._skillViewState.favOnly) {
-      flatSkills = flatSkills.filter(sk => sk.favorite);
-    }
-
-    // Sorting
-    const { sortBy, dir } = this._skillViewState;
-    const factor = dir === 'desc' ? -1 : 1;
+    // Base stable name sort
     const collator = new Intl.Collator(game.i18n.lang || 'en', { sensitivity: 'base' });
-    flatSkills.sort((a, b) => {
-      let av, bv;
-      switch (sortBy) {
-        case 'stat': av = a.stat; bv = b.stat; return collator.compare(av, bv) * factor || collator.compare(a.name,b.name);
-        case 'rank': av = a.rank; bv = b.rank; return (av - bv) * factor || collator.compare(a.name,b.name);
-        case 'total': av = a.total; bv = b.total; return (av - bv) * factor || collator.compare(a.name,b.name);
-        case 'name':
-        default: av = a.name; bv = b.name; return collator.compare(av, bv) * factor;
-      }
-    });
+    flatSkills.sort((a,b)=> collator.compare(a.name,b.name));
+    // Split into tabs early
+    let psiSkills = flatSkills.filter(sk => sk.category === 'PSI');
+    let nonPsi = flatSkills.filter(sk => sk.category !== 'PSI');
 
-    // Separate PSI category into its own tab
-    const psiSkills = flatSkills.filter(sk => sk.category === 'PSI');
-    const nonPsi = flatSkills.filter(sk => sk.category !== 'PSI');
+    // Favorites filtering per tab
+    if (vsSkills.favOnly) nonPsi = nonPsi.filter(sk => sk.favorite);
+    if (vsPsi.favOnly) psiSkills = psiSkills.filter(sk => sk.favorite);
+
+    // Sorting helper
+    function sortList(list, sortBy, dir) {
+      const factor = dir === 'desc' ? -1 : 1;
+      list.sort((a,b) => {
+        let av, bv;
+        switch (sortBy) {
+          case 'stat': av = a.stat; bv = b.stat; return collator.compare(av,bv)*factor || collator.compare(a.name,b.name);
+          case 'rank': av = a.rank; bv = b.rank; return (av-bv)*factor || collator.compare(a.name,b.name);
+          case 'total': av = a.total; bv = b.total; return (av-bv)*factor || collator.compare(a.name,b.name);
+          case 'name':
+          default: av = a.name; bv = b.name; return collator.compare(av,bv)*factor;
+        }
+      });
+    }
+    sortList(nonPsi, vsSkills.sortBy, vsSkills.dir);
+    sortList(psiSkills, vsPsi.sortBy, vsPsi.dir);
 
     // Group non-PSI categories
     const byCategory = new Map();
@@ -203,13 +233,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .map(([category, skills]) => ({ category, skills: skills.sort((a,b)=>a.name.localeCompare(b.name)) }));
 
     ctx.skillGroups = grouped;
-  // psiSkills already included in flatSkills and sorted above; preserve ordering
-  ctx.psiSkills = psiSkills;
-    ctx.skillItems = flatSkills; // full flat list
+    ctx.psiSkills = psiSkills;
+  ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential future use)
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
-    // Expose view state for template button labels
-    ctx._skillViewState = this._skillViewState;
+    // Expose per-tab view states
+    ctx._skillViewStateSkills = vsSkills;
+    ctx._skillViewStatePsi = vsPsi;
 
     return ctx;
   }
@@ -228,26 +258,41 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
 
-    // Favorites-only filter toggle button
+    const getTabFromEvent = ev => {
+      const tabEl = ev.currentTarget.closest('.tab');
+      if (tabEl?.dataset.tab === 'psi') return 'psi';
+      return 'skills';
+    };
+
+    // Favorites toggle
     html.on('click', '.skill-filter-fav-toggle', ev => {
       ev.preventDefault();
-      this._skillViewState.favOnly = !this._skillViewState.favOnly;
+      const tab = getTabFromEvent(ev);
+      const state = this._tabViewState[tab];
+      state.favOnly = !state.favOnly;
+      this._saveViewState?.();
       this.render(false);
     });
 
     // Sort selector
     html.on('change', '.skill-sort-by', ev => {
-      this._skillViewState.sortBy = ev.currentTarget.value;
+      const tab = getTabFromEvent(ev);
+      const state = this._tabViewState[tab];
+      state.sortBy = ev.currentTarget.value;
+      this._saveViewState?.();
       this.render(false);
     });
 
     // Direction toggle
     html.on('click', '.skill-sort-dir', ev => {
+      const tab = getTabFromEvent(ev);
+      const state = this._tabViewState[tab];
       const btn = ev.currentTarget;
       const dir = btn.dataset.dir === 'asc' ? 'desc' : 'asc';
-      this._skillViewState.dir = dir;
+      state.dir = dir;
       btn.dataset.dir = dir;
       btn.textContent = dir === 'asc' ? '▲' : '▼';
+      this._saveViewState?.();
       this.render(false);
     });
   }

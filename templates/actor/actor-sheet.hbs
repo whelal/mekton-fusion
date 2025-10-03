@@ -51,8 +51,8 @@
 
     <div class="tab skills" data-tab="skills">
       <div class="skill-controls flexrow">
-        <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewState.favOnly}}">
-          {{#if _skillViewState.favOnly}}
+        <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSkills.favOnly}}">
+          {{#if _skillViewStateSkills.favOnly}}
             {{localize 'MF.ShowAllSkills'}}
           {{else}}
             {{localize 'MF.ShowFavOnly'}}
@@ -66,7 +66,7 @@
             <option value="total">{{localize 'MF.SortTotal'}}</option>
           </select>
         </label>
-        <button type="button" class="skill-sort-dir" data-dir="asc" title="Toggle direction">▲</button>
+        <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSkills.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSkills.dir 'asc')}}▲{{else}}▼{{/if}}</button>
         {{#unless hasSkillItems}}
           <button type="button" class="seed-skills" title="Add Default Skills">Add Skills</button>
         {{/unless}}
@@ -120,8 +120,8 @@
     <div class="tab psi" data-tab="psi">
       {{#if hasPsiSkills}}
         <div class="skill-controls flexrow psi-controls">
-          <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewState.favOnly}}">
-            {{#if _skillViewState.favOnly}}
+          <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStatePsi.favOnly}}">
+            {{#if _skillViewStatePsi.favOnly}}
               {{localize 'MF.ShowAllSkills'}}
             {{else}}
               {{localize 'MF.ShowFavOnly'}}
@@ -135,7 +135,7 @@
               <option value="total">{{localize 'MF.SortTotal'}}</option>
             </select>
           </label>
-          <button type="button" class="skill-sort-dir" data-dir="{{_skillViewState.dir}}" title="Toggle direction">{{#if (eq _skillViewState.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+          <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStatePsi.dir}}" title="Toggle direction">{{#if (eq _skillViewStatePsi.dir 'asc')}}▲{{else}}▼{{/if}}</button>
         </div>
         <table class="skills-table psi-skills">
           <thead>
