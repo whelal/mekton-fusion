@@ -90,7 +90,7 @@
               {{#each group.skills as |sk|}}
                 <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="{{group.category}}">
                   <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
-                  <td class="skill-name">{{sk.name}} {{#if sk.hard}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                  <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
                   <td class="skill-stat">{{sk.stat}}</td>
                   <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
                   <td class="skill-total">{{sk.total}}</td>
@@ -153,7 +153,7 @@
             {{#each psiSkills as |sk|}}
               <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="PSI">
                 <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
-                <td class="skill-name">{{sk.name}} {{#if sk.hard}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
                 <td class="skill-stat">{{sk.stat}}</td>
                 <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
                 <td class="skill-total">{{sk.total}}</td>

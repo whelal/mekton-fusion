@@ -179,7 +179,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const statVal = ctx.system.stats?.[stat]?.value ?? 0;
       const rank = this.constructor._num(it.system?.rank, 0);
       const total = statVal + rank;
-      const hard = !!it.system?.hard || /\(H\)|\[H\]/i.test(it.name);
+      const nameHasHard = /\(H\)|\[H\]/i.test(it.name);
+      const hard = !!it.system?.hard || nameHasHard;
       return {
         id: it.id,
         name: it.name,
@@ -190,7 +191,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         item: it,
         system: it.system,
         category,
-        hard
+        hard,
+        hasHardMarker: nameHasHard
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
 
