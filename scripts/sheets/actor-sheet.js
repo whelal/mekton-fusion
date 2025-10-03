@@ -138,21 +138,30 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       else ctx.system.skills[key] = { label: key, value: this.constructor._num(sk, 0) };
     }
 
-    // Load persisted per-tab view state once
+    // Load persisted per-tab view state once (actor-level persistence)
     if (!this._viewStateLoaded) {
       try {
-        const saved = await game.user.getFlag('mekton-fusion', 'tabViewState');
+        // Attempt to read from actor flag first
+        let saved = await this.actor.getFlag('mekton-fusion', 'tabViewState');
+        // Migration: if no actor flag but user flag exists (legacy), copy it over
+        if (!saved) {
+          const legacy = await game.user.getFlag('mekton-fusion', 'tabViewState');
+            if (legacy && typeof legacy === 'object') {
+              saved = legacy;
+              // Don't delete user flag automatically (safety); could clear later if desired
+            }
+        }
         if (saved && typeof saved === 'object') {
           for (const tab of ['skills','psi']) {
             if (saved[tab]) this._tabViewState[tab] = foundry.utils.mergeObject(this._tabViewState[tab], saved[tab]);
           }
         }
-      } catch (e) { console.warn('mekton-fusion | Failed loading tabViewState flag', e); }
+      } catch (e) { console.warn('mekton-fusion | Failed loading actor tabViewState flag', e); }
       this._viewStateLoaded = true;
-      // Prepare debounced saver
+      // Debounced saver -> actor flag
       this._saveViewState = foundry.utils.debounce(async () => {
-        try { await game.user.setFlag('mekton-fusion', 'tabViewState', this._tabViewState); }
-        catch (e) { console.warn('mekton-fusion | Failed saving tabViewState', e); }
+        try { await this.actor.setFlag('mekton-fusion', 'tabViewState', this._tabViewState); }
+        catch (e) { console.warn('mekton-fusion | Failed saving actor tabViewState', e); }
       }, 300);
     }
 
