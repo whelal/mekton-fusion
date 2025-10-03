@@ -152,16 +152,24 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="sortable-skills">
             {{#each psiSkills as |sk|}}
-              <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="PSI">
+              <tr data-skill-id="{{sk.id}}" class="skill-item-row {{#if sk.custom}}custom-skill{{/if}}" data-favorite="{{sk.favorite}}" data-category="PSI" draggable="true">
                 <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
-                <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                <td class="skill-name">
+                  <span class="skill-drag-handle" title="Drag to reorder">⋮⋮</span>
+                  {{sk.name}} 
+                  {{#if sk.custom}}<span class="custom-flag" title="Custom/Homebrew Power">✦</span>{{/if}}
+                  {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
+                </td>
                 <td class="skill-stat">{{sk.stat}}</td>
                 <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
                 <td class="skill-total">{{sk.total}}</td>
                 <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
-                <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
+                <td class="skill-edit">
+                  <a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a>
+                  {{#if sk.custom}}<a class="item-control item-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sk.id}}"><i class="fas fa-trash"></i></a>{{/if}}
+                </td>
               </tr>
             {{/each}}
           </tbody>

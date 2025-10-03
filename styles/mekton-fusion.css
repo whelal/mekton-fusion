@@ -157,3 +157,69 @@
 .mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle:hover {
   background: #222;
 }
+
+/* Custom psionic power styling */
+.mekton-fusion.sheet.actor .custom-skill {
+  background: rgba(255, 215, 0, 0.1); /* Light gold background for custom skills */
+}
+
+.mekton-fusion.sheet.actor .custom-flag {
+  color: #ff6b35;
+  font-weight: bold;
+  margin-left: 0.25rem;
+  font-size: 0.9rem;
+}
+
+/* Drag handle styling */
+.mekton-fusion.sheet.actor .skill-drag-handle {
+  color: #666;
+  cursor: grab;
+  margin-right: 0.5rem;
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+.mekton-fusion.sheet.actor .skill-drag-handle:hover {
+  color: #000;
+  opacity: 1;
+}
+
+.mekton-fusion.sheet.actor .skill-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Dragging state styling */
+.mekton-fusion.sheet.actor .skill-item-row.dragging {
+  opacity: 0.5;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+.mekton-fusion.sheet.actor .sortable-skills {
+  min-height: 2rem; /* Ensure drop zone exists even when empty */
+}
+
+/* Delete button styling */
+.mekton-fusion.sheet.actor .item-delete {
+  color: #dc3545;
+  margin-left: 0.25rem;
+}
+
+.mekton-fusion.sheet.actor .item-delete:hover {
+  color: #c82333;
+}
+
+/* Add psi power button */
+.mekton-fusion.sheet.actor .psi-add-power {
+  background: #28a745;
+  color: #fff;
+  border: 1px solid #1e7e34;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
+.mekton-fusion.sheet.actor .psi-add-power:hover {
+  background: #218838;
+}

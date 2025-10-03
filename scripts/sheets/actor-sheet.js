@@ -181,6 +181,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const total = statVal + rank;
       const nameHasHard = /\(H\)|\[H\]/i.test(it.name);
       const hard = !!it.system?.hard || nameHasHard;
+      const custom = !!it.system?.custom; // Track custom/homebrew powers
       return {
         id: it.id,
         name: it.name,
@@ -192,7 +193,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         system: it.system,
         category,
         hard,
-        hasHardMarker: nameHasHard
+        hasHardMarker: nameHasHard,
+        custom
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -268,9 +270,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".skill-fav", ev => this._onToggleFavorite(ev));
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
-  html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
-
-    const getTabFromEvent = ev => {
+    html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
+    html.on("click", ".item-delete", ev => this._onDeletePsiPower(ev));    const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
       if (tabEl?.dataset.tab === 'psi') return 'psi';
       return 'skills';
@@ -307,6 +308,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this._saveViewState?.();
       this.render(false);
     });
+
+    // Drag and drop for psi skills reordering
+    const sortableContainer = html.find('.sortable-skills')[0];
+    if (sortableContainer) {
+      sortableContainer.addEventListener('dragstart', this._onDragStart.bind(this));
+      sortableContainer.addEventListener('dragover', this._onDragOver.bind(this));
+      sortableContainer.addEventListener('drop', this._onDrop.bind(this));
+      sortableContainer.addEventListener('dragend', this._onDragEnd.bind(this));
+    }
   }
 
   /** Roll 1d10 + selected stat (with optional modifier) */
@@ -428,15 +438,43 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   async _onAddPsiPower(ev) {
     ev.preventDefault();
     try {
+      // Check for duplicate names
+      const existingNames = this.actor.items
+        .filter(i => i.type === 'skill' && i.system?.category === 'PSI')
+        .map(i => i.name.toLowerCase());
+      
+      // Prompt for name
+      let name;
+      try {
+        name = await Dialog.prompt({
+          title: game.i18n.localize('MF.AddPsiPower') || 'Add Psionic Power',
+          content: `<p>${game.i18n.localize('MF.PsiPowerNamePrompt') || 'Enter name for the new psionic power:'}</p><input type="text" name="powerName" value="" style="width:100%" placeholder="${game.i18n.localize('MF.NewPsiPower') || 'New Psionic Power'}"/>`,
+          label: game.i18n.localize('MF.Create') || 'Create',
+          callback: html => {
+            const input = html.find("[name='powerName']").val().trim();
+            return input || (game.i18n.localize('MF.NewPsiPower') || 'New Psionic Power');
+          }
+        });
+      } catch (_) { 
+        return; // User cancelled
+      }
+
+      // Check for duplicates
+      if (existingNames.includes(name.toLowerCase())) {
+        ui.notifications.warn(game.i18n.format('MF.DuplicatePsiPowerName', { name }) || `A psionic power named "${name}" already exists.`);
+        return;
+      }
+
       const doc = await this.actor.createEmbeddedDocuments("Item", [{
-        name: game.i18n.localize('MF.NewPsiPower') || 'New Psionic Power',
+        name: name,
         type: 'skill',
         system: {
           stat: 'PSI',
           category: 'PSI',
           rank: 0,
           favorite: false,
-          hard: false
+          hard: false,
+          custom: true // Mark as custom/homebrew
         }
       }]);
       if (doc?.length) {
@@ -447,6 +485,86 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (e) {
       console.error('mekton-fusion | Failed to create psi power', e);
       ui.notifications.error(game.i18n.localize('MF.ErrorCreatePsiPower') || 'Failed to create power');
+    }
+  }
+
+  /** Delete a custom psionic power */
+  async _onDeletePsiPower(ev) {
+    ev.preventDefault();
+    const li = ev.currentTarget.closest("[data-item-id]");
+    if (!li) return;
+    const item = this.actor.items.get(li.dataset.itemId);
+    if (!item) return;
+
+    const confirmed = await Dialog.confirm({
+      title: game.i18n.localize('MF.DeletePsiPower') || 'Delete Psionic Power',
+      content: game.i18n.format('MF.DeletePsiPowerConfirm', { name: item.name }) || `Delete psionic power "${item.name}"?`,
+      yes: () => true,
+      no: () => false
+    });
+
+    if (confirmed) {
+      await item.delete();
+      ui.notifications.info(game.i18n.format('MF.DeletedPsiPower', { name: item.name }) || `Deleted psionic power: ${item.name}`);
+      this.render(false);
+    }
+  }
+
+  /** Drag and drop handlers for skill reordering */
+  _onDragStart(ev) {
+    const row = ev.target.closest('.skill-item-row');
+    if (!row) return;
+    ev.dataTransfer.setData('text/plain', row.dataset.skillId);
+    row.classList.add('dragging');
+  }
+
+  _onDragOver(ev) {
+    ev.preventDefault();
+    const row = ev.target.closest('.skill-item-row');
+    if (!row || row.classList.contains('dragging')) return;
+    
+    const container = row.closest('.sortable-skills');
+    const dragging = container.querySelector('.dragging');
+    if (!dragging) return;
+
+    const siblings = [...container.querySelectorAll('.skill-item-row:not(.dragging)')];
+    const nextSibling = siblings.find(sibling => {
+      const rect = sibling.getBoundingClientRect();
+      return ev.clientY <= rect.top + rect.height / 2;
+    });
+
+    container.insertBefore(dragging, nextSibling);
+  }
+
+  _onDrop(ev) {
+    ev.preventDefault();
+    // Order is handled by dragover, just need to save the new order
+    this._savePsiSkillOrder();
+  }
+
+  _onDragEnd(ev) {
+    const row = ev.target.closest('.skill-item-row');
+    if (row) row.classList.remove('dragging');
+  }
+
+  /** Save the current order of psi skills based on DOM */
+  async _savePsiSkillOrder() {
+    const container = this.element.find('.sortable-skills')[0];
+    if (!container) return;
+
+    const rows = [...container.querySelectorAll('.skill-item-row')];
+    const updates = [];
+    
+    for (let i = 0; i < rows.length; i++) {
+      const skillId = rows[i].dataset.skillId;
+      const item = this.actor.items.get(skillId);
+      if (item && item.system?.category === 'PSI') {
+        updates.push({ _id: skillId, 'system.sort': i });
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.actor.updateEmbeddedDocuments('Item', updates);
     }
   }
 }

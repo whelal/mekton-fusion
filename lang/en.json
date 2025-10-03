@@ -39,4 +39,11 @@
   ,"MF.NewPsiPower": "New Psionic Power"
   ,"MF.CreatedPsiPower": "Created psionic power: {name}"
   ,"MF.ErrorCreatePsiPower": "Failed to create psionic power"
+  ,"MF.PsiPowerNamePrompt": "Enter name for the new psionic power:"
+  ,"MF.Create": "Create"
+  ,"MF.DuplicatePsiPowerName": "A psionic power named '{name}' already exists."
+  ,"MF.Delete": "Delete"
+  ,"MF.DeletePsiPower": "Delete Psionic Power"
+  ,"MF.DeletePsiPowerConfirm": "Delete psionic power '{name}'?"
+  ,"MF.DeletedPsiPower": "Deleted psionic power: {name}"
 }
