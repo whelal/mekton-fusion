@@ -51,7 +51,13 @@
 
     <div class="tab skills" data-tab="skills">
       <div class="skill-controls flexrow">
-        <label><input type="checkbox" class="skill-filter-fav" {{#if _skillViewState.favOnly}}checked{{/if}}> {{localize 'MF.FilterFavOnly'}}</label>
+        <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewState.favOnly}}">
+          {{#if _skillViewState.favOnly}}
+            {{localize 'MF.ShowAllSkills'}}
+          {{else}}
+            {{localize 'MF.ShowFavOnly'}}
+          {{/if}}
+        </button>
         <label>{{localize 'MF.SortBy'}}:
           <select class="skill-sort-by">
             <option value="name">{{localize 'MF.SortName'}}</option>

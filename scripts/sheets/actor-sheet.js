@@ -195,6 +195,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.skillItems = flatSkills; // full flat list
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
+    // Expose view state for template button labels
+    ctx._skillViewState = this._skillViewState;
 
     return ctx;
   }
@@ -213,9 +215,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
 
-    // Favorites-only filter
-    html.on('change', '.skill-filter-fav', ev => {
-      this._skillViewState.favOnly = ev.currentTarget.checked;
+    // Favorites-only filter toggle button
+    html.on('click', '.skill-filter-fav-toggle', ev => {
+      ev.preventDefault();
+      this._skillViewState.favOnly = !this._skillViewState.favOnly;
       this.render(false);
     });
 
