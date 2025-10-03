@@ -89,7 +89,34 @@ export const CP2020_SKILLS = [
   { name: "Telekinesis", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
   { name: "Levitation", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
   { name: "Illusion Generation", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
-  { name: "Danger Sense", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } }
+  { name: "Danger Sense", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  
+  // BODY (vs BOD) Psionics
+  { name: "Healing", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Regeneration", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  
+  // FORCE (vs LUCK) Psionics
+  { name: "Energy Manipulation", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Psychometry", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Pyrokinesis", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Retrocognition", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  
+  // MIND (vs INT) Psionics
+  { name: "Astral Projection", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Illusion", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Recognition", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Psi Blast", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Psi Block", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Suggestion", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Telepathy", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  
+  // WILL (vs COOL) Psionics
+  { name: "Aura Viewing", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Clairvoyance", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Empathy", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Emotion Scan", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Postcognition", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } },
+  { name: "Possession", type: "skill", system: { stat: "PSI", category: "PSI", rank: 0, favorite: false, ip: 0 } }
 ];
 
 export const PSIONIC_SKILL_NAMES = Object.freeze([
@@ -97,5 +124,28 @@ export const PSIONIC_SKILL_NAMES = Object.freeze([
   "Telekinesis",
   "Levitation",
   "Illusion Generation",
-  "Danger Sense"
+  "Danger Sense",
+  // BODY (vs BOD)
+  "Healing",
+  "Regeneration",
+  // FORCE (vs LUCK)
+  "Energy Manipulation",
+  "Psychometry",
+  "Pyrokinesis",
+  "Retrocognition",
+  // MIND (vs INT)
+  "Astral Projection",
+  "Illusion",
+  "Recognition",
+  "Psi Blast",
+  "Psi Block",
+  "Suggestion",
+  "Telepathy",
+  // WILL (vs COOL)
+  "Aura Viewing",
+  "Clairvoyance",
+  "Empathy",
+  "Emotion Scan",
+  "Postcognition",
+  "Possession"
 ]);
