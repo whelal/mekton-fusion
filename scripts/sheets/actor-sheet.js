@@ -135,12 +135,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Build skill Items listing (preferred representation)
     const skillItems = this.actor.items.filter(i => i.type === "skill");
+    let needsPsiFix = false;
     let flatSkills = skillItems.map(it => {
-      const stat = String(it.system?.stat || "REF").toUpperCase();
+      let stat = String(it.system?.stat || "REF").toUpperCase();
+      const category = (it.system?.category || stat).toUpperCase();
+      // If category is PSI, force stat to PSI regardless of stored stat
+      if (category === 'PSI' && stat !== 'PSI') { stat = 'PSI'; needsPsiFix = true; }
       const statVal = ctx.system.stats?.[stat]?.value ?? 0;
       const rank = this.constructor._num(it.system?.rank, 0);
       const total = statVal + rank;
-      const category = it.system?.category || stat;
       const hard = !!it.system?.hard || /\(H\)|\[H\]/i.test(it.name);
       return {
         id: it.id,
@@ -155,6 +158,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         hard
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
+
+    // Migration: if any PSI category skills had non-PSI stat stored, update documents silently
+    if (needsPsiFix) {
+      for (const sk of flatSkills) {
+        if (sk.category === 'PSI' && sk.item.system?.stat?.toUpperCase?.() !== 'PSI') {
+          await sk.item.update({ 'system.stat': 'PSI' });
+        }
+      }
+    }
 
     // Apply favorites filter - show all skills unless favOnly is checked
     if (this._skillViewState.favOnly) {
