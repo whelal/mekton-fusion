@@ -459,8 +459,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skill = this.actor.items.get(li.dataset.skillId); if (!skill) return;
     const val = MektonActorSheet._num(input.value, 0);
     await skill.update({ "system.rank": val });
-    // Optimistic UI: adjust displayed total without full re-render (optional)
-    this.render(false);
+    
+    // Update the total display without full re-render
+    const totalCell = li.querySelector('.skill-total');
+    if (totalCell) {
+      const stat = skill.system?.stat?.toUpperCase() || 'REF';
+      const statVal = this.actor.system?.stats?.[stat]?.value ?? 0;
+      totalCell.textContent = statVal + val;
+    }
   }
 
   async _onSeedSkills(ev) {
@@ -712,7 +718,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!spell) return;
     const val = MektonActorSheet._num(input.value, 0);
     await spell.update({ "system.rank": val });
-    this.render(false);
+    
+    // Update the total display without full re-render
+    const totalCell = li.querySelector('.spell-total');
+    if (totalCell) {
+      const statSelect = li.querySelector('.spell-stat');
+      const stat = statSelect?.value?.toUpperCase() || 'INT';
+      const statVal = this.actor.system?.stats?.[stat]?.value ?? 0;
+      totalCell.textContent = statVal + val;
+    }
   }
 
   /** Change spell stat */
@@ -723,7 +737,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const spell = this.actor.items.get(li.dataset.itemId);
     if (!spell) return;
     await spell.update({ "system.stat": select.value });
-    this.render(false);
+    
+    // Update the total display without full re-render
+    const totalCell = li.querySelector('.spell-total');
+    if (totalCell) {
+      const newStat = select.value.toUpperCase();
+      const statVal = this.actor.system?.stats?.[newStat]?.value ?? 0;
+      const rank = parseInt(li.querySelector('.spell-rank')?.value) || 0;
+      totalCell.textContent = statVal + rank;
+    }
   }
 
   /** Roll spell */
