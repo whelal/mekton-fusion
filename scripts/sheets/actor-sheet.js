@@ -4,10 +4,11 @@ import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaul
 export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   constructor(...args) {
     super(...args);
-    // Per-tab (skills, psi) view state; loaded from user flag lazily
+    // Per-tab (skills, psi, spells) view state; loaded from user flag lazily
     this._tabViewState = {
       skills: { favOnly: false, sortBy: 'name', dir: 'asc' },
-      psi: { favOnly: false, sortBy: 'name', dir: 'asc' }
+      psi: { favOnly: false, sortBy: 'name', dir: 'asc' },
+      spells: { favOnly: false, sortBy: 'name', dir: 'asc' }
     };
     this._viewStateLoaded = false;
   }
@@ -152,7 +153,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             }
         }
         if (saved && typeof saved === 'object') {
-          for (const tab of ['skills','psi']) {
+          for (const tab of ['skills','psi','spells']) {
             if (saved[tab]) this._tabViewState[tab] = foundry.utils.mergeObject(this._tabViewState[tab], saved[tab]);
           }
         }
@@ -167,6 +168,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const vsSkills = this._tabViewState.skills;
     const vsPsi = this._tabViewState.psi;
+    const vsSpells = this._tabViewState.spells;
 
     // Build skill Items listing (preferred representation)
     const skillItems = this.actor.items.filter(i => i.type === "skill");
@@ -214,9 +216,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     let psiSkills = flatSkills.filter(sk => sk.category === 'PSI');
     let nonPsi = flatSkills.filter(sk => sk.category !== 'PSI');
 
+    // Build spell Items listing
+    const spellItems = this.actor.items.filter(i => i.type === "spell");
+    let spells = spellItems.map(it => {
+      const stat = String(it.system?.stat || it.system?.test || "INT").toUpperCase();
+      const statVal = ctx.system.stats?.[stat]?.value ?? 0;
+      const rank = this.constructor._num(it.system?.rank, 0);
+      const total = statVal + rank;
+      const custom = !!it.system?.custom;
+      return {
+        id: it.id,
+        name: it.name,
+        stat,
+        rank,
+        total,
+        favorite: !!it.system?.favorite,
+        item: it,
+        system: it.system,
+        school: it.system?.school || 'Unknown',
+        cost: it.system?.cost || 0,
+        effect: it.system?.effect || '',
+        custom
+      };
+    }).sort((a, b) => collator.compare(a.name, b.name));
+
     // Favorites filtering per tab
     if (vsSkills.favOnly) nonPsi = nonPsi.filter(sk => sk.favorite);
     if (vsPsi.favOnly) psiSkills = psiSkills.filter(sk => sk.favorite);
+    if (vsSpells.favOnly) spells = spells.filter(sp => sp.favorite);
 
     // Sorting helper
     function sortList(list, sortBy, dir) {
@@ -234,6 +261,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     sortList(nonPsi, vsSkills.sortBy, vsSkills.dir);
     sortList(psiSkills, vsPsi.sortBy, vsPsi.dir);
+    sortList(spells, vsSpells.sortBy, vsSpells.dir);
 
     // Group non-PSI categories
     const byCategory = new Map();
@@ -247,12 +275,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     ctx.skillGroups = grouped;
     ctx.psiSkills = psiSkills;
+    ctx.spells = spells;
   ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential future use)
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
+    ctx.hasSpells = spells.length > 0;
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;
+    ctx._skillViewStateSpells = vsSpells;
 
     return ctx;
   }
@@ -271,9 +302,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
     html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
-    html.on("click", ".item-delete", ev => this._onDeletePsiPower(ev));    const getTabFromEvent = ev => {
+    html.on("click", ".spell-add-power", ev => this._onAddSpell(ev));
+    html.on("click", ".item-delete", ev => this._onDeletePsiPower(ev));
+    html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
+    html.on("change", ".spell-rank", ev => this._onChangeSpellRank(ev));
+    html.on("change", ".spell-stat", ev => this._onChangeSpellStat(ev));
+    html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
+    html.on("click", ".spell-roll", ev => this._onRollSpell(ev));    const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
       if (tabEl?.dataset.tab === 'psi') return 'psi';
+      if (tabEl?.dataset.tab === 'spells') return 'spells';
       return 'skills';
     };
 
@@ -316,6 +354,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       sortableContainer.addEventListener('dragover', this._onDragOver.bind(this));
       sortableContainer.addEventListener('drop', this._onDrop.bind(this));
       sortableContainer.addEventListener('dragend', this._onDragEnd.bind(this));
+    }
+
+    // Drag and drop for spells reordering
+    const sortableSpellsContainer = html.find('.sortable-spells')[0];
+    if (sortableSpellsContainer) {
+      sortableSpellsContainer.addEventListener('dragstart', this._onDragStart.bind(this));
+      sortableSpellsContainer.addEventListener('dragover', this._onDragOver.bind(this));
+      sortableSpellsContainer.addEventListener('drop', this._onDropSpell.bind(this));
+      sortableSpellsContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
   }
 
@@ -560,6 +607,190 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const item = this.actor.items.get(skillId);
       if (item && item.system?.category === 'PSI') {
         updates.push({ _id: skillId, 'system.sort': i });
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.actor.updateEmbeddedDocuments('Item', updates);
+    }
+  }
+
+  /** Create a new spell */
+  async _onAddSpell(ev) {
+    ev.preventDefault();
+    try {
+      // Check for duplicate names
+      const existingNames = this.actor.items
+        .filter(i => i.type === 'spell')
+        .map(i => i.name.toLowerCase());
+      
+      // Prompt for name
+      let name;
+      try {
+        name = await Dialog.prompt({
+          title: game.i18n.localize('MF.AddSpell') || 'Add Spell',
+          content: `<p>${game.i18n.localize('MF.SpellNamePrompt') || 'Enter name for the new spell:'}</p><input type="text" name="spellName" value="" style="width:100%" placeholder="${game.i18n.localize('MF.NewSpell') || 'New Spell'}"/>`,
+          label: game.i18n.localize('MF.Create') || 'Create',
+          callback: html => {
+            const input = html.find("[name='spellName']").val().trim();
+            return input || (game.i18n.localize('MF.NewSpell') || 'New Spell');
+          }
+        });
+      } catch (_) { 
+        return; // User cancelled
+      }
+
+      // Check for duplicates
+      if (existingNames.includes(name.toLowerCase())) {
+        ui.notifications.warn(game.i18n.format('MF.DuplicateSpellName', { name }) || `A spell named "${name}" already exists.`);
+        return;
+      }
+
+      const doc = await this.actor.createEmbeddedDocuments("Item", [{
+        name: name,
+        type: 'spell',
+        system: {
+          stat: 'INT',
+          school: 'Custom',
+          cost: 1,
+          rank: 0,
+          favorite: false,
+          custom: true,
+          effect: ''
+        }
+      }]);
+      if (doc?.length) {
+        const created = doc[0];
+        ui.notifications.info(game.i18n.format('MF.CreatedSpell', { name: created.name }));
+        this.render(false);
+      }
+    } catch (e) {
+      console.error('mekton-fusion | Failed to create spell', e);
+      ui.notifications.error(game.i18n.localize('MF.ErrorCreateSpell') || 'Failed to create spell');
+    }
+  }
+
+  /** Delete a spell */
+  async _onDeleteSpell(ev) {
+    ev.preventDefault();
+    const li = ev.currentTarget.closest("[data-item-id]");
+    if (!li) return;
+    const item = this.actor.items.get(li.dataset.itemId);
+    if (!item) return;
+
+    const confirmed = await Dialog.confirm({
+      title: game.i18n.localize('MF.DeleteSpell') || 'Delete Spell',
+      content: game.i18n.format('MF.DeleteSpellConfirm', { name: item.name }) || `Delete spell "${item.name}"?`,
+      yes: () => true,
+      no: () => false
+    });
+
+    if (confirmed) {
+      await item.delete();
+      ui.notifications.info(game.i18n.format('MF.DeletedSpell', { name: item.name }) || `Deleted spell: ${item.name}`);
+      this.render(false);
+    }
+  }
+
+  /** Toggle spell favorite */
+  async _onToggleSpellFavorite(ev) {
+    ev.preventDefault();
+    const li = ev.currentTarget.closest("[data-item-id]");
+    if (!li) return;
+    const spell = this.actor.items.get(li.dataset.itemId);
+    if (!spell) return;
+    await spell.update({ "system.favorite": !spell.system.favorite });
+    this.render(false);
+  }
+
+  /** Change spell rank */
+  async _onChangeSpellRank(ev) {
+    const input = ev.currentTarget;
+    const li = input.closest("[data-item-id]");
+    if (!li) return;
+    const spell = this.actor.items.get(li.dataset.itemId);
+    if (!spell) return;
+    const val = MektonActorSheet._num(input.value, 0);
+    await spell.update({ "system.rank": val });
+    this.render(false);
+  }
+
+  /** Change spell stat */
+  async _onChangeSpellStat(ev) {
+    const select = ev.currentTarget;
+    const li = select.closest("[data-item-id]");
+    if (!li) return;
+    const spell = this.actor.items.get(li.dataset.itemId);
+    if (!spell) return;
+    await spell.update({ "system.stat": select.value });
+    this.render(false);
+  }
+
+  /** Roll spell */
+  async _onRollSpell(ev) {
+    ev.preventDefault();
+    const li = ev.currentTarget.closest("[data-item-id]");
+    if (!li) return;
+    const id = li.dataset.itemId;
+    const spell = this.actor.items.get(id);
+    if (!spell) return;
+    
+    const stat = String(spell.system?.stat || "INT").toUpperCase();
+    const rank = MektonActorSheet._num(spell.system?.rank, 0);
+    const statLabel = stat;
+    const statSource = this.actor.system?.stats?.[stat];
+    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
+
+    let mod = 0;
+    if (!ev.shiftKey) {
+      try {
+        mod = Number(await Dialog.prompt({
+          title: `Modifier for ${spell.name}`,
+          content: `<p>Enter a temporary modifier for ${spell.name} (can be negative):</p><input type="number" name="mod" value="0" style="width:100%"/>`,
+          label: "Roll",
+          callback: html => Number(html.find("[name='mod']").val() || 0)
+        })) || 0;
+      } catch (_) { return; }
+    }
+    
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const finalTotal = base + statVal + rank + (mod||0);
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const school = spell.system?.school || 'Unknown';
+    const cost = spell.system?.cost || 0;
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
+    if (rank) flavorParts.push(`Rank ${rank}`);
+    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
+    if (cost) flavorParts.push(`Cost ${cost}`);
+    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
+    const flavor = `<strong>${this.actor.name}</strong> casts <em>${spell.name}</em> <small>[${school}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>`;
+    roll.toMessage({ speaker, flavor });
+  }
+
+  /** Drop spell handler */
+  _onDropSpell(ev) {
+    ev.preventDefault();
+    this._saveSpellOrder();
+  }
+
+  /** Save spell order */
+  async _saveSpellOrder() {
+    const container = this.element.find('.sortable-spells')[0];
+    if (!container) return;
+
+    const rows = [...container.querySelectorAll('.spell-item-row')];
+    const updates = [];
+    
+    for (let i = 0; i < rows.length; i++) {
+      const spellId = rows[i].dataset.itemId;
+      const item = this.actor.items.get(spellId);
+      if (item && item.type === 'spell') {
+        updates.push({ _id: spellId, 'system.sort': i });
       }
     }
 

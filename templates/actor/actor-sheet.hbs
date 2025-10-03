@@ -109,14 +109,80 @@
     </div>
 
     <div class="tab spells" data-tab="spells">
-      {{#each items as |it|}}
-        {{#if (eq it.type "spell")}}
-          <div class="item-row" data-item-id="{{it.id}}">
-            <span class="item-name">{{it.name}}</span>
-            <a class="item-control item-edit">{{localize 'MF.Edit'}}</a>
-          </div>
-        {{/if}}
-      {{/each}}
+      {{#if hasSpells}}
+        <div class="skill-controls flexrow spell-controls">
+          <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSpells.favOnly}}">
+            {{#if _skillViewStateSpells.favOnly}}
+              {{localize 'MF.ShowAllSkills'}}
+            {{else}}
+              {{localize 'MF.ShowFavOnly'}}
+            {{/if}}
+          </button>
+          <label>{{localize 'MF.SortBy'}}:
+            <select class="skill-sort-by">
+              <option value="name">{{localize 'MF.SortName'}}</option>
+              <option value="stat">{{localize 'MF.SortStat'}}</option>
+              <option value="rank">{{localize 'MF.SortRank'}}</option>
+              <option value="total">{{localize 'MF.SortTotal'}}</option>
+            </select>
+          </label>
+          <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+          <button type="button" class="spell-add-power" title="{{localize 'MF.AddSpell'}}">+</button>
+        </div>
+        <table class="skills-table spell-skills">
+          <thead>
+            <tr>
+              <th>{{localize 'MF.ColFav'}}</th>
+              <th>{{localize 'MF.ColName'}}</th>
+              <th>{{localize 'MF.ColStat'}}</th>
+              <th>{{localize 'MF.ColRank'}}</th>
+              <th>{{localize 'MF.ColTotal'}}</th>
+              <th>{{localize 'MF.School'}}</th>
+              <th>{{localize 'MF.Cost'}}</th>
+              <th>{{localize 'MF.Roll'}}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody class="sortable-spells">
+            {{#each spells as |sp|}}
+              <tr data-item-id="{{sp.id}}" class="spell-item-row {{#if sp.custom}}custom-spell{{/if}}" data-favorite="{{sp.favorite}}" draggable="true">
+                <td class="spell-fav-cell"><a class="spell-fav" title="Toggle Favorite">{{#if sp.favorite}}★{{else}}☆{{/if}}</a></td>
+                <td class="spell-name">
+                  <span class="skill-drag-handle" title="Drag to reorder">⋮⋮</span>
+                  {{sp.name}} 
+                  {{#if sp.custom}}<span class="custom-flag" title="Custom Spell">✦</span>{{/if}}
+                </td>
+                <td class="spell-stat-cell">
+                  <select class="spell-stat" data-item-id="{{sp.id}}">
+                    <option value="INT" {{#if (eq sp.stat 'INT')}}selected{{/if}}>INT</option>
+                    <option value="REF" {{#if (eq sp.stat 'REF')}}selected{{/if}}>REF</option>
+                    <option value="TECH" {{#if (eq sp.stat 'TECH')}}selected{{/if}}>TECH</option>
+                    <option value="COOL" {{#if (eq sp.stat 'COOL')}}selected{{/if}}>COOL</option>
+                    <option value="ATTR" {{#if (eq sp.stat 'ATTR')}}selected{{/if}}>ATTR</option>
+                    <option value="LUCK" {{#if (eq sp.stat 'LUCK')}}selected{{/if}}>LUCK</option>
+                    <option value="MA" {{#if (eq sp.stat 'MA')}}selected{{/if}}>MA</option>
+                    <option value="BODY" {{#if (eq sp.stat 'BODY')}}selected{{/if}}>BODY</option>
+                    <option value="EMP" {{#if (eq sp.stat 'EMP')}}selected{{/if}}>EMP</option>
+                    <option value="EDU" {{#if (eq sp.stat 'EDU')}}selected{{/if}}>EDU</option>
+                    <option value="PSI" {{#if (eq sp.stat 'PSI')}}selected{{/if}}>PSI</option>
+                  </select>
+                </td>
+                <td class="spell-rank-cell"><input class="spell-rank" type="number" min="0" value="{{sp.rank}}"/></td>
+                <td class="spell-total">{{sp.total}}</td>
+                <td class="spell-school">{{sp.school}}</td>
+                <td class="spell-cost">{{sp.cost}}</td>
+                <td class="spell-roll-cell"><button type="button" class="spell-roll" title="Cast {{sp.name}}"><i class="fas fa-magic"></i></button></td>
+                <td class="spell-edit">
+                  <a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sp.id}}"><i class="fas fa-edit"></i></a>
+                  {{#if sp.custom}}<a class="item-control spell-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sp.id}}"><i class="fas fa-trash"></i></a>{{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p class="mf-empty">{{localize 'MF.NoSpells'}}</p>
+      {{/if}}
     </div>
 
     <div class="tab psi" data-tab="psi">

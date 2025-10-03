@@ -223,3 +223,47 @@
 .mekton-fusion.sheet.actor .psi-add-power:hover {
   background: #218838;
 }
+
+/* Spells styling */
+.mekton-fusion.sheet.actor .custom-spell {
+  background: rgba(138, 43, 226, 0.1); /* Light purple background for custom spells */
+}
+
+.mekton-fusion.sheet.actor .spell-add-power {
+  background: #6f42c1;
+  color: #fff;
+  border: 1px solid #5a32a3;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
+.mekton-fusion.sheet.actor .spell-add-power:hover {
+  background: #5a32a3;
+}
+
+.mekton-fusion.sheet.actor .spell-stat {
+  width: 60px;
+  font-size: 0.8rem;
+  padding: 0.1rem;
+}
+
+.mekton-fusion.sheet.actor .spell-delete {
+  color: #dc3545;
+  margin-left: 0.25rem;
+}
+
+.mekton-fusion.sheet.actor .spell-delete:hover {
+  color: #c82333;
+}
+
+.mekton-fusion.sheet.actor .sortable-spells {
+  min-height: 2rem;
+}
+
+.mekton-fusion.sheet.actor .spell-item-row.dragging {
+  opacity: 0.5;
+  background: rgba(111, 66, 193, 0.1);
+}
