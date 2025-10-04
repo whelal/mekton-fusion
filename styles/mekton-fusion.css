@@ -104,10 +104,10 @@
 }
 
 .mekton-fusion.sheet.actor .stat-input {
-  width: 40px;
+  width: 36px;
   text-align: center;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1rem;
   border: 1px solid #000;
   background: #fff;
 }
@@ -130,13 +130,19 @@
   background: #000;
   color: #fff;
   border: 1px solid #fff;
-  padding: 0.3rem;
+  padding: 0;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
 }
 
 .mekton-fusion.sheet.actor .stat-roll:hover {
-  background: #333;
+  background: #222;
 }
 
 /* Legacy styles for compatibility */
@@ -348,4 +354,75 @@
   .mekton-fusion.sheet.actor .substats-cards .substats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* New layout: top stats grid */
+.mekton-fusion.sheet.actor .stats-grid-top { display: flex; flex-direction: column; gap: 0.5rem; }
+.mekton-fusion.sheet.actor .stat-row-top {
+  /* Use grid so rows can show exactly 5 equal columns on wide screens */
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.mekton-fusion.sheet.actor .stat-box.large {
+  padding: 0.4rem;
+  min-height: 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mekton-fusion.sheet.actor .stat-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.mekton-fusion.sheet.actor .stat-inline .stat-input {
+  width: 40px;
+  margin: 0;
+}
+.mekton-fusion.sheet.actor .stat-inline .stat-roll {
+  margin: 0;
+}
+
+/* Responsive adjustments for the top stats grid */
+@media (max-width: 1100px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 900px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(3, 1fr); }
+  .mekton-fusion.sheet.actor .stat-input { width: 36px; }
+}
+@media (max-width: 600px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(2, 1fr); }
+  .mekton-fusion.sheet.actor .stat-input { width: 36px; }
+}
+@media (max-width: 420px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: 1fr; }
+  .mekton-fusion.sheet.actor .stat-input { width: 48px; }
+}
+
+/* Two-column panels */
+.mekton-fusion.sheet.actor .stats-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem; }
+.mekton-fusion.sheet.actor .panel { background: #fff; border: 2px solid #000; padding: 0.5rem; }
+.mekton-fusion.sheet.actor .panel h4 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
+.mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }
+
+/* Resource bars */
+.mekton-fusion.sheet.actor .resource-bars { margin-top: 0.75rem; display:flex; flex-direction:column; gap:0.5rem; }
+.mekton-fusion.sheet.actor .resource-row { display:flex; align-items:center; gap:0.5rem; }
+.mekton-fusion.sheet.actor .resource-label { width: 80px; font-weight:700; }
+.mekton-fusion.sheet.actor .resource-bar { position:relative; flex:1; height:20px; background:#ddd; border:1px solid #000; overflow:hidden; }
+.mekton-fusion.sheet.actor .resource-fill { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#2ecc71,#27ae60); width:0%; }
+.mekton-fusion.sheet.actor .resource-values { position:absolute; right:6px; top:0; bottom:0; display:flex; align-items:center; font-weight:700; color:#fff; text-shadow:0 0 2px rgba(0,0,0,0.6); }
+.mekton-fusion.sheet.actor .resource-input { width: 64px; }
+
+/* Psi resource distinct color */
+.mekton-fusion.sheet.actor .resource-row[data-resource="psi"] .resource-fill,
+.mekton-fusion.sheet.actor .resource-bar[data-resource="psi"] .resource-fill { background: linear-gradient(90deg,#8e44ad,#6f42c1); }
+
+@media (max-width: 720px) {
+  .mekton-fusion.sheet.actor .stats-two-col { grid-template-columns: 1fr; }
 }

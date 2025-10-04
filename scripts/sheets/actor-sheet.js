@@ -134,15 +134,40 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Ensure substats container exists and seed defaults (5) for any missing substats
     ctx.system.substats ??= {};
-    const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick'];
+  const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick','psi','psihybrid'];
     // Track keys that need to be persisted back to the actor document
     const toPersist = {};
     for (const key of SUBSTAT_KEYS) {
       const cur = foundry.utils.getProperty(ctx.system, `substats.${key}`);
-      // If value missing or empty string, set numeric default 5 (and schedule for persistence)
+      // If value missing or empty string, set numeric default (psi uses stat, others 5)
       if (cur === undefined || cur === null || String(cur).trim() === '') {
-        foundry.utils.setProperty(ctx.system, `substats.${key}`, 5);
-        toPersist[`system.substats.${key}`] = 5;
+        let def = 5;
+        if (key === 'psi') {
+          // Use PSI stat value if available, else 5
+          def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 5);
+        }
+        foundry.utils.setProperty(ctx.system, `substats.${key}`, def);
+        toPersist[`system.substats.${key}`] = def;
+      }
+    }
+    // Also ensure other derived/extra substats exist so template bindings are safe
+  const EXTRA_SUBS = ['death','lift','carry','humanity','initiative','dodge','swim','hp_current','sta_current','rec_current','psi_current','psihybrid_current'];
+    for (const k of EXTRA_SUBS) {
+      const cur = foundry.utils.getProperty(ctx.system, `substats.${k}`);
+      if (cur === undefined || cur === null || String(cur).trim() === '') {
+        // default: 0 for most, but set current values to the max if available
+        let def = 0;
+        if (k === 'hp_current' || k === 'sta_current' || k === 'rec_current') {
+          def = foundry.utils.getProperty(ctx.system, 'substats.' + (k.replace('_current','')) ) || 0;
+        } else if (k === 'psi_current') {
+          // For psi_current, use psi max if available, else PSI stat, else 0
+          def = foundry.utils.getProperty(ctx.system, 'substats.psi');
+          if (def === undefined || def === null || String(def).trim() === '') {
+            def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 0);
+          }
+        }
+        foundry.utils.setProperty(ctx.system, `substats.${k}`, def);
+        toPersist[`system.substats.${k}`] = def;
       }
     }
     // If we found missing substats, persist them once to the actor document so future renders don't need to seed
@@ -150,6 +175,21 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       // Fire-and-forget but log failures; avoid blocking getData excessively
       this.actor.update(toPersist).catch(e => console.warn('mekton-fusion | Failed to persist seeded substats', e));
     }
+
+    // Compute resource objects for template (current/max/percent)
+    const makeResource = (maxKey, curKey) => {
+      const max = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, `substats.${maxKey}`), 0);
+      const cur = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, `substats.${curKey}`), max);
+      const percent = max > 0 ? Math.round((cur / max) * 100) : 0;
+      return { max, current: cur, percent };
+    };
+    ctx.resources = {
+      hp: makeResource('hp','hp_current'),
+      stamina: makeResource('sta','sta_current'),
+      vigor: makeResource('rec','rec_current'),
+      psi: makeResource('psi','psi_current'),
+      psihybrid: makeResource('psihybrid','psihybrid_current')
+    };
 
     // Legacy inline skills object (still supported, but prefer Item skills)
     ctx.system.skills ??= {};
@@ -403,6 +443,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
     html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
     html.on('change', '.substat-input', ev => this._onChangeSubstat(ev));
+    html.on('change', '.resource-input', ev => this._onChangeResource(ev));
   }
 
   /** Increment/decrement a substat by delta and persist immediately */
@@ -427,6 +468,45 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const val = MektonActorSheet._num(input.value, 0);
     try { await this.actor.update({ [`system.substats.${key}`]: val }); }
     catch (e) { console.warn('mekton-fusion | Failed to update substat', key, e); }
+  }
+
+  /** Handle resource input changes (current/max) and update resource-fill widths */
+  async _onChangeResource(ev) {
+    const input = ev.currentTarget;
+    const name = input.name; // expected like system.substats.hp_current or system.substats.hp
+    const match = name.match(/^system\.substats\.(.+)$/);
+    if (!match) return;
+    const key = match[1];
+    const val = MektonActorSheet._num(input.value, 0);
+    try {
+      await this.actor.update({ [`system.substats.${key}`]: val });
+      // Update fill widths for the resource row if present
+      const row = input.closest('.resource-row');
+      if (row) {
+        // Use actor data for current/max values
+        const resource = row.querySelector('.resource-bar')?.dataset?.resource;
+        let cur = 0, max = 0;
+        if (resource === 'hp') {
+          cur = this.actor.system?.substats?.hp_current ?? 0;
+          max = this.actor.system?.substats?.hp ?? 0;
+        } else if (resource === 'stamina') {
+          cur = this.actor.system?.substats?.sta_current ?? 0;
+          max = this.actor.system?.substats?.sta ?? 0;
+        } else if (resource === 'vigor') {
+          cur = this.actor.system?.substats?.rec_current ?? 0;
+          max = this.actor.system?.substats?.rec ?? 0;
+        } else if (resource === 'psi') {
+          cur = this.actor.system?.substats?.psi_current ?? 0;
+          max = this.actor.system?.substats?.psi ?? 0;
+        } else if (resource === 'psihybrid') {
+          cur = this.actor.system?.substats?.psihybrid_current ?? 0;
+          max = this.actor.system?.substats?.psihybrid ?? 0;
+        }
+        const percent = max > 0 ? Math.round((cur / max) * 100) : 0;
+        const fill = row.querySelector('.resource-fill'); if (fill) fill.style.width = percent + '%';
+        const values = row.querySelector('.resource-values'); if (values) values.textContent = `${cur} / ${max}`;
+      }
+    } catch (e) { console.warn('mekton-fusion | Failed updating resource', key, e); }
   }
 
   /** Roll 1d10 + selected stat (with optional modifier) */

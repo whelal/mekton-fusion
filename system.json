@@ -35,6 +35,12 @@
   "template": "templates", 
   "initiative": "1d10 + @system.stats.REF.value",
 
+  "homebrew": {
+    "free": true,
+    "marketplace": false,
+    "notice": "This system is free, unofficial homebrew content and is not sold on marketplaces. See HOMEBREW_NOTICE.md"
+  },
+
   "schema": {
     "system": {
       "meta": { "role": "", "level": 1 },

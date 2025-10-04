@@ -136,3 +136,20 @@ MIT License (see `LICENSE` / `NOTICE`). Mekton, Cyberpunk, and Witcher trademark
 ---
 _Enjoy rolling & blasting mecha!_  
 Report issues: https://github.com/whelal/mekton-fusion/issues
+
+---
+## Homebrew / Third-Party Content Notice
+This project may reference or summarize rules and numeric values from third-party
+published games. Where applicable this module follows the homebrew policies of
+the original publishers (for example R. Talsorian Games). The project is free
+to use and distribute and does not include copyrighted descriptive text from
+published works. For full rules and descriptive text, please consult the
+original books.
+
+Required disclaimer from R. Talsorian Games (when referencing their material):
+"[This module] is unofficial content provided under the Homebrew Content
+Policy of R. Talsorian Games and is not approved or endorsed by RTG. This
+content references materials that are the property of R. Talsorian Games and
+its licensees."
+
+See `HOMEBREW_NOTICE.md` for full details.

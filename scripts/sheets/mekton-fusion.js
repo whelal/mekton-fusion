@@ -6,6 +6,25 @@ import { syncActorCoreItems } from "../../module/seed.js";
 Hooks.once("init", () => {
   console.log("mekton-fusion | init");
 
+  // Homebrew settings (display-only flags to indicate free, not-for-sale status)
+  game.settings.register("mekton-fusion", "homebrew.free", {
+    name: "Homebrew: Free",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+    hint: "This system is provided free of charge and is not sold on marketplaces."
+  });
+
+  game.settings.register("mekton-fusion", "homebrew.notice", {
+    name: "Homebrew Notice",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "This is unofficial, free content referencing third-party game rules. See HOMEBREW_NOTICE.md in the system folder.",
+    hint: "Short notice about homebrew policy and references."
+  });
+
   // Register DataModel for all actor types we use
   CONFIG.Actor.dataModels ||= {};
   for (const t of ["character", "npc", "vehicle"]) {

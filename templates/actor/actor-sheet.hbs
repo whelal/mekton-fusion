@@ -20,6 +20,7 @@
       </div>
     </div>
     <!-- header content only (substats moved into Stats tab) -->
+    <!-- Homebrew notice removed from header; see HOMEBREW_NOTICE.md in system folder -->
   </header>
 
   <nav class="sheet-tabs tabs">
@@ -32,105 +33,165 @@
   <section class="sheet-body">
     <div class="tab stats" data-tab="stats">
       <div class="stats-container">
-        <div class="stats-row flexrow">
-          {{#each system.stats as |s key|}}
-            <div class="stat-box" data-stat="{{key}}">
-              <div class="stat-header">{{key}}</div>
-              <div class="stat-value-row flexrow">
-                <input name="system.stats.{{key}}.value" type="number" value="{{s.value}}" class="stat-input"/>
-                <div class="stat-modifier">+ 0</div>
+        <!-- Top stats grid (two rows of five) -->
+        <div class="stats-grid-top">
+          <div class="stat-row-top">
+            <div class="stat-box" data-stat="INT">
+              <div class="stat-header">INT</div>
+              <div class="stat-inline">
+                <input name="system.stats.INT.value" type="number" value="{{system.stats.INT.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="INT" title="Roll INT"><i class="fas fa-dice-d20"></i></button>
               </div>
-              <div class="stat-total">{{s.value}}</div>
-              <button type="button" class="stat-roll" data-ability="{{key}}" title="Roll {{key}}">
-                <i class="fas fa-dice-d20"></i>
-              </button>
             </div>
-          {{/each}}
+            <div class="stat-box" data-stat="REF">
+              <div class="stat-header">REF</div>
+              <div class="stat-inline">
+                <input name="system.stats.REF.value" type="number" value="{{system.stats.REF.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="REF" title="Roll REF"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="TECH">
+              <div class="stat-header">TECH</div>
+              <div class="stat-inline">
+                <input name="system.stats.TECH.value" type="number" value="{{system.stats.TECH.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="TECH" title="Roll TECH"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="COOL">
+              <div class="stat-header">COOL</div>
+              <div class="stat-inline">
+                <input name="system.stats.COOL.value" type="number" value="{{system.stats.COOL.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="COOL" title="Roll COOL"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="ATTR">
+              <div class="stat-header">ATTR</div>
+              <div class="stat-inline">
+                <input name="system.stats.ATTR.value" type="number" value="{{system.stats.ATTR.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="ATTR" title="Roll ATTR"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="stat-row-top">
+            <div class="stat-box" data-stat="LUCK">
+              <div class="stat-header">LUCK</div>
+              <div class="stat-inline">
+                <input name="system.stats.LUCK.value" type="number" value="{{system.stats.LUCK.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="LUCK" title="Roll LUCK"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="MA">
+              <div class="stat-header">MA</div>
+              <div class="stat-inline">
+                <input name="system.stats.MA.value" type="number" value="{{system.stats.MA.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="MA" title="Roll MA"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="BODY">
+              <div class="stat-header">BODY</div>
+              <div class="stat-inline">
+                <input name="system.stats.BODY.value" type="number" value="{{system.stats.BODY.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="BODY" title="Roll BODY"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="EMP">
+              <div class="stat-header">EMP</div>
+              <div class="stat-inline">
+                <input name="system.stats.EMP.value" type="number" value="{{system.stats.EMP.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="EMP" title="Roll EMP"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+            <div class="stat-box" data-stat="EDU">
+              <div class="stat-header">EDU</div>
+              <div class="stat-inline">
+                <input name="system.stats.EDU.value" type="number" value="{{system.stats.EDU.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="EDU" title="Roll EDU"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="stat-row-top">
+            <div class="stat-box" data-stat="PSI">
+              <div class="stat-header">PSI</div>
+              <div class="stat-inline">
+                <input name="system.stats.PSI.value" type="number" value="{{system.stats.PSI.value}}" class="stat-input"/>
+                <button type="button" class="stat-roll" data-ability="PSI" title="Roll PSI"><i class="fas fa-dice-d20"></i></button>
+              </div>
+            </div>
+          </div>
         </div>
-        <!-- Substats block (compact cards with +/- controls) -->
-        <div class="substats-wrapper substats-cards">
-          <h3>{{localize 'MF.Substats'}}</h3>
-          <div class="substats-grid">
-            <div class="substat-card" data-subkey="stun">
-              <div class="substat-label">STUN</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
-            </div>
 
-            <div class="substat-card" data-subkey="run">
-              <div class="substat-label">RUN</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.run" type="number" min="0" value="{{system.substats.run}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+        <!-- Two-column body/ref panels -->
+        <div class="stats-two-col">
+          <div class="panel panel-left">
+            <h4>BODY</h4>
+            <div class="panel-list">
+              <label>• Stun Save: <input class="substat-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}"/></label>
+              <label>• Death Save: <input class="substat-input" name="system.substats.death" type="number" min="0" value="{{system.substats.death}}"/></label>
+              <label>• Lift: <input class="substat-input" name="system.substats.lift" type="number" min="0" value="{{system.substats.lift}}"/></label>
+              <label>• Carry: <input class="substat-input" name="system.substats.carry" type="number" min="0" value="{{system.substats.carry}}"/></label>
             </div>
+            <div class="panel-emp">
+              <h5>EMP</h5>
+              <label>• Humanity: <input class="substat-input" name="system.substats.humanity" type="number" min="0" value="{{system.substats.humanity}}"/></label>
+            </div>
+          </div>
 
-            <div class="substat-card" data-subkey="leap">
-              <div class="substat-label">LEAP</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.leap" type="number" min="0" value="{{system.substats.leap}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+          <div class="panel panel-right">
+            <h4>MA</h4>
+            <div class="panel-list">
+              <label>• Run: <input class="substat-input" name="system.substats.run" type="number" min="0" value="{{system.substats.run}}"/></label>
+              <label>• Leap: <input class="substat-input" name="system.substats.leap" type="number" min="0" value="{{system.substats.leap}}"/></label>
+              <label>• Swim: <input class="substat-input" name="system.substats.swim" type="number" min="0" value="{{system.substats.swim}}"/></label>
             </div>
+          </div>
+        </div>
 
-            <div class="substat-card" data-subkey="hp">
-              <div class="substat-label">HP</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.hp" type="number" min="0" value="{{system.substats.hp}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+        <!-- Resource bars -->
+        <div class="resource-bars">
+          <div class="resource-row">
+            <label class="resource-label">HP:</label>
+            <div class="resource-bar" data-resource="hp">
+              <div class="resource-fill" style="width: {{resources.hp.percent}}%"></div>
+              <div class="resource-values">{{resources.hp.current}} / {{resources.hp.max}}</div>
             </div>
-
-            <div class="substat-card" data-subkey="sta">
-              <div class="substat-label">STA</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.sta" type="number" min="0" value="{{system.substats.sta}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+            <input class="resource-input" name="system.substats.hp_current" type="number" min="0" value="{{resources.hp.current}}"/>
+            <input class="resource-input" name="system.substats.hp" type="number" min="1" value="{{resources.hp.max}}"/>
+          </div>
+          <div class="resource-row">
+            <label class="resource-label">Stamina:</label>
+            <div class="resource-bar" data-resource="stamina">
+              <div class="resource-fill" style="width: {{resources.stamina.percent}}%"></div>
+              <div class="resource-values">{{resources.stamina.current}} / {{resources.stamina.max}}</div>
             </div>
-
-            <div class="substat-card" data-subkey="enc">
-              <div class="substat-label">ENC</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.enc" type="number" min="0" value="{{system.substats.enc}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+            <input class="resource-input" name="system.substats.sta_current" type="number" min="0" value="{{resources.stamina.current}}"/>
+            <input class="resource-input" name="system.substats.sta" type="number" min="1" value="{{resources.stamina.max}}"/>
+          </div>
+          <div class="resource-row">
+            <label class="resource-label">Vigor:</label>
+            <div class="resource-bar" data-resource="vigor">
+              <div class="resource-fill" style="width: {{resources.vigor.percent}}%"></div>
+              <div class="resource-values">{{resources.vigor.current}} / {{resources.vigor.max}}</div>
             </div>
-
-            <div class="substat-card" data-subkey="rec">
-              <div class="substat-label">REC</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.rec" type="number" min="0" value="{{system.substats.rec}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+            <input class="resource-input" name="system.substats.rec_current" type="number" min="0" value="{{resources.vigor.current}}"/>
+            <input class="resource-input" name="system.substats.rec" type="number" min="1" value="{{resources.vigor.max}}"/>
+          </div>
+          <div class="resource-row">
+            <label class="resource-label">Psi:</label>
+            <div class="resource-bar" data-resource="psi">
+              <div class="resource-fill" style="width: {{resources.psi.percent}}%"></div>
+              <div class="resource-values">{{resources.psi.current}} / {{resources.psi.max}}</div>
             </div>
-
-            <div class="substat-card" data-subkey="punch">
-              <div class="substat-label">Punch</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.punch" type="number" min="0" value="{{system.substats.punch}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
+            <input class="resource-input" name="system.substats.psi_current" type="number" min="0" value="{{resources.psi.current}}"/>
+            <input class="resource-input" name="system.substats.psi" type="number" min="1" value="{{resources.psi.max}}"/>
+          </div>
+          <div class="resource-row">
+            <label class="resource-label">Psi Points (Hybrid):</label>
+            <div class="resource-bar" data-resource="psihybrid">
+              <div class="resource-fill" style="width: {{resources.psihybrid.percent}}%"></div>
+              <div class="resource-values">{{resources.psihybrid.current}} / {{resources.psihybrid.max}}</div>
             </div>
-
-            <div class="substat-card" data-subkey="kick">
-              <div class="substat-label">Kick</div>
-              <div class="substat-value-row">
-                <button type="button" class="substat-decr" title="-">−</button>
-                <input class="substat-input" name="system.substats.kick" type="number" min="0" value="{{system.substats.kick}}"/>
-                <button type="button" class="substat-incr" title="+">+</button>
-              </div>
-            </div>
+            <input class="resource-input" name="system.substats.psihybrid_current" type="number" min="0" value="{{resources.psihybrid.current}}"/>
+            <input class="resource-input" name="system.substats.psihybrid" type="number" min="1" value="{{resources.psihybrid.max}}"/>
           </div>
         </div>
       </div>
