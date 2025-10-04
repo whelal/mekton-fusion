@@ -56,4 +56,6 @@
   ,"MF.DeleteSpellConfirm": "Delete spell '{name}'?"
   ,"MF.DeletedSpell": "Deleted spell: {name}"
   ,"MF.Cost": "Cost"
+  ,  "MF.NoFavoriteSpells": "No favorite spells",
+  "MF.NoFavoritePsiSkills": "No favorite psionic powers"
 }

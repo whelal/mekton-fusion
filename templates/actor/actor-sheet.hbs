@@ -1,6 +1,6 @@
 <form class="{{cssClass}} flexcol" autocomplete="off">
   <header class="sheet-header flexrow">
-    <img class="profile" src="{{actor.img}}" data-edit="img" title="{{actor.name}}"/>
+    <img class="profile" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
     <div class="header-fields">
       <h1><input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/></h1>
       
@@ -19,6 +19,7 @@
         </div>
       </div>
     </div>
+    <!-- header content only (substats moved into Stats tab) -->
   </header>
 
   <nav class="sheet-tabs tabs">
@@ -45,6 +46,92 @@
               </button>
             </div>
           {{/each}}
+        </div>
+        <!-- Substats block (compact cards with +/- controls) -->
+        <div class="substats-wrapper substats-cards">
+          <h3>{{localize 'MF.Substats'}}</h3>
+          <div class="substats-grid">
+            <div class="substat-card" data-subkey="stun">
+              <div class="substat-label">STUN</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="run">
+              <div class="substat-label">RUN</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.run" type="number" min="0" value="{{system.substats.run}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="leap">
+              <div class="substat-label">LEAP</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.leap" type="number" min="0" value="{{system.substats.leap}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="hp">
+              <div class="substat-label">HP</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.hp" type="number" min="0" value="{{system.substats.hp}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="sta">
+              <div class="substat-label">STA</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.sta" type="number" min="0" value="{{system.substats.sta}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="enc">
+              <div class="substat-label">ENC</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.enc" type="number" min="0" value="{{system.substats.enc}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="rec">
+              <div class="substat-label">REC</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.rec" type="number" min="0" value="{{system.substats.rec}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="punch">
+              <div class="substat-label">Punch</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.punch" type="number" min="0" value="{{system.substats.punch}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+
+            <div class="substat-card" data-subkey="kick">
+              <div class="substat-label">Kick</div>
+              <div class="substat-value-row">
+                <button type="button" class="substat-decr" title="-">−</button>
+                <input class="substat-input" name="system.substats.kick" type="number" min="0" value="{{system.substats.kick}}"/>
+                <button type="button" class="substat-incr" title="+">+</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -109,7 +196,7 @@
     </div>
 
     <div class="tab spells" data-tab="spells">
-      {{#if hasSpells}}
+      {{#if hasAnySpells}}
         <div class="skill-controls flexrow spell-controls">
           <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSpells.favOnly}}">
             {{#if _skillViewStateSpells.favOnly}}
@@ -129,6 +216,7 @@
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
           <button type="button" class="spell-add-power" title="{{localize 'MF.AddSpell'}}">+</button>
         </div>
+        {{#if hasSpells}}
         <table class="skills-table spell-skills">
           <thead>
             <tr>
@@ -180,13 +268,16 @@
             {{/each}}
           </tbody>
         </table>
+        {{else}}
+        <p class="mf-empty">{{#if _skillViewStateSpells.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
+        {{/if}}
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoSpells'}}</p>
       {{/if}}
     </div>
 
     <div class="tab psi" data-tab="psi">
-      {{#if hasPsiSkills}}
+      {{#if hasAnyPsiSkills}}
         <div class="skill-controls flexrow psi-controls">
           <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStatePsi.favOnly}}">
             {{#if _skillViewStatePsi.favOnly}}
@@ -206,6 +297,7 @@
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStatePsi.dir}}" title="Toggle direction">{{#if (eq _skillViewStatePsi.dir 'asc')}}▲{{else}}▼{{/if}}</button>
             <button type="button" class="psi-add-power" title="{{localize 'MF.AddPsiPower'}}">+</button>
         </div>
+        {{#if hasPsiSkills}}
         <table class="skills-table psi-skills">
           <thead>
             <tr>
@@ -240,6 +332,9 @@
             {{/each}}
           </tbody>
         </table>
+        {{else}}
+        <p class="mf-empty">{{#if _skillViewStatePsi.favOnly}}{{localize 'MF.NoFavoritePsiSkills'}}{{else}}{{localize 'MF.NoPsiSkills'}}{{/if}}</p>
+        {{/if}}
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoPsiSkills'}}</p>
       {{/if}}

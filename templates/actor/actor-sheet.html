@@ -1,0 +1,41 @@
+<div class="stats-grid">
+      {{#each stats as |val key|}}
+        <div class="stat-row">
+          <label class="stat-label" for="stat-{{key}}">{{key}}</label>
+          <input id="stat-{{key}}" class="stat-input" type="number" name="system.stats.{{key}}" value="{{val}}"/>
+          <button type="button" class="stat-roll" data-action="roll" data-stat="{{key}}">Roll</button>
+        </div>
+      {{/each}}
+    </div>
+    <!-- Substats block: moved here so it appears under Stats -->
+    <div class="substats-wrapper">
+      <h3>Substats</h3>
+      <table class="substats-table">
+        <tbody>
+          <tr>
+            <td>STUN</td>
+            <td><input name="system.substats.stun" type="text" value="{{system.substats.stun}}"/></td>
+            <td>RUN</td>
+            <td><input name="system.substats.run" type="text" value="{{system.substats.run}}"/></td>
+            <td>LEAP</td>
+            <td><input name="system.substats.leap" type="text" value="{{system.substats.leap}}"/></td>
+          </tr>
+          <tr>
+            <td>HP</td>
+            <td><input name="system.substats.hp" type="text" value="{{system.substats.hp}}"/></td>
+            <td>STA</td>
+            <td><input name="system.substats.sta" type="text" value="{{system.substats.sta}}"/></td>
+            <td>ENC</td>
+            <td><input name="system.substats.enc" type="text" value="{{system.substats.enc}}"/></td>
+          </tr>
+          <tr>
+            <td>REC</td>
+            <td><input name="system.substats.rec" type="text" value="{{system.substats.rec}}"/></td>
+            <td>Punch</td>
+            <td><input name="system.substats.punch" type="text" value="{{system.substats.punch}}"/></td>
+            <td>Kick</td>
+            <td><input name="system.substats.kick" type="text" value="{{system.substats.kick}}"/></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>

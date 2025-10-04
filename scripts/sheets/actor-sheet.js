@@ -21,7 +21,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "stats" }],
       submitOnChange: true,
       submitOnClose: true,
-      closeOnSubmit: true,
+      closeOnSubmit: false,
   scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells"]
     });
   }
@@ -130,6 +130,25 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const path = `stats.${k}.value`;
       const v = foundry.utils.getProperty(ctx.system, path);
       foundry.utils.setProperty(ctx.system, path, MektonActorSheet._num(v, STAT_DEFAULT_VALUES[k] ?? 5));
+    }
+
+    // Ensure substats container exists and seed defaults (5) for any missing substats
+    ctx.system.substats ??= {};
+    const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick'];
+    // Track keys that need to be persisted back to the actor document
+    const toPersist = {};
+    for (const key of SUBSTAT_KEYS) {
+      const cur = foundry.utils.getProperty(ctx.system, `substats.${key}`);
+      // If value missing or empty string, set numeric default 5 (and schedule for persistence)
+      if (cur === undefined || cur === null || String(cur).trim() === '') {
+        foundry.utils.setProperty(ctx.system, `substats.${key}`, 5);
+        toPersist[`system.substats.${key}`] = 5;
+      }
+    }
+    // If we found missing substats, persist them once to the actor document so future renders don't need to seed
+    if (Object.keys(toPersist).length > 0) {
+      // Fire-and-forget but log failures; avoid blocking getData excessively
+      this.actor.update(toPersist).catch(e => console.warn('mekton-fusion | Failed to persist seeded substats', e));
     }
 
     // Legacy inline skills object (still supported, but prefer Item skills)
@@ -279,7 +298,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential future use)
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
+    ctx.hasAnyPsiSkills = flatSkills.filter(sk => sk.category === 'PSI').length > 0; // Total psi skills (before filtering)
     ctx.hasSpells = spells.length > 0;
+    ctx.hasAnySpells = spellItems.length > 0; // Total spells (before filtering)
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;
@@ -291,6 +312,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   activateListeners(html) {
     super.activateListeners(html);
     if (!this.isEditable) return;
+
+    // Runtime fallback: ensure the Substats block is placed under the Stats tab.
+    // Some older or cached templates may leave the markup in the header; move it into the stats container so it displays correctly.
+    try {
+      const sub = html.find('.substats-wrapper')[0];
+      const statsContainer = html.find('.tab.stats .stats-container')[0];
+      if (sub && statsContainer && !statsContainer.contains(sub)) {
+        statsContainer.appendChild(sub);
+      }
+    } catch (e) {
+      // Non-fatal; best-effort UI fix
+      console.debug?.('mekton-fusion | substats relocation failed', e);
+    }
 
     html.on("click", ".item-control.item-edit", ev => {
       const id = ev.currentTarget.closest("[data-item-id]")?.dataset.itemId;
@@ -364,6 +398,35 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       sortableSpellsContainer.addEventListener('drop', this._onDropSpell.bind(this));
       sortableSpellsContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
+
+    // Substat controls: +/- buttons and direct input changes
+    html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
+    html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
+    html.on('change', '.substat-input', ev => this._onChangeSubstat(ev));
+  }
+
+  /** Increment/decrement a substat by delta and persist immediately */
+  async _onAdjustSubstat(ev, delta) {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    const card = btn.closest('.substat-card'); if (!card) return;
+    const key = card.dataset.subkey;
+    const input = card.querySelector('.substat-input'); if (!input) return;
+    const cur = MektonActorSheet._num(input.value, 0);
+    const next = Math.max(0, cur + delta);
+    input.value = next;
+    try { await this.actor.update({ [`system.substats.${key}`]: next }); }
+    catch (e) { console.warn('mekton-fusion | Failed to update substat', key, e); }
+  }
+
+  /** Handle direct change to a substat input and persist */
+  async _onChangeSubstat(ev) {
+    const input = ev.currentTarget;
+    const card = input.closest('.substat-card'); if (!card) return;
+    const key = card.dataset.subkey;
+    const val = MektonActorSheet._num(input.value, 0);
+    try { await this.actor.update({ [`system.substats.${key}`]: val }); }
+    catch (e) { console.warn('mekton-fusion | Failed to update substat', key, e); }
   }
 
   /** Roll 1d10 + selected stat (with optional modifier) */
