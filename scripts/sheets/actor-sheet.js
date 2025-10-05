@@ -485,46 +485,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** Handle direct change to a substat input and persist */
   async _onChangeSubstat(ev) {
     const input = ev.currentTarget;
-    // Support both legacy .substat-card containers (with data-subkey) and direct inputs
-    let key;
-    const card = input.closest('.substat-card');
-    if (card && card.dataset.subkey) key = card.dataset.subkey;
-    if (!key) {
-      // Fallback: parse from input.name like system.substats.stun
-      const m = input.name?.match(/^system\.substats\.([\w-]+)$/);
-      if (m) key = m[1];
-    }
-    if (!key) return; // unable to resolve substat key
-    const val = MektonActorSheet._num(input.value, 0);
+    console.debug('MF _onChangeSubstat fired for', input.name, 'value=', input.value);
+    const m = input.name?.match(/^system\.substats\.([\w-]+)$/);
+    if (!m) return;
+    const key = m[1];
+    const val = this.constructor._num(input.value, 0);
     try {
       await this.actor.update({ [`system.substats.${key}`]: val });
-      // Update fill widths for the resource row if present
-      const row = input.closest('.resource-row');
-      if (row) {
-        // Use actor data for current/max values
-        const resource = row.querySelector('.resource-bar')?.dataset?.resource;
-        let cur = 0, max = 0;
-        if (resource === 'hp') {
-          cur = this.actor.system?.substats?.hp_current ?? 0;
-          max = this.actor.system?.substats?.hp ?? 0;
-        } else if (resource === 'stamina') {
-          cur = this.actor.system?.substats?.sta_current ?? 0;
-          max = this.actor.system?.substats?.sta ?? 0;
-        } else if (resource === 'vigor') {
-          cur = this.actor.system?.substats?.rec_current ?? 0;
-          max = this.actor.system?.substats?.rec ?? 0;
-        } else if (resource === 'psi') {
-          cur = this.actor.system?.substats?.psi_current ?? 0;
-          max = this.actor.system?.substats?.psi ?? 0;
-        } else if (resource === 'psihybrid') {
-          cur = this.actor.system?.substats?.psihybrid_current ?? 0;
-          max = this.actor.system?.substats?.psihybrid ?? 0;
-        }
-        const percent = max > 0 ? Math.round((cur / max) * 100) : 0;
-        const fill = row.querySelector('.resource-fill'); if (fill) fill.style.width = percent + '%';
-        const values = row.querySelector('.resource-values'); if (values) values.textContent = `${cur} / ${max}`;
-      }
-    } catch (e) { console.warn('mekton-fusion | Failed updating resource', key, e); }
+      console.debug('MF updated', `system.substats.${key}`, '=>', val);
+    } catch (e) {
+      console.warn('mekton-fusion | Failed to update substat', key, e);
+    }
   }
 
   /** Handle stat input changes */
