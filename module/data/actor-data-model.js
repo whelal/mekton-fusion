@@ -20,6 +20,32 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 EDU: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
                 PSI: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) })
             }),
+            // Unified substats container (replaces runtime seeding in sheet logic)
+            substats: new fields.SchemaField({
+                stun: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                death: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                lift: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                carry: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                run: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                leap: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                swim: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                hp: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                hp_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                sta: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                sta_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                rec: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                rec_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                psi: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                psi_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                psihybrid: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                psihybrid_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                initiative: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                dodge: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                enc: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                punch: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                kick: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                humanity: new fields.NumberField({initial: 0, min: 0, integer: true})
+            }),
             hp: new fields.SchemaField({
                 current: new fields.NumberField({initial: 10, min: 0, integer: true}),
                 max: new fields.NumberField({initial: 10, min: 0, integer: true})

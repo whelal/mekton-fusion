@@ -1,3 +1,8 @@
+# 0.0.4
+- Added formal DataModel schema for `system.substats` (stun, death, lift, carry, run, leap, swim, hp, hp_current, sta, sta_current, rec, rec_current, psi, psi_current, psihybrid, psihybrid_current, initiative, dodge, enc, punch, kick, humanity).
+- Removed runtime seeding logic from actor sheet; defaults now handled by schema.
+- Atomic seeding flag update replaced by schema approach (legacy actors without `system.substats` get an empty object created once).
+
 # Changelog
 All notable changes to this project will be documented in this file.
 
