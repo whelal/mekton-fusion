@@ -485,9 +485,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** Handle direct change to a substat input and persist */
   async _onChangeSubstat(ev) {
     const input = ev.currentTarget;
+    // Support both legacy .substat-card containers (with data-subkey) and direct inputs
+    let key;
     const card = input.closest('.substat-card');
-    if (!card) return;
-    const key = card.dataset.subkey;
+    if (card && card.dataset.subkey) key = card.dataset.subkey;
+    if (!key) {
+      // Fallback: parse from input.name like system.substats.stun
+      const m = input.name?.match(/^system\.substats\.([\w-]+)$/);
+      if (m) key = m[1];
+    }
+    if (!key) return; // unable to resolve substat key
     const val = MektonActorSheet._num(input.value, 0);
     try {
       await this.actor.update({ [`system.substats.${key}`]: val });
