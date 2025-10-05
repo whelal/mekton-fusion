@@ -464,7 +464,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Substat controls: +/- buttons and direct input changes
   html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
   html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
-  html.on('change', '.substat-input', ev => this._onChangeSubstat(ev));
+  html.on('change input', '.substat-input', ev => this._onChangeSubstat(ev));
   html.on('change', '.resource-input', ev => this._onChangeResource(ev));
   }
 
