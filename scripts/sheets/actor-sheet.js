@@ -405,8 +405,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Substat controls: +/- buttons and direct input changes
   html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
   html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
-  html.on('change input', '.substat-input', ev => this._onChangeSubstat(ev));
-  html.on('change input', '.resource-input', ev => this._onChangeResource(ev));
+  html.on('change input', '.substat-input', ev => this._queueSubstatChange(ev));
+  html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
   }
 
   /** Increment/decrement a substat by delta and persist immediately */
@@ -423,20 +423,85 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     catch (e) { console.warn('mekton-fusion | Failed to update substat', key, e); }
   }
 
-  /** Handle direct change to a substat input and persist */
-  async _onChangeSubstat(ev) {
+  /** Queue substat/resource input changes; debounced batch update for performance */
+  _queueSubstatChange(ev) {
     const input = ev.currentTarget;
-    console.debug('MF _onChangeSubstat fired for', input.name, 'value=', input.value);
-    const m = input.name?.match(/^system\.substats\.([\w-]+)$/);
+    const name = input.name;
+    if (!name) return;
+    const m = name.match(/^system\.substats\.([\w-]+)$/);
     if (!m) return;
     const key = m[1];
-    const val = this.constructor._num(input.value, 0);
-    try {
-      await this.actor.update({ [`system.substats.${key}`]: val });
-      console.debug('MF updated', `system.substats.${key}`, '=>', val);
-    } catch (e) {
-      console.warn('mekton-fusion | Failed to update substat', key, e);
+
+    // Skip transient empty or '-' while user typing
+    const raw = input.value;
+    if (raw === '' || raw === '-' || raw === '+') return;
+    let val = this.constructor._num(raw, 0);
+    if (val < 0) val = 0;
+
+    // Initialize batching structures
+    this._pendingSubstat = this._pendingSubstat || {};
+    this._pendingResourcePairs = this._pendingResourcePairs || {
+      hp: ['hp','hp_current'],
+      stamina: ['sta','sta_current'],
+      vigor: ['rec','rec_current'],
+      psi: ['psi','psi_current'],
+      psihybrid: ['psihybrid','psihybrid_current']
+    };
+
+    this._pendingSubstat[key] = val;
+
+    // If a max changed, clamp its current if queued or existing > new max
+    const maxCurrentMap = {
+      hp: 'hp_current',
+      sta: 'sta_current',
+      rec: 'rec_current',
+      psi: 'psi_current',
+      psihybrid: 'psihybrid_current'
+    };
+    if (maxCurrentMap[key]) {
+      const curKey = maxCurrentMap[key];
+      const currentVal = this._pendingSubstat[curKey] ?? this.actor.system?.substats?.[curKey] ?? 0;
+      if (currentVal > val) this._pendingSubstat[curKey] = val; // clamp
     }
+
+    // Immediate lightweight DOM preview for resource bars
+    const row = input.closest('.resource-row');
+    if (row) {
+      const bar = row.querySelector('.resource-bar');
+      const resource = bar?.dataset?.resource;
+      if (resource) {
+        const pairMap = {
+          hp: ['hp','hp_current'],
+          stamina: ['sta','sta_current'],
+          vigor: ['rec','rec_current'],
+          psi: ['psi','psi_current'],
+          psihybrid: ['psihybrid','psihybrid_current']
+        };
+        const [maxKey, curKey] = pairMap[resource] || [];
+        if (maxKey && curKey) {
+          const maxVal = (this._pendingSubstat[maxKey] ?? this.actor.system?.substats?.[maxKey] ?? 0);
+          const curVal = (this._pendingSubstat[curKey] ?? this.actor.system?.substats?.[curKey] ?? 0);
+          const percent = maxVal > 0 ? Math.round((curVal / maxVal) * 100) : 0;
+          const fill = row.querySelector('.resource-fill'); if (fill) fill.style.width = percent + '%';
+          const values = row.querySelector('.resource-values'); if (values) values.textContent = `${curVal} / ${maxVal}`;
+        }
+      }
+    }
+
+    // Debounce save
+    if (!this._flushSubstatsDebounced) {
+      this._flushSubstatsDebounced = foundry.utils.debounce(async () => {
+        const payload = this._pendingSubstat; this._pendingSubstat = {};
+        const updateData = {};
+        for (const [k,v] of Object.entries(payload)) {
+          updateData[`system.substats.${k}`] = v;
+        }
+        if (Object.keys(updateData).length) {
+          try { await this.actor.update(updateData); } catch (e) { console.warn('mekton-fusion | Batched substat update failed', e); }
+        }
+      }, 250);
+    }
+    this._flushSubstatsDebounced();
   }
 
   /** Handle stat input changes */
@@ -455,45 +520,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
   }
 
-  /** Handle resource (current/max) numeric input changes for bar stats (hp, sta, rec, psi, psihybrid). */
-  async _onChangeResource(ev) {
-    const input = ev.currentTarget;
-    console.debug('MF _onChangeResource fired for', input.name, 'value=', input.value);
-    const m = input.name?.match(/^system\.substats\.(hp_current|hp|sta_current|sta|rec_current|rec|psi_current|psi|psihybrid_current|psihybrid)$/);
-    if (!m) return;
-    const subKey = m[1];
-    const val = this.constructor._num(input.value, 0);
-    try {
-      await this.actor.update({ [`system.substats.${subKey}`]: val });
-      console.debug('MF updated resource', subKey, '=>', val);
-    } catch (e) {
-      console.warn('mekton-fusion | Failed updating resource substat', subKey, e);
-      return;
-    }
-    // Attempt lightweight DOM refresh of the specific resource row without full rerender
-    const row = input.closest('.resource-row');
-    if (!row) return;
-    const bar = row.querySelector('.resource-bar');
-    if (!bar) return;
-    const resource = bar.dataset.resource; // hp, stamina, vigor, psi, psihybrid
-    if (!resource) return;
-    // Map resource id to substat keys (max/current)
-    const map = {
-      hp: { max: 'hp', cur: 'hp_current' },
-      stamina: { max: 'sta', cur: 'sta_current' },
-      vigor: { max: 'rec', cur: 'rec_current' },
-      psi: { max: 'psi', cur: 'psi_current' },
-      psihybrid: { max: 'psihybrid', cur: 'psihybrid_current' }
-    };
-    const pair = map[resource];
-    if (!pair) return;
-    // Pull latest values from actor (already updated)
-    const curVal = this.actor.system?.substats?.[pair.cur] ?? 0;
-    const maxVal = this.actor.system?.substats?.[pair.max] ?? 0;
-    const percent = maxVal > 0 ? Math.round((curVal / maxVal) * 100) : 0;
-    const fill = row.querySelector('.resource-fill'); if (fill) fill.style.width = percent + '%';
-    const values = row.querySelector('.resource-values'); if (values) values.textContent = `${curVal} / ${maxVal}`;
-  }
 
   /** Override _updateObject to handle form data properly */
   async _updateObject(event, formData) {

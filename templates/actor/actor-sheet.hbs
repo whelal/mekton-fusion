@@ -152,7 +152,7 @@
             <label class="resource-label">HP:</label>
             <div class="resource-bar" data-resource="hp">
               <div class="resource-fill" style="width: {{resources.hp.percent}}%"></div>
-              <div class="resource-values">{{resources.hp.current}} / {{resources.hp.max}}</div>
+              <div class="resource-values" aria-live="polite">{{resources.hp.current}} / {{resources.hp.max}}</div>
             </div>
             <label class="visually-hidden" for="hp-current-input">Current</label>
             <input id="hp-current-input" class="resource-input" name="system.substats.hp_current" type="number" min="0" value="{{resources.hp.current}}"/>
@@ -163,7 +163,7 @@
             <label class="resource-label">Stamina:</label>
             <div class="resource-bar" data-resource="stamina">
               <div class="resource-fill" style="width: {{resources.stamina.percent}}%"></div>
-              <div class="resource-values">{{resources.stamina.current}} / {{resources.stamina.max}}</div>
+              <div class="resource-values" aria-live="polite">{{resources.stamina.current}} / {{resources.stamina.max}}</div>
             </div>
             <label class="visually-hidden" for="sta-current-input">Current</label>
             <input id="sta-current-input" class="resource-input" name="system.substats.sta_current" type="number" min="0" value="{{resources.stamina.current}}"/>
@@ -174,7 +174,7 @@
             <label class="resource-label">Vigor:</label>
             <div class="resource-bar" data-resource="vigor">
               <div class="resource-fill" style="width: {{resources.vigor.percent}}%"></div>
-              <div class="resource-values">{{resources.vigor.current}} / {{resources.vigor.max}}</div>
+              <div class="resource-values" aria-live="polite">{{resources.vigor.current}} / {{resources.vigor.max}}</div>
             </div>
             <label class="visually-hidden" for="vigor-current-input">Current</label>
             <input id="vigor-current-input" class="resource-input" name="system.substats.rec_current" type="number" min="0" value="{{resources.vigor.current}}"/>
@@ -185,7 +185,7 @@
             <label class="resource-label">Psi Points:</label>
             <div class="resource-bar" data-resource="psihybrid">
               <div class="resource-fill" style="width: {{resources.psihybrid.percent}}%"></div>
-              <div class="resource-values">{{resources.psihybrid.current}} / {{resources.psihybrid.max}}</div>
+              <div class="resource-values" aria-live="polite">{{resources.psihybrid.current}} / {{resources.psihybrid.max}}</div>
             </div>
             <label class="visually-hidden" for="psihybrid-current-input">Current</label>
             <input id="psihybrid-current-input" class="resource-input" name="system.substats.psihybrid_current" type="number" min="0" value="{{resources.psihybrid.current}}"/>
