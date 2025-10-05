@@ -514,6 +514,46 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
   }
 
+  /** Handle resource (current/max) numeric input changes for bar stats (hp, sta, rec, psi, psihybrid). */
+  async _onChangeResource(ev) {
+    const input = ev.currentTarget;
+    console.debug('MF _onChangeResource fired for', input.name, 'value=', input.value);
+    const m = input.name?.match(/^system\.substats\.(hp_current|hp|sta_current|sta|rec_current|rec|psi_current|psi|psihybrid_current|psihybrid)$/);
+    if (!m) return;
+    const subKey = m[1];
+    const val = this.constructor._num(input.value, 0);
+    try {
+      await this.actor.update({ [`system.substats.${subKey}`]: val });
+      console.debug('MF updated resource', subKey, '=>', val);
+    } catch (e) {
+      console.warn('mekton-fusion | Failed updating resource substat', subKey, e);
+      return;
+    }
+    // Attempt lightweight DOM refresh of the specific resource row without full rerender
+    const row = input.closest('.resource-row');
+    if (!row) return;
+    const bar = row.querySelector('.resource-bar');
+    if (!bar) return;
+    const resource = bar.dataset.resource; // hp, stamina, vigor, psi, psihybrid
+    if (!resource) return;
+    // Map resource id to substat keys (max/current)
+    const map = {
+      hp: { max: 'hp', cur: 'hp_current' },
+      stamina: { max: 'sta', cur: 'sta_current' },
+      vigor: { max: 'rec', cur: 'rec_current' },
+      psi: { max: 'psi', cur: 'psi_current' },
+      psihybrid: { max: 'psihybrid', cur: 'psihybrid_current' }
+    };
+    const pair = map[resource];
+    if (!pair) return;
+    // Pull latest values from actor (already updated)
+    const curVal = this.actor.system?.substats?.[pair.cur] ?? 0;
+    const maxVal = this.actor.system?.substats?.[pair.max] ?? 0;
+    const percent = maxVal > 0 ? Math.round((curVal / maxVal) * 100) : 0;
+    const fill = row.querySelector('.resource-fill'); if (fill) fill.style.width = percent + '%';
+    const values = row.querySelector('.resource-values'); if (values) values.textContent = `${curVal} / ${maxVal}`;
+  }
+
   /** Override _updateObject to handle form data properly */
   async _updateObject(event, formData) {
     // Let the parent class handle the form data update
