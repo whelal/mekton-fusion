@@ -365,6 +365,8 @@
   gap: 0.5rem;
   align-items: stretch;
 }
+.mekton-fusion.sheet.actor .stat-row-top.row-six { grid-template-columns: repeat(6, 1fr); }
+.mekton-fusion.sheet.actor .stat-row-top.row-five { grid-template-columns: repeat(5, 1fr); }
 .mekton-fusion.sheet.actor .stat-box.large {
   padding: 0.4rem;
   min-height: 68px;

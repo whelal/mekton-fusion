@@ -33,9 +33,10 @@
   <section class="sheet-body">
     <div class="tab stats" data-tab="stats">
       <div class="stats-container">
-        <!-- Top stats grid (two rows of five) -->
+        <!-- Stats grid: Row 1 (6 stats), Row 2 (5 stats) -->
         <div class="stats-grid-top">
-          <div class="stat-row-top">
+          <div class="stat-row-top row-six">
+            {{!-- Row 1: INT REF TECH COOL ATTR LUCK --}}
             <div class="stat-box" data-stat="INT">
               <div class="stat-header">INT</div>
               <div class="stat-inline">
@@ -71,8 +72,6 @@
                 <button type="button" class="stat-roll" data-ability="ATTR" title="Roll ATTR" aria-label="Roll ATTR"><i class="fas fa-dice-d20"></i></button>
               </div>
             </div>
-          </div>
-          <div class="stat-row-top">
             <div class="stat-box" data-stat="LUCK">
               <div class="stat-header">LUCK</div>
               <div class="stat-inline">
@@ -80,6 +79,9 @@
                 <button type="button" class="stat-roll" data-ability="LUCK" title="Roll LUCK" aria-label="Roll LUCK"><i class="fas fa-dice-d20"></i></button>
               </div>
             </div>
+          </div>
+          <div class="stat-row-top row-five">
+            {{!-- Row 2: MA BODY EMP EDU PSI --}}
             <div class="stat-box" data-stat="MA">
               <div class="stat-header">MA</div>
               <div class="stat-inline">
@@ -108,8 +110,6 @@
                 <button type="button" class="stat-roll" data-ability="EDU" title="Roll EDU" aria-label="Roll EDU"><i class="fas fa-dice-d20"></i></button>
               </div>
             </div>
-          </div>
-          <div class="stat-row-top">
             <div class="stat-box" data-stat="PSI">
               <div class="stat-header">PSI</div>
               <div class="stat-inline">
