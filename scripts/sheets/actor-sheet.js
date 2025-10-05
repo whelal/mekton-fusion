@@ -364,6 +364,33 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
     html.on("click", ".spell-roll", ev => this._onRollSpell(ev));
 
+    // Input validation: prevent negative values and enforce max limits
+    html.on("input", ".skill-rank, .skill-ip", ev => {
+      const input = ev.currentTarget;
+      const value = parseInt(input.value);
+      const min = parseInt(input.min) || 0;
+      const max = parseInt(input.max) || 999;
+      
+      if (isNaN(value) || value < min) {
+        input.value = min;
+      } else if (value > max) {
+        input.value = max;
+      }
+    });
+    
+    html.on("input", ".spell-rank", ev => {
+      const input = ev.currentTarget;
+      const value = parseInt(input.value);
+      const min = parseInt(input.min) || 0;
+      const max = parseInt(input.max) || 50;
+      
+      if (isNaN(value) || value < min) {
+        input.value = min;
+      } else if (value > max) {
+        input.value = max;
+      }
+    });
+
     // Tab helpers
     const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
@@ -841,6 +868,146 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const rank = MektonActorSheet._num(li.querySelector('.spell-rank')?.value, 0);
       totalCell.textContent = statVal + rank;
     }
+  }
+
+  /** Roll a stat */
+  async _onRollStat(ev) {
+    ev.preventDefault();
+    const button = ev.currentTarget;
+    const stat = button.dataset.ability;
+    if (!stat) return;
+    
+    const statSource = this.actor.system?.stats?.[stat];
+    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
+    
+    let mod = 0;
+    let difficulty = null;
+    
+    if (!ev.shiftKey) {
+      try {
+        const result = await Dialog.prompt({
+          title: game.i18n.format('MF.RollSimple', { name: stat }),
+          content: `
+            <div style="margin-bottom: 10px;">
+              <label>Modifier:</label>
+              <input type="number" name="mod" value="0" style="width:100%"/>
+            </div>
+            <div>
+              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
+              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
+            </div>
+          `,
+          label: "Roll",
+          callback: html => {
+            const modVal = Number(html.find("[name='mod']").val() || 0);
+            const diffVal = html.find("[name='difficulty']").val();
+            return { mod: modVal, difficulty: diffVal ? Number(diffVal) : null };
+          }
+        });
+        mod = result.mod || 0;
+        difficulty = result.difficulty;
+      } catch (_) { return; }
+    }
+    
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const finalTotal = base + statVal + (mod||0);
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const flavorParts = [`(${plusStr}${minusStr})`, `${stat} ${statVal}`];
+    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
+    
+    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
+    
+    let resultText = '';
+    if (difficulty !== null) {
+      const success = finalTotal >= difficulty;
+      resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+    }
+    
+    const rollTitle = difficulty !== null ? 
+      game.i18n.format('MF.RollWithDifficulty', { name: stat, difficulty }) :
+      game.i18n.format('MF.RollSimple', { name: stat });
+    
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    await roll.toMessage({ speaker, flavor });
+  }
+
+  /** Roll a skill */
+  async _onRollSkill(ev) {
+    ev.preventDefault();
+    const li = ev.currentTarget.closest("[data-skill-id]");
+    if (!li) return;
+    const id = li.dataset.skillId;
+    const skill = this.actor.items.get(id);
+    if (!skill) return;
+    
+    const stat = String(skill.system?.stat || "INT").toUpperCase();
+    const rank = MektonActorSheet._num(skill.system?.rank, 0);
+    const statLabel = stat;
+    const statSource = this.actor.system?.stats?.[stat];
+    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
+
+    let mod = 0;
+    let difficulty = null;
+    
+    if (!ev.shiftKey) {
+      try {
+        const result = await Dialog.prompt({
+          title: game.i18n.format('MF.RollSimple', { name: skill.name }),
+          content: `
+            <div style="margin-bottom: 10px;">
+              <label>Modifier:</label>
+              <input type="number" name="mod" value="0" style="width:100%"/>
+            </div>
+            <div>
+              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
+              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
+            </div>
+          `,
+          label: "Roll",
+          callback: html => {
+            const modVal = Number(html.find("[name='mod']").val() || 0);
+            const diffVal = html.find("[name='difficulty']").val();
+            return { mod: modVal, difficulty: diffVal ? Number(diffVal) : null };
+          }
+        });
+        mod = result.mod || 0;
+        difficulty = result.difficulty;
+      } catch (_) { return; }
+    }
+    
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const finalTotal = base + statVal + rank + (mod||0);
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
+    if (rank) flavorParts.push(`Rank ${rank}`);
+    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
+    
+    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
+    
+    let resultText = '';
+    if (difficulty !== null) {
+      const success = finalTotal >= difficulty;
+      resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+    }
+    
+    const rollTitle = difficulty !== null ? 
+      game.i18n.format('MF.RollWithDifficulty', { name: skill.name, difficulty }) :
+      game.i18n.format('MF.RollSimple', { name: skill.name });
+    
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    await roll.toMessage({ speaker, flavor });
   }
 
   /** Roll spell */

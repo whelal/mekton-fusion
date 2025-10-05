@@ -236,7 +236,7 @@
                 <th>{{localize 'MF.ColName'}}</th>
                 <th>{{localize 'MF.ColStat'}}</th>
                 <th>{{localize 'MF.ColRank'}}</th>
-                <th>IP</th>
+                <th>{{localize 'MF.ColIP'}}</th>
                 <th>{{localize 'MF.ColTotal'}}</th>
                 <th>{{localize 'MF.Roll'}}</th>
                 <th></th>
@@ -248,8 +248,8 @@
                   <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
                   <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
                   <td class="skill-stat">{{sk.stat}}</td>
-                  <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
-                  <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" value="{{sk.system.ip}}" title="Improvement Points (IP)"/></td>
+                                    <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
+                  <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" max="999" step="1" value="{{sk.system.ip}}" title="{{localize 'MF.IPTooltip'}}"/></td>
                   <td class="skill-total">{{sk.total}}</td>
                   <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
                   <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
@@ -323,7 +323,7 @@
                     <option value="PSI" {{#if (eq sp.stat 'PSI')}}selected{{/if}}>PSI</option>
                   </select>
                 </td>
-                <td class="spell-rank-cell"><input class="spell-rank short-input" type="number" min="0" value="{{sp.rank}}"/></td>
+                                <td class="spell-rank-cell"><input class="spell-rank short-input" type="number" min="0" max="50" step="1" value="{{sp.rank}}"/></td>
                 <td class="spell-total">{{sp.total}}</td>
                 <td class="spell-school">{{sp.school}}</td>
                 <td class="spell-cost">{{sp.cost}}</td>
@@ -373,7 +373,7 @@
               <th>{{localize 'MF.ColName'}}</th>
               <th>{{localize 'MF.ColStat'}}</th>
               <th>{{localize 'MF.ColRank'}}</th>
-              <th>IP</th>
+              <th>{{localize 'MF.ColIP'}}</th>
               <th>{{localize 'MF.ColTotal'}}</th>
               <th>{{localize 'MF.Roll'}}</th>
               <th></th>
@@ -390,8 +390,8 @@
                   {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
                 </td>
                 <td class="skill-stat">{{sk.stat}}</td>
-                <td class="skill-rank-cell"><input class="skill-rank short-input" type="number" min="0" value="{{sk.rank}}"/></td>
-                <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" value="{{sk.system.ip}}" title="Improvement Points (IP)"/></td>
+                <td class="skill-rank-cell"><input class="skill-rank short-input" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
+                <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" max="999" step="1" value="{{sk.system.ip}}" title="{{localize 'MF.IPTooltip'}}"/></td>
                 <td class="skill-total">{{sk.total}}</td>
                 <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
                 <td class="skill-edit">

@@ -57,5 +57,13 @@
   ,"MF.DeletedSpell": "Deleted spell: {name}"
   ,"MF.Cost": "Cost"
   ,  "MF.NoFavoriteSpells": "No favorite spells",
-  "MF.NoFavoritePsiSkills": "No favorite psionic powers"
+  "MF.NoFavoritePsiSkills": "No favorite psionic powers",
+  "MF.ColIP": "IP",
+  "MF.IPTooltip": "Improvement Points (IP)",
+  "MF.TabNotes": "Notes",
+  "MF.NotesLabel": "Notes",
+  "MF.NoPsiCategory": "No psionics category available",
+  "MF.RollDifficultyPrompt": "Enter difficulty (optional):",
+  "MF.RollWithDifficulty": "Roll {name} vs Difficulty {difficulty}",
+  "MF.RollSimple": "Roll {name}"
 }
