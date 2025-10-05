@@ -129,62 +129,68 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx.system.stats = applyStatDefaults(migrated);
     }
 
-    // Only seed substats if missing, not on every render
-    ctx.system.stats = applyStatDefaults(ctx.system.stats || {});
-    // Ensure stats container exists / normalize values
-    const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU", "PSI"];
-    for (const k of statKeys) {
-      const path = `stats.${k}.value`;
-      const v = foundry.utils.getProperty(ctx.system, path);
-      foundry.utils.setProperty(ctx.system, path, MektonActorSheet._num(v, STAT_DEFAULT_VALUES[k] ?? 5));
-    }
-    // Ensure substats container exists and seed defaults (5) for any missing substats
-    ctx.system.substats ??= {};
-    const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick','psi','psihybrid'];
-    // Track keys that need to be persisted back to the actor document
-    const toPersist = {};
-    for (const key of SUBSTAT_KEYS) {
-      const cur = foundry.utils.getProperty(ctx.system, `substats.${key}`);
-      // If value missing or empty string, set numeric default (psi uses stat, others 5)
-      if (cur === undefined || cur === null || String(cur).trim() === '') {
-        let def = 5;
-        if (key === 'psi') {
-          // Use PSI stat value if available, else 5
-          def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 5);
-        }
-        foundry.utils.setProperty(ctx.system, `substats.${key}`, def);
-        toPersist[`system.substats.${key}`] = def;
+    // Only seed substats if missing, not on every render, and only if not already seeded
+    const seeded = await this.actor.getFlag('mekton-fusion','seededV1');
+    if (!seeded) {
+      ctx.system.stats = applyStatDefaults(ctx.system.stats || {});
+      // Ensure stats container exists / normalize values
+      const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU", "PSI"];
+      for (const k of statKeys) {
+        const path = `stats.${k}.value`;
+        const v = foundry.utils.getProperty(ctx.system, path);
+        foundry.utils.setProperty(ctx.system, path, MektonActorSheet._num(v, STAT_DEFAULT_VALUES[k] ?? 5));
       }
-    }
-    // Also ensure other derived/extra substats exist so template bindings are safe
-    const EXTRA_SUBS = ['death','lift','carry','humanity','initiative','dodge','swim','hp_current','sta_current','rec_current','psi_current','psihybrid_current'];
-    for (const k of EXTRA_SUBS) {
-      const cur = foundry.utils.getProperty(ctx.system, `substats.${k}`);
-      if (cur === undefined || cur === null || String(cur).trim() === '') {
-        // default: 0 for most, but set current values to the max if available
-        let def = 0;
-        if (k === 'hp_current' || k === 'sta_current' || k === 'rec_current') {
-          def = foundry.utils.getProperty(ctx.system, 'substats.' + (k.replace('_current','')) ) || 0;
-        } else if (k === 'psi_current') {
-          // For psi_current, use psi max if available, else PSI stat, else 0
-          def = foundry.utils.getProperty(ctx.system, 'substats.psi');
-          if (def === undefined || def === null || String(def).trim() === '') {
-            def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 0);
+      // Ensure substats container exists and seed defaults (5) for any missing substats
+      ctx.system.substats ??= {};
+      const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick','psi','psihybrid'];
+      // Track keys that need to be persisted back to the actor document
+      const toPersist = {};
+      for (const key of SUBSTAT_KEYS) {
+        const cur = foundry.utils.getProperty(ctx.system, `substats.${key}`);
+        // If value missing or empty string, set numeric default (psi uses stat, others 5)
+        if (cur === undefined || cur === null || String(cur).trim() === '') {
+          let def = 5;
+          if (key === 'psi') {
+            // Use PSI stat value if available, else 5
+            def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 5);
           }
-        } else if (k === 'psihybrid_current') {
-          def = foundry.utils.getProperty(ctx.system, 'substats.psihybrid') || 5;
+          foundry.utils.setProperty(ctx.system, `substats.${key}`, def);
+          toPersist[`system.substats.${key}`] = def;
         }
-        foundry.utils.setProperty(ctx.system, `substats.${k}`, def);
-        toPersist[`system.substats.${k}`] = def;
       }
-    }
-    // If we found missing substats, persist them once to the actor document so future renders don't need to seed
-    if (Object.keys(toPersist).length > 0 && !await this.actor.getFlag('mekton-fusion','seededV1')) {
-      try {
-        await this.actor.update(toPersist);
+      // Also ensure other derived/extra substats exist so template bindings are safe
+      const EXTRA_SUBS = ['death','lift','carry','humanity','initiative','dodge','swim','hp_current','sta_current','rec_current','psi_current','psihybrid_current'];
+      for (const k of EXTRA_SUBS) {
+        const cur = foundry.utils.getProperty(ctx.system, `substats.${k}`);
+        if (cur === undefined || cur === null || String(cur).trim() === '') {
+          // default: 0 for most, but set current values to the max if available
+          let def = 0;
+          if (k === 'hp_current' || k === 'sta_current' || k === 'rec_current') {
+            def = foundry.utils.getProperty(ctx.system, 'substats.' + (k.replace('_current','')) ) || 0;
+          } else if (k === 'psi_current') {
+            // For psi_current, use psi max if available, else PSI stat, else 0
+            def = foundry.utils.getProperty(ctx.system, 'substats.psi');
+            if (def === undefined || def === null || String(def).trim() === '') {
+              def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 0);
+            }
+          } else if (k === 'psihybrid_current') {
+            def = foundry.utils.getProperty(ctx.system, 'substats.psihybrid') || 5;
+          }
+          foundry.utils.setProperty(ctx.system, `substats.${k}`, def);
+          toPersist[`system.substats.${k}`] = def;
+        }
+      }
+      // If we found missing substats, persist them once to the actor document so future renders don't need to seed
+      if (Object.keys(toPersist).length > 0) {
+        try {
+          await this.actor.update(toPersist);
+          await this.actor.setFlag('mekton-fusion','seededV1', true);
+        } catch (e) {
+          console.warn('mekton-fusion | Failed to persist seeded substats', e);
+        }
+      } else {
+        // If nothing to persist, still set the flag so we don't check again
         await this.actor.setFlag('mekton-fusion','seededV1', true);
-      } catch (e) {
-        console.warn('mekton-fusion | Failed to persist seeded substats', e);
       }
     }
 
