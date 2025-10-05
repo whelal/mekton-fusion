@@ -2,6 +2,13 @@
 import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaults.js";
 
 export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
+  // Sort by .system.sort (or .item.system.sort), then by name
+  static bySortThenName(a, b, collator) {
+    const as = Number(a.system?.sort ?? a.item?.system?.sort ?? 999999);
+    const bs = Number(b.system?.sort ?? b.item?.system?.sort ?? 999999);
+    if (as !== bs) return as - bs;
+    return collator.compare(a.name, b.name);
+  }
   constructor(...args) {
     super(...args);
     // Per-tab (skills, psi, spells) view state; loaded from user flag lazily
@@ -122,19 +129,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx.system.stats = applyStatDefaults(migrated);
     }
 
+    // Only seed substats if missing, not on every render
     ctx.system.stats = applyStatDefaults(ctx.system.stats || {});
-
     // Ensure stats container exists / normalize values
-  const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU", "PSI"];
+    const statKeys = ["INT", "REF", "TECH", "COOL", "ATTR", "LUCK", "MA", "BODY", "EMP", "EDU", "PSI"];
     for (const k of statKeys) {
       const path = `stats.${k}.value`;
       const v = foundry.utils.getProperty(ctx.system, path);
       foundry.utils.setProperty(ctx.system, path, MektonActorSheet._num(v, STAT_DEFAULT_VALUES[k] ?? 5));
     }
-
     // Ensure substats container exists and seed defaults (5) for any missing substats
     ctx.system.substats ??= {};
-  const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick','psi','psihybrid'];
+    const SUBSTAT_KEYS = ['stun','run','leap','hp','sta','enc','rec','punch','kick','psi','psihybrid'];
     // Track keys that need to be persisted back to the actor document
     const toPersist = {};
     for (const key of SUBSTAT_KEYS) {
@@ -151,7 +157,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     }
     // Also ensure other derived/extra substats exist so template bindings are safe
-  const EXTRA_SUBS = ['death','lift','carry','humanity','initiative','dodge','swim','hp_current','sta_current','rec_current','psi_current','psihybrid_current'];
+    const EXTRA_SUBS = ['death','lift','carry','humanity','initiative','dodge','swim','hp_current','sta_current','rec_current','psi_current','psihybrid_current'];
     for (const k of EXTRA_SUBS) {
       const cur = foundry.utils.getProperty(ctx.system, `substats.${k}`);
       if (cur === undefined || cur === null || String(cur).trim() === '') {
@@ -165,22 +171,31 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           if (def === undefined || def === null || String(def).trim() === '') {
             def = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, 'stats.PSI.value'), 0);
           }
+        } else if (k === 'psihybrid_current') {
+          def = foundry.utils.getProperty(ctx.system, 'substats.psihybrid') || 5;
         }
         foundry.utils.setProperty(ctx.system, `substats.${k}`, def);
         toPersist[`system.substats.${k}`] = def;
       }
     }
     // If we found missing substats, persist them once to the actor document so future renders don't need to seed
-    if (Object.keys(toPersist).length > 0) {
-      // Fire-and-forget but log failures; avoid blocking getData excessively
-      this.actor.update(toPersist).catch(e => console.warn('mekton-fusion | Failed to persist seeded substats', e));
+    if (Object.keys(toPersist).length > 0 && !await this.actor.getFlag('mekton-fusion','seededV1')) {
+      try {
+        await this.actor.update(toPersist);
+        await this.actor.setFlag('mekton-fusion','seededV1', true);
+      } catch (e) {
+        console.warn('mekton-fusion | Failed to persist seeded substats', e);
+      }
     }
 
     // Compute resource objects for template (current/max/percent)
     const makeResource = (maxKey, curKey) => {
-      const max = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, `substats.${maxKey}`), 0);
-      const cur = MektonActorSheet._num(foundry.utils.getProperty(ctx.system, `substats.${curKey}`), max);
-      const percent = max > 0 ? Math.round((cur / max) * 100) : 0;
+      // Ensure values are numeric after update
+      const maxRaw = foundry.utils.getProperty(ctx.system, `substats.${maxKey}`);
+      const curRaw = foundry.utils.getProperty(ctx.system, `substats.${curKey}`);
+      const max = MektonActorSheet._num(maxRaw, 0);
+      const cur = MektonActorSheet._num(curRaw, max);
+      const percent = max > 0 ? Math.round((Number(cur) / Number(max)) * 100) : 0;
       return { max, current: cur, percent };
     };
     ctx.resources = {
@@ -230,47 +245,43 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const vsSpells = this._tabViewState.spells;
 
     // Build skill Items listing (preferred representation)
-    const skillItems = this.actor.items.filter(i => i.type === "skill");
     let needsPsiFix = false;
-    let flatSkills = skillItems.map(it => {
-      let stat = String(it.system?.stat || "REF").toUpperCase();
-      const category = (it.system?.category || stat).toUpperCase();
-      // If category is PSI, force stat to PSI regardless of stored stat
-      if (category === 'PSI' && stat !== 'PSI') { stat = 'PSI'; needsPsiFix = true; }
-      const statVal = ctx.system.stats?.[stat]?.value ?? 0;
-      const rank = this.constructor._num(it.system?.rank, 0);
-      const total = statVal + rank;
-      const nameHasHard = /\(H\)|\[H\]/i.test(it.name);
-      const hard = !!it.system?.hard || nameHasHard;
-      const custom = !!it.system?.custom; // Track custom/homebrew powers
-      return {
-        id: it.id,
-        name: it.name,
-        stat,
-        rank,
-        total,
-        favorite: !!it.system?.favorite,
-        item: it,
-        system: it.system,
-        category,
-        hard,
-        hasHardMarker: nameHasHard,
-        custom
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
-
-    // Migration: if any PSI category skills had non-PSI stat stored, update documents silently
-    if (needsPsiFix) {
-      for (const sk of flatSkills) {
-        if (sk.category === 'PSI' && sk.item.system?.stat?.toUpperCase?.() !== 'PSI') {
-          await sk.item.update({ 'system.stat': 'PSI' });
-        }
+      // Use class-level collator cache for efficiency
+      if (!MektonActorSheet._collator || MektonActorSheet._collatorLang !== (game.i18n.lang || 'en')) {
+        MektonActorSheet._collator = new Intl.Collator(game.i18n.lang || 'en', { sensitivity: 'base' });
+        MektonActorSheet._collatorLang = game.i18n.lang || 'en';
       }
-    }
+      const collator = MektonActorSheet._collator;
+    let flatSkills = this.actor.items
+      .filter(i => i.type === "skill")
+      .map(it => {
+        let stat = String(it.system?.stat || "REF").toUpperCase();
+        const category = (it.system?.category || stat).toUpperCase();
+        // If category is PSI, force stat to PSI regardless of stored stat
+        if (category === 'PSI' && stat !== 'PSI') { stat = 'PSI'; needsPsiFix = true; }
+        const statVal = ctx.system.stats?.[stat]?.value ?? 0;
+        const rank = this.constructor._num(it.system?.rank, 0);
+        const total = statVal + rank;
+        const nameHasHard = /\(H\)|\[H\]/i.test(it.name);
+        const hard = !!it.system?.hard || nameHasHard;
+        const custom = !!it.system?.custom; // Track custom/homebrew powers
+        return {
+          id: it.id,
+          name: it.name,
+          stat,
+          rank,
+          total,
+          favorite: !!it.system?.favorite,
+          item: it,
+          system: it.system,
+          category,
+          hard,
+          hasHardMarker: nameHasHard,
+          custom
+        };
+      });
 
-    // Base stable name sort
-    const collator = new Intl.Collator(game.i18n.lang || 'en', { sensitivity: 'base' });
-    flatSkills.sort((a,b)=> collator.compare(a.name,b.name));
+    // Base stable name sort (already sorted above)
     // Split into tabs early
     let psiSkills = flatSkills.filter(sk => sk.category === 'PSI');
     let nonPsi = flatSkills.filter(sk => sk.category !== 'PSI');
@@ -297,7 +308,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         effect: it.system?.effect || '',
         custom
       };
-    }).sort((a, b) => collator.compare(a.name, b.name));
+    });
+  // No initial sort; sortList below will use .system.sort as primary
 
     // Favorites filtering per tab
     if (vsSkills.favOnly) nonPsi = nonPsi.filter(sk => sk.favorite);
@@ -308,6 +320,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     function sortList(list, sortBy, dir) {
       const factor = dir === 'desc' ? -1 : 1;
       list.sort((a,b) => {
+        // primary: saved manual order
+        const order = (Number(a.system?.sort ?? 999999) - Number(b.system?.sort ?? 999999));
+        if (order !== 0) return order;
+
         let av, bv;
         switch (sortBy) {
           case 'stat': av = a.stat; bv = b.stat; return collator.compare(av,bv)*factor || collator.compare(a.name,b.name);
@@ -377,7 +393,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
     html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
     html.on("click", ".spell-add-power", ev => this._onAddSpell(ev));
-    html.on("click", ".item-delete", ev => this._onDeletePsiPower(ev));
+  html.on("click", ".psi-delete", ev => this._onDeletePsiPower(ev));
     html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
     html.on("change", ".spell-rank", ev => this._onChangeSpellRank(ev));
     html.on("change", ".spell-stat", ev => this._onChangeSpellStat(ev));
@@ -439,11 +455,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       sortableSpellsContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
 
-    // Substat controls: +/- buttons and direct input changes
-    html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
-    html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
-    html.on('change', '.substat-input', ev => this._onChangeSubstat(ev));
-    html.on('change', '.resource-input', ev => this._onChangeResource(ev));
+  // Substat controls: +/- buttons and direct input changes
+  html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
+  html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
+  html.on('change', '.substat-input', ev => this._onChangeSubstat(ev));
+  html.on('change', '.resource-input', ev => this._onChangeResource(ev));
   }
 
   /** Increment/decrement a substat by delta and persist immediately */
@@ -463,20 +479,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** Handle direct change to a substat input and persist */
   async _onChangeSubstat(ev) {
     const input = ev.currentTarget;
-    const card = input.closest('.substat-card'); if (!card) return;
+    const card = input.closest('.substat-card');
+    if (!card) return;
     const key = card.dataset.subkey;
-    const val = MektonActorSheet._num(input.value, 0);
-    try { await this.actor.update({ [`system.substats.${key}`]: val }); }
-    catch (e) { console.warn('mekton-fusion | Failed to update substat', key, e); }
-  }
-
-  /** Handle resource input changes (current/max) and update resource-fill widths */
-  async _onChangeResource(ev) {
-    const input = ev.currentTarget;
-    const name = input.name; // expected like system.substats.hp_current or system.substats.hp
-    const match = name.match(/^system\.substats\.(.+)$/);
-    if (!match) return;
-    const key = match[1];
     const val = MektonActorSheet._num(input.value, 0);
     try {
       await this.actor.update({ [`system.substats.${key}`]: val });
@@ -507,6 +512,28 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         const values = row.querySelector('.resource-values'); if (values) values.textContent = `${cur} / ${max}`;
       }
     } catch (e) { console.warn('mekton-fusion | Failed updating resource', key, e); }
+  }
+
+  /** Handle stat input changes */
+  async _onChangeStatInput(ev) {
+    const input = ev.currentTarget;
+    const name = input.name;
+    if (!name) return;
+    const match = name.match(/^system\.stats\.(\w+)\.value$/);
+    if (!match) return;
+    const key = match[1];
+    const val = MektonActorSheet._num(input.value, 5);
+    try {
+      await this.actor.update({ [`system.stats.${key}.value`]: val });
+    } catch (e) { 
+      console.warn('mekton-fusion | Failed updating stat', key, e); 
+    }
+  }
+
+  /** Override _updateObject to handle form data properly */
+  async _updateObject(event, formData) {
+    // Let the parent class handle the form data update
+    return super._updateObject(event, formData);
   }
 
   /** Roll 1d10 + selected stat (with optional modifier) */
@@ -544,7 +571,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tag = (explodedUp || explodedDown) ? `<span class=\"exploding\">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span class=\"exploding cap\">[Cap ${maxExtra}]</span>` : '';
     const flavor = `<strong>${this.actor.name}</strong> rolls <em>${label}</em> ${tag}${capTag} = ${parts.join(' + ')} = <strong>${finalTotal}</strong>`;
-    roll.toMessage({ speaker, flavor });
+  await roll.toMessage({ speaker, flavor });
   }
 
   /** Roll 1d10 + STAT + skill rank (+ optional modifier) */
@@ -585,7 +612,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tag = (explodedUp || explodedDown) ? `<span class=\"exploding\">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span class=\"exploding cap\">[Cap ${maxExtra}]</span>` : '';
     const flavor = `<strong>${this.actor.name}</strong> rolls <em>${skill.name}</em> <small>[${category}${hard ? '; Hard' : ''}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>`;
-    roll.toMessage({ speaker, flavor });
+  await roll.toMessage({ speaker, flavor });
   }
 
   async _onToggleFavorite(ev) {
@@ -708,10 +735,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /** Drag and drop handlers for skill reordering */
   _onDragStart(ev) {
-    const row = ev.target.closest('.skill-item-row');
-    if (!row) return;
-    ev.dataTransfer.setData('text/plain', row.dataset.skillId);
-    row.classList.add('dragging');
+  const row = ev.target.closest('.skill-item-row');
+  if (!row) return;
+  // No need to set dataTransfer payload since it's unused in _onDrop
+  row.classList.add('dragging');
   }
 
   _onDragOver(ev) {
@@ -886,7 +913,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (totalCell) {
       const newStat = select.value.toUpperCase();
       const statVal = this.actor.system?.stats?.[newStat]?.value ?? 0;
-      const rank = parseInt(li.querySelector('.spell-rank')?.value) || 0;
+    const rank = MektonActorSheet._num(li.querySelector('.spell-rank')?.value, 0);
       totalCell.textContent = statVal + rank;
     }
   }
