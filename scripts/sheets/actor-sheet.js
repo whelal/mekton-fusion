@@ -180,17 +180,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           toPersist[`system.substats.${k}`] = def;
         }
       }
-      // If we found missing substats, persist them once to the actor document so future renders don't need to seed
-      if (Object.keys(toPersist).length > 0) {
-        try {
+      // If we found missing substats, persist them once; set flag atomically to avoid two writes.
+      try {
+        if (Object.keys(toPersist).length > 0) {
+          toPersist['flags.mekton-fusion.seededV1'] = true; // include flag in same update
           await this.actor.update(toPersist);
-          await this.actor.setFlag('mekton-fusion','seededV1', true);
-        } catch (e) {
-          console.warn('mekton-fusion | Failed to persist seeded substats', e);
+        } else {
+          await this.actor.update({ 'flags.mekton-fusion.seededV1': true });
         }
-      } else {
-        // If nothing to persist, still set the flag so we don't check again
-        await this.actor.setFlag('mekton-fusion','seededV1', true);
+      } catch (e) {
+        console.warn('mekton-fusion | Failed to persist initial seeding / flag', e);
       }
     }
 
