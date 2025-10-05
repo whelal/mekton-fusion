@@ -15,17 +15,51 @@
   text-align: center;
   font-size: 1em;
 }
-/* Tab Content Consistency */
-.tab {
-  padding: 0.5em;
+/* Tab Content Specific Styles - Remove extra spacing */
+.mekton-fusion .tab.skills, 
+.mekton-fusion .tab.psi, 
+.mekton-fusion .tab.spells, 
+.mekton-fusion .tab.notes {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Override any FoundryVTT default tab padding */
+.mekton-fusion .sheet-body .tab {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Skills and Psi need minimal padding for table content */
+.tab.skills .skill-controls,
+.tab.psi .skill-controls,
+.tab.spells .spell-controls {
+  margin: 0.25em 0.5em 0.5em 0.5em;
+}
+
+.tab.skills .skills-table,
+.tab.psi .skills-table,
+.tab.spells .skills-table {
+  margin: 0 0.5em 0.5em 0.5em;
+}
+
+.tab.skills .skill-category-header {
+  margin: 0.5em 0.5em 0.25em 0.5em;
+}
+
+.tab.skills .mf-empty,
+.tab.psi .mf-empty,
+.tab.spells .mf-empty {
+  margin: 0 0.5em;
 }
 
 /* Notes Tab Styles */
 .tab.notes .notes-container {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
-  padding: 1em 0.5em;
+  gap: 0.25em;
+  padding: 0.25em 0.5em 0.5em 0.5em;
+  margin: 0 !important;
 }
 .tab.notes .notes-label {
   font-weight: bold;
@@ -279,7 +313,7 @@
 /* Spells styling */
 .mekton-fusion.sheet.actor .spell-controls {
   margin-top: 0;
-  margin-bottom: 2.2rem;
+  margin-bottom: 0.5em;
 }
 
 .mekton-fusion.sheet.actor .custom-spell {
