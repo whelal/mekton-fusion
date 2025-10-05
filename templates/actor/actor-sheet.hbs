@@ -50,7 +50,7 @@
                 <button type="button" class="stat-roll" data-ability="REF" title="Roll REF" aria-label="Roll REF"><i class="fas fa-dice-d20"></i></button>
               </div>
             </div>
-            <div class="stat-box" data-stat="TECH">
+                  {{#if sk.custom}}<a class="item-control psi-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sk.id}}"><i class="fas fa-trash"></i></a>{{/if}}
               <div class="stat-header">TECH</div>
               <div class="stat-inline">
                 <input name="system.stats.TECH.value" type="number" value="{{system.stats.TECH.value}}" class="stat-input"/>
@@ -168,7 +168,7 @@
             <label class="visually-hidden" for="sta-current-input">Current</label>
             <input id="sta-current-input" class="resource-input" name="system.substats.sta_current" type="number" min="0" value="{{resources.stamina.current}}"/>
             <label class="visually-hidden" for="sta-max-input">Max</label>
-            <input id="sta-max-input" class="resource-input" name="system.substats.sta" type="number" min="1" value="{{resources.stamina.max}}"/>
+            <input id="sta-max-input" class="resource-input" name="system.substats.sta" type="number" min="0" value="{{resources.stamina.max}}"/>
           </div>
           <div class="resource-row">
             <label class="resource-label">Vigor:</label>
@@ -179,7 +179,7 @@
             <label class="visually-hidden" for="vigor-current-input">Current</label>
             <input id="vigor-current-input" class="resource-input" name="system.substats.rec_current" type="number" min="0" value="{{resources.vigor.current}}"/>
             <label class="visually-hidden" for="vigor-max-input">Max</label>
-            <input id="vigor-max-input" class="resource-input" name="system.substats.rec" type="number" min="1" value="{{resources.vigor.max}}"/>
+            <input id="vigor-max-input" class="resource-input" name="system.substats.rec" type="number" min="0" value="{{resources.vigor.max}}"/>
           </div>
           <div class="resource-row">
             <label class="resource-label">Psi Points:</label>
@@ -190,7 +190,7 @@
             <label class="visually-hidden" for="psihybrid-current-input">Current</label>
             <input id="psihybrid-current-input" class="resource-input" name="system.substats.psihybrid_current" type="number" min="0" value="{{resources.psihybrid.current}}"/>
             <label class="visually-hidden" for="psihybrid-max-input">Max</label>
-            <input id="psihybrid-max-input" class="resource-input" name="system.substats.psihybrid" type="number" min="1" value="{{resources.psihybrid.max}}"/>
+            <input id="psihybrid-max-input" class="resource-input" name="system.substats.psihybrid" type="number" min="0" value="{{resources.psihybrid.max}}"/>
           </div>
         </div>
       </div>
@@ -207,10 +207,10 @@
         </button>
         <label>{{localize 'MF.SortBy'}}:
           <select class="skill-sort-by">
-            <option value="name">{{localize 'MF.SortName'}}</option>
-            <option value="stat">{{localize 'MF.SortStat'}}</option>
-            <option value="rank">{{localize 'MF.SortRank'}}</option>
-            <option value="total">{{localize 'MF.SortTotal'}}</option>
+            <option value="name" {{#if (eq _skillViewStateSkills.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+            <option value="stat" {{#if (eq _skillViewStateSkills.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+            <option value="rank" {{#if (eq _skillViewStateSkills.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+            <option value="total" {{#if (eq _skillViewStateSkills.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
           </select>
         </label>
         <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSkills.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSkills.dir 'asc')}}▲{{else}}▼{{/if}}</button>
@@ -272,10 +272,10 @@
           </button>
           <label>{{localize 'MF.SortBy'}}:
             <select class="skill-sort-by">
-              <option value="name" {{#if (eq _skillViewStatePsi.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
-              <option value="stat" {{#if (eq _skillViewStatePsi.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
-              <option value="rank" {{#if (eq _skillViewStatePsi.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
-              <option value="total" {{#if (eq _skillViewStatePsi.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
+              <option value="name" {{#if (eq _skillViewStateSpells.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+              <option value="stat" {{#if (eq _skillViewStateSpells.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+              <option value="rank" {{#if (eq _skillViewStateSpells.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+              <option value="total" {{#if (eq _skillViewStateSpells.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
             </select>
           </label>
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
@@ -353,10 +353,10 @@
           </button>
           <label>{{localize 'MF.SortBy'}}:
             <select class="skill-sort-by">
-              <option value="name" {{#if (eq _skillViewStateSpells.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
-              <option value="stat" {{#if (eq _skillViewStateSpells.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
-              <option value="rank" {{#if (eq _skillViewStateSpells.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
-              <option value="total" {{#if (eq _skillViewStateSpells.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
+              <option value="name" {{#if (eq _skillViewStatePsi.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+              <option value="stat" {{#if (eq _skillViewStatePsi.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+              <option value="rank" {{#if (eq _skillViewStatePsi.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+              <option value="total" {{#if (eq _skillViewStatePsi.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
             </select>
           </label>
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStatePsi.dir}}" title="Toggle direction">{{#if (eq _skillViewStatePsi.dir 'asc')}}▲{{else}}▼{{/if}}</button>
