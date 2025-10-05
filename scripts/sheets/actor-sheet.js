@@ -1026,14 +1026,31 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
 
     let mod = 0;
+    let difficulty = null;
+    
     if (!ev.shiftKey) {
       try {
-        mod = Number(await Dialog.prompt({
-          title: `Modifier for ${spell.name}`,
-          content: `<p>Enter a temporary modifier for ${spell.name} (can be negative):</p><input type="number" name="mod" value="0" style="width:100%"/>`,
+        const result = await Dialog.prompt({
+          title: game.i18n.format('MF.RollSimple', { name: spell.name }),
+          content: `
+            <div style="margin-bottom: 10px;">
+              <label>Modifier:</label>
+              <input type="number" name="mod" value="0" style="width:100%"/>
+            </div>
+            <div>
+              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
+              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
+            </div>
+          `,
           label: "Roll",
-          callback: html => Number(html.find("[name='mod']").val() || 0)
-        })) || 0;
+          callback: html => {
+            const modVal = Number(html.find("[name='mod']").val() || 0);
+            const diffVal = html.find("[name='difficulty']").val();
+            return { mod: modVal, difficulty: diffVal ? Number(diffVal) : null };
+          }
+        });
+        mod = result.mod || 0;
+        difficulty = result.difficulty;
       } catch (_) { return; }
     }
     
@@ -1041,19 +1058,29 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const finalTotal = base + statVal + rank + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const school = spell.system?.school || 'Unknown';
-    const cost = spell.system?.cost || 0;
     const plusStr = plusDice.join(' + ');
     const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
     const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
     if (rank) flavorParts.push(`Rank ${rank}`);
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
-    if (cost) flavorParts.push(`Cost ${cost}`);
+    
     const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
     const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
     const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
-    const flavor = `<strong>${this.actor.name}</strong> casts <em>${spell.name}</em> <small>[${school}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>`;
-  await roll.toMessage({ speaker, flavor });
+    
+    let resultText = '';
+    if (difficulty !== null) {
+      const success = finalTotal >= difficulty;
+      resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+    }
+    
+    const rollTitle = difficulty !== null ? 
+      game.i18n.format('MF.RollWithDifficulty', { name: spell.name, difficulty }) :
+      game.i18n.format('MF.RollSimple', { name: spell.name });
+    
+    const flavor = `<strong>${this.actor.name}</strong> casts <em>${rollTitle}</em> <small>[${school}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    await roll.toMessage({ speaker, flavor });
   }
 
   /** Drop spell handler */
