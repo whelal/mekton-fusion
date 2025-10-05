@@ -1,3 +1,9 @@
+/* ---------- Spells Tab White Space Fix ---------- */
+.mekton-fusion .tab.spells,
+.mekton-fusion .tab.spells > * {
+  padding: 0 !important;
+  margin: 0 !important;
+}
 /* ---------- Custom flags & rows ---------- */
 .mekton-fusion.sheet.actor .custom-skill { background: var(--mf-gold-bg); }
 .mekton-fusion.sheet.actor .custom-spell { background: var(--mf-purple-bg); }
