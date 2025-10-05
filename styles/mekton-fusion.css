@@ -1,83 +1,52 @@
-/* Make skill rank and IP input fields short and compact */
-.skills-table .short-input {
-  width: 3.5em;
-  min-width: 0;
-  max-width: 4em;
-  padding: 2px 4px;
-  text-align: center;
-  font-size: 1em;
-}
-.skills-table .skill-rank {
-  width: 3.5em;
-  min-width: 0;
-  max-width: 4em;
-  padding: 2px 4px;
-  text-align: center;
-  font-size: 1em;
-}
-/* Tab Content Specific Styles - Remove extra spacing */
-.mekton-fusion .tab.skills, 
-.mekton-fusion .tab.psi, 
-.mekton-fusion .tab.spells, 
-.mekton-fusion .tab.notes {
-  padding: 0 !important;
-  margin: 0 !important;
+/* =========================
+   Mekton Fusion – Sheet CSS
+   DRY + themeable + mobile-friendly
+   ========================= */
+
+/* ---------- Theme Vars (scoped so we don't leak) ---------- */
+.mekton-fusion {
+  --mf-black: #000;
+  --mf-white: #fff;
+  --mf-bg: #f5f5f5;
+  --mf-card: #fff;
+  --mf-text: #000;
+  --mf-muted: #666;
+  --mf-border: #000;
+  --mf-soft-border: rgba(0,0,0,0.08);
+  --mf-accent: #007bff;
+  --mf-danger: #dc3545;
+  --mf-danger-hover: #c82333;
+  --mf-psi: #6f42c1;
+  --mf-psi-dark: #5a32a3;
+  --mf-psi-grad-a: #8e44ad;
+  --mf-psi-grad-b: #6f42c1;
+  --mf-gold-bg: rgba(255, 215, 0, 0.1);
+  --mf-purple-bg: rgba(138, 43, 226, 0.1);
+
+  /* Sizing */
+  --mf-gap-xs: 0.25rem;
+  --mf-gap-sm: 0.5rem;
+  --mf-gap: 0.75rem;
+  --mf-pad-xs: 0.25rem;
+  --mf-pad-sm: 0.5rem;
+  --mf-pad: 1rem;
+
+  /* Inputs */
+  --mf-input-w-sm: 3.5em;
+  --mf-input-w: 40px;
+  --mf-input-w-lg: 56px;
+  --mf-btn: 28px;
 }
 
-/* Override any FoundryVTT default tab padding */
-.mekton-fusion .sheet-body .tab {
-  padding: 0 !important;
-  margin: 0 !important;
+/* Optional dark tweak if your Foundry theme sets a dark body */
+html.theme-dark .mekton-fusion {
+  --mf-bg: #1a1a1a;
+  --mf-card: #181818;
+  --mf-text: #eee;
+  --mf-soft-border: rgba(255,255,255,0.08);
 }
 
-/* Skills and Psi need minimal padding for table content */
-.tab.skills .skill-controls,
-.tab.psi .skill-controls,
-.tab.spells .spell-controls {
-  margin: 0.25em 0.5em 0.5em 0.5em;
-}
-
-.tab.skills .skills-table,
-.tab.psi .skills-table,
-.tab.spells .skills-table {
-  margin: 0 0.5em 0.5em 0.5em;
-}
-
-.tab.skills .skill-category-header {
-  margin: 0.5em 0.5em 0.25em 0.5em;
-}
-
-.tab.skills .mf-empty,
-.tab.psi .mf-empty,
-.tab.spells .mf-empty {
-  margin: 0 0.5em;
-}
-
-/* Notes Tab Styles */
-.tab.notes .notes-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25em;
-  padding: 0.25em 0.5em 0.5em 0.5em;
-  margin: 0 !important;
-}
-.tab.notes .notes-label {
-  font-weight: bold;
-  margin-bottom: 0.25em;
-}
-.tab.notes .notes-textarea {
-  width: 100%;
-  min-height: 8em;
-  resize: vertical;
-  font-family: inherit;
-  font-size: 1em;
-  padding: 0.5em;
-  border-radius: 4px;
-  border: 1px solid #888;
-  background: #181818;
-  color: #eee;
-  box-sizing: border-box;
-}
+/* ---------- Utilities / Generic ---------- */
 .mf-sheet { padding: 8px; }
 .mf-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .mf-name { flex: 1; font-size: 1.1rem; }
@@ -90,397 +59,240 @@
 .mf-key { font-weight: 600; }
 .mf-empty { opacity: 0.7; font-style: italic; padding: 6px 0; }
 
-/* Cyberpunk 2020 style header */
-.mekton-fusion.sheet.actor .sheet-header {
-  background: #000;
-  color: #fff;
-  padding: 0.5rem;
-  border: 2px solid #fff;
-  margin-bottom: 1rem;
+/* Remove number spinners across browsers */
+.mekton-fusion input[type="number"]::-webkit-outer-spin-button,
+.mekton-fusion input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mekton-fusion input[type="number"] { 
+  -moz-appearance: textfield; 
+  appearance: textfield; 
 }
 
-/* Actor name input (inside h1) - ensure readable on black header */
+/* ---------- Tabs & Tables (DRY: grouped selectors) ---------- */
+.mekton-fusion .sheet-body .tab { padding: 0; margin: 0; } /* overrides Foundry padding safely */
+
+.mekton-fusion .tab.skills .skill-controls,
+.mekton-fusion .tab.psi .skill-controls,
+.mekton-fusion .tab.spells .spell-controls { margin: var(--mf-gap-xs) var(--mf-gap-sm) var(--mf-gap-sm); }
+
+.mekton-fusion .tab.skills .skills-table,
+.mekton-fusion .tab.psi .skills-table,
+.mekton-fusion .tab.spells .skills-table,
+.mekton-fusion .tab.skills .mf-empty,
+.mekton-fusion .tab.psi .mf-empty,
+.mekton-fusion .tab.spells .mf-empty { margin: 0 var(--mf-gap-sm) var(--mf-gap-sm); }
+
+/* Keep skill column widths stable */
+.mekton-fusion .skills-table { table-layout: fixed; width: 100%; }
+
+/* Compact inputs used in skills/IP columns */
+.mekton-fusion .skills-table .short-input,
+.mekton-fusion .skills-table .skill-rank {
+  width: var(--mf-input-w-sm);
+  min-width: 0;
+  max-width: calc(var(--mf-input-w-sm) + 0.5em);
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 1em;
+}
+
+/* Category heading */
+.mekton-fusion .tab.skills .skill-category-header { margin: var(--mf-gap-sm) var(--mf-gap-sm) var(--mf-gap-xs); }
+
+/* ---------- Notes tab ---------- */
+.mekton-fusion .tab.notes .notes-container {
+  display: flex; flex-direction: column; gap: var(--mf-gap-xs);
+  padding: var(--mf-pad-xs) var(--mf-gap-sm) var(--mf-gap-sm);
+  margin: 0;
+}
+.mekton-fusion .tab.notes .notes-label { font-weight: bold; margin-bottom: var(--mf-gap-xs); }
+.mekton-fusion .tab.notes .notes-textarea {
+  width: 100%; min-height: 8em; resize: vertical; font: inherit;
+  padding: 0.5em; border-radius: 4px; border: 1px solid #888;
+  background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
+}
+
+/* ---------- Header (Cyberpunk 2020 vibe) ---------- */
+.mekton-fusion.sheet.actor .sheet-header {
+  background: var(--mf-black); color: var(--mf-white);
+  padding: 0.5rem; border: 2px solid var(--mf-white); margin-bottom: 1rem;
+}
 .mekton-fusion.sheet.actor .sheet-header h1 { margin: 0; }
 .mekton-fusion.sheet.actor .sheet-header h1 input {
-  color: #fff;
-  background: transparent;
-  border: none;
-  font-weight: 700;
-  width: 100%;
+  color: var(--mf-white); background: transparent; border: none; font-weight: 700; width: 100%;
   text-shadow: 0 0 2px rgba(0,0,0,0.6);
 }
 .mekton-fusion.sheet.actor .sheet-header h1 input::placeholder { color: #bbb; }
 
-.mekton-fusion.sheet.actor .header-stats {
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
+.mekton-fusion.sheet.actor .header-stats { gap: 0.5rem; margin-top: 0.5rem; }
 .mekton-fusion.sheet.actor .header-field {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #fff;
-  color: #000;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid #000;
-  min-width: 70px;
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--mf-white); color: var(--mf-text);
+  padding: 0.2rem 0.4rem; border: 1px solid var(--mf-black); min-width: 70px;
 }
-
-.mekton-fusion.sheet.actor .header-field label {
-  font-size: 0.7rem;
-  font-weight: bold;
-  margin: 0;
-}
-
+.mekton-fusion.sheet.actor .header-field label { font-size: 0.7rem; font-weight: bold; margin: 0; }
 .mekton-fusion.sheet.actor .header-field input {
-  background: transparent;
-  border: none;
-  text-align: center;
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: #000;
-  width: 100%;
+  background: transparent; border: none; text-align: center; font-weight: bold; font-size: 0.9rem; width: 100%;
 }
 
-/* Cyberpunk 2020 style stats */
+/* ---------- Core Stats ---------- */
 .mekton-fusion.sheet.actor .stats-container {
-  background: #f5f5f5;
-  padding: 1rem;
-  border: 2px solid #000;
+  background: var(--mf-bg); padding: var(--mf-pad); border: 2px solid var(--mf-border);
 }
-
-.mekton-fusion.sheet.actor .stats-row {
-  gap: 0.5rem;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
+.mekton-fusion.sheet.actor .stats-row { gap: 0.5rem; justify-content: space-between; flex-wrap: wrap; }
 .mekton-fusion.sheet.actor .stat-box {
-  background: #fff;
-  border: 2px solid #000;
-  padding: 0.5rem;
-  text-align: center;
-  min-width: 80px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  background: var(--mf-card); border: 2px solid var(--mf-border);
+  padding: 0.5rem; text-align: center; min-width: 80px; flex: 1;
+  display: flex; flex-direction: column; gap: 0.2rem;
 }
-
 .mekton-fusion.sheet.actor .stat-header {
-  font-weight: bold;
-  font-size: 0.8rem;
-  background: #000;
-  color: #fff;
-  padding: 0.2rem;
-  margin: -0.5rem -0.5rem 0.2rem -0.5rem;
+  font-weight: bold; font-size: 0.8rem; background: var(--mf-black); color: var(--mf-white);
+  padding: 0.2rem; margin: -0.5rem -0.5rem 0.2rem;
 }
-
-.mekton-fusion.sheet.actor .stat-value-row {
-  gap: 0.3rem;
-  align-items: center;
-  justify-content: center;
-}
-
+.mekton-fusion.sheet.actor .stat-value-row { gap: 0.3rem; align-items: center; justify-content: center; }
 .mekton-fusion.sheet.actor .stat-input {
-  width: 36px;
-  text-align: center;
-  font-weight: bold;
-  font-size: 1rem;
-  border: 1px solid #000;
-  background: #fff;
+  width: var(--mf-input-w); text-align: center; font-weight: bold; font-size: 1rem;
+  border: 1px solid var(--mf-border); background: var(--mf-card);
 }
-
-.mekton-fusion.sheet.actor .stat-modifier {
-  font-size: 0.8rem;
-  color: #666;
-}
-
+.mekton-fusion.sheet.actor .stat-modifier { font-size: 0.8rem; color: var(--mf-muted); }
 .mekton-fusion.sheet.actor .stat-total {
-  font-weight: bold;
-  font-size: 1.2rem;
-  background: #f0f0f0;
-  border: 1px solid #000;
-  padding: 0.2rem;
-  margin: 0.2rem 0;
+  font-weight: bold; font-size: 1.2rem; background: #f0f0f0;
+  border: 1px solid var(--mf-border); padding: 0.2rem; margin: 0.2rem 0;
 }
-
 .mekton-fusion.sheet.actor .stat-roll {
-  background: #000;
-  color: #fff;
-  border: 1px solid #fff;
-  padding: 0;
-  cursor: pointer;
-  font-size: 0.75rem;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  width: var(--mf-btn); height: var(--mf-btn); display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.75rem; border-radius: 4px;
 }
+.mekton-fusion.sheet.actor .stat-roll:hover { background: #222; }
 
-.mekton-fusion.sheet.actor .stat-roll:hover {
-  background: #222;
-}
-
-/* Legacy styles for compatibility */
+/* legacy compat */
 .mekton-fusion.sheet.actor .ability .flexrow { display:flex; gap:0.4rem; align-items:center; }
 .mekton-fusion.sheet.actor .ability button.ability-roll { padding: 0 0.5rem; }
 
-/* Favorites toggle button */
+/* ---------- Filters / Toggles ---------- */
 .mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle {
-  background: #000;
-  color: #fff;
-  border: 1px solid #fff;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
 }
-.mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle:hover {
-  background: #222;
-}
+.mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle:hover { background: #222; }
 
-/* Custom psionic power styling */
-.mekton-fusion.sheet.actor .custom-skill {
-  background: rgba(255, 215, 0, 0.1); /* Light gold background for custom skills */
-}
+/* ---------- Custom flags & rows ---------- */
+.mekton-fusion.sheet.actor .custom-skill { background: var(--mf-gold-bg); }
+.mekton-fusion.sheet.actor .custom-spell { background: var(--mf-purple-bg); }
+.mekton-fusion.sheet.actor .custom-flag { color: #ff6b35; font-weight: bold; margin-left: 0.25rem; font-size: 0.9rem; }
 
-.mekton-fusion.sheet.actor .custom-flag {
-  color: #ff6b35;
-  font-weight: bold;
-  margin-left: 0.25rem;
-  font-size: 0.9rem;
-}
-
-/* Drag handle styling */
+/* ---------- Drag/Sort ---------- */
 .mekton-fusion.sheet.actor .skill-drag-handle {
-  color: #666;
-  cursor: grab;
-  margin-right: 0.5rem;
-  font-weight: bold;
-  opacity: 0.6;
+  color: #666; cursor: grab; margin-right: 0.5rem; font-weight: bold; opacity: 0.6;
 }
+.mekton-fusion.sheet.actor .skill-drag-handle:hover { color: var(--mf-text); opacity: 1; }
+.mekton-fusion.sheet.actor .skill-drag-handle:active { cursor: grabbing; }
+.mekton-fusion.sheet.actor .skill-item-row.dragging { opacity: 0.5; background: rgba(0, 123, 255, 0.1); }
 
-.mekton-fusion.sheet.actor .skill-drag-handle:hover {
-  color: #000;
-  opacity: 1;
-}
+.mekton-fusion.sheet.actor .sortable-skills,
+.mekton-fusion.sheet.actor .sortable-spells { min-height: 2rem; }
 
-.mekton-fusion.sheet.actor .skill-drag-handle:active {
-  cursor: grabbing;
-}
+.mekton-fusion.sheet.actor .spell-item-row.dragging { opacity: 0.5; background: rgba(111, 66, 193, 0.1); }
 
-/* Dragging state styling */
-.mekton-fusion.sheet.actor .skill-item-row.dragging {
-  opacity: 0.5;
-  background: rgba(0, 123, 255, 0.1);
-}
+/* ---------- Item buttons ---------- */
+.mekton-fusion.sheet.actor .item-delete,
+.mekton-fusion.sheet.actor .spell-delete { color: var(--mf-danger); margin-left: 0.25rem; }
+.mekton-fusion.sheet.actor .item-delete:hover,
+.mekton-fusion.sheet.actor .spell-delete:hover { color: var(--mf-danger-hover); }
 
-.mekton-fusion.sheet.actor .sortable-skills {
-  min-height: 2rem; /* Ensure drop zone exists even when empty */
-}
-
-/* Delete button styling */
-.mekton-fusion.sheet.actor .item-delete {
-  color: #dc3545;
-  margin-left: 0.25rem;
-}
-
-.mekton-fusion.sheet.actor .item-delete:hover {
-  color: #c82333;
-}
-
-/* Add psi power button */
-.mekton-fusion.sheet.actor .psi-add-power {
-  background: #28a745;
-  color: #fff;
-  border: 1px solid #1e7e34;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  margin-left: 0.5rem;
-}
-
-.mekton-fusion.sheet.actor .psi-add-power:hover {
-  background: #218838;
-}
-
-/* Spells styling */
-.mekton-fusion.sheet.actor .spell-controls {
-  margin-top: 0;
-  margin-bottom: 0.5em;
-}
-
-.mekton-fusion.sheet.actor .custom-spell {
-  background: rgba(138, 43, 226, 0.1); /* Light purple background for custom spells */
-}
-
+.mekton-fusion.sheet.actor .psi-add-power,
 .mekton-fusion.sheet.actor .spell-add-power {
-  background: #6f42c1;
-  color: #fff;
-  border: 1px solid #5a32a3;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  margin-left: 0.5rem;
+  color: var(--mf-white); padding: 0.25rem 0.5rem; cursor: pointer; font-size: 1rem; font-weight: bold; margin-left: 0.5rem;
+  border: 1px solid transparent;
 }
+.mekton-fusion.sheet.actor .psi-add-power {
+  background: #28a745; border-color: #1e7e34;
+}
+.mekton-fusion.sheet.actor .psi-add-power:hover { background: #218838; }
+.mekton-fusion.sheet.actor .spell-add-power {
+  background: var(--mf-psi); border-color: var(--mf-psi-dark);
+}
+.mekton-fusion.sheet.actor .spell-add-power:hover { background: var(--mf-psi-dark); }
 
-.mekton-fusion.sheet.actor .spell-add-power:hover {
-  background: #5a32a3;
-}
+/* ---------- Spells small inputs ---------- */
+.mekton-fusion.sheet.actor .spell-stat { width: 60px; font-size: 0.8rem; padding: 0.1rem; }
 
-.mekton-fusion.sheet.actor .spell-stat {
-  width: 60px;
-  font-size: 0.8rem;
-  padding: 0.1rem;
-}
-
-.mekton-fusion.sheet.actor .spell-delete {
-  color: #dc3545;
-  margin-left: 0.25rem;
-}
-
-.mekton-fusion.sheet.actor .spell-delete:hover {
-  color: #c82333;
-}
-
-.mekton-fusion.sheet.actor .sortable-spells {
-  min-height: 2rem;
-}
-
-.mekton-fusion.sheet.actor .spell-item-row.dragging {
-  opacity: 0.5;
-  background: rgba(111, 66, 193, 0.1);
-}
-
-/* Substats table styling */
-.mekton-fusion.sheet.actor .substats-wrapper {
-  margin-top: 0.75rem;
-}
+/* ---------- Substats (table + cards) ---------- */
+.mekton-fusion.sheet.actor .substats-wrapper { margin-top: 0.75rem; }
 .mekton-fusion.sheet.actor .substats-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: rgba(255,255,255,0.95);
-  border: 2px solid #000;
+  width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.95); border: 2px solid var(--mf-border);
+  table-layout: fixed;
 }
 .mekton-fusion.sheet.actor .substats-table td {
-  padding: 6px 8px;
-  border: 1px solid rgba(0,0,0,0.08);
-  vertical-align: middle;
+  padding: 6px 8px; border: 1px solid var(--mf-soft-border); vertical-align: middle;
 }
 .mekton-fusion.sheet.actor .substats-table input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  text-align: center;
-  font-weight: bold;
+  width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;
 }
 
-/* Compact card-style substats */
 .mekton-fusion.sheet.actor .substats-cards .substats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--mf-gap-sm); margin-top: var(--mf-gap-sm);
 }
 .mekton-fusion.sheet.actor .substat-card {
-  background: #fff;
-  border: 2px solid #000;
-  padding: 0.4rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
+  background: var(--mf-card); border: 2px solid var(--mf-border); padding: 0.4rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
 }
 .mekton-fusion.sheet.actor .substat-label {
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
+  font-weight: 800; font-size: 0.85rem; letter-spacing: 0.05em;
 }
-.mekton-fusion.sheet.actor .substat-value-row {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
+.mekton-fusion.sheet.actor .substat-value-row { display: flex; align-items: center; gap: 0.25rem; }
 .mekton-fusion.sheet.actor .substat-input {
-  width: 56px;
-  text-align: center;
-  font-weight: 800;
-  font-size: 1.1rem;
-  border: 1px solid #000;
-  background: #f8f8f8;
-  padding: 0.15rem 0.25rem;
+  width: var(--mf-input-w-lg); text-align: center; font-weight: 800; font-size: 1.1rem;
+  border: 1px solid var(--mf-border); background: #f8f8f8; padding: 0.15rem 0.25rem;
 }
 .mekton-fusion.sheet.actor .substat-incr,
 .mekton-fusion.sheet.actor .substat-decr {
-  background: #000;
-  color: #fff;
-  border: 1px solid #fff;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-weight: 700;
-  border-radius: 4px;
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  width: var(--mf-btn); height: var(--mf-btn); display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-weight: 700; border-radius: 4px;
 }
 .mekton-fusion.sheet.actor .substat-incr:hover,
 .mekton-fusion.sheet.actor .substat-decr:hover { background: #222; }
 
-@media (max-width: 720px) {
-  .mekton-fusion.sheet.actor .substats-cards .substats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* New layout: top stats grid */
-.mekton-fusion.sheet.actor .stats-grid-top { display: flex; flex-direction: column; gap: 0.5rem; }
+/* ---------- Top stats grid (rows of equal columns) ---------- */
+.mekton-fusion.sheet.actor .stats-grid-top { display: flex; flex-direction: column; gap: var(--mf-gap-sm); }
 .mekton-fusion.sheet.actor .stat-row-top {
-  /* Use grid so rows can show exactly 5 equal columns on wide screens */
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 0.5rem;
-  align-items: stretch;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--mf-gap-sm); align-items: stretch;
 }
 .mekton-fusion.sheet.actor .stat-row-top.row-six { grid-template-columns: repeat(6, 1fr); }
 .mekton-fusion.sheet.actor .stat-row-top.row-five { grid-template-columns: repeat(5, 1fr); }
 .mekton-fusion.sheet.actor .stat-box.large {
-  padding: 0.4rem;
-  min-height: 68px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 0.4rem; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between;
+}
+.mekton-fusion.sheet.actor .stat-inline { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.mekton-fusion.sheet.actor .stat-inline .stat-input { width: 40px; margin: 0; }
+.mekton-fusion.sheet.actor .stat-inline .stat-roll { margin: 0; }
+
+/* ---------- Resource bars ---------- */
+.mekton-fusion.sheet.actor .resource-bars { margin-top: var(--mf-gap); display:flex; flex-direction:column; gap:var(--mf-gap-sm); }
+.mekton-fusion.sheet.actor .resource-row { display:flex; align-items:center; gap:var(--mf-gap-sm); }
+.mekton-fusion.sheet.actor .resource-label { width: 80px; font-weight:700; }
+.mekton-fusion.sheet.actor .resource-bar { position:relative; flex:1; height:20px; background:#ddd; border:1px solid var(--mf-border); overflow:hidden; }
+.mekton-fusion.sheet.actor .resource-fill { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#2ecc71,#27ae60); width:0%; }
+.mekton-fusion.sheet.actor .resource-values { position:absolute; right:6px; top:0; bottom:0; display:flex; align-items:center; font-weight:700; color:#fff; text-shadow:0 0 2px rgba(0,0,0,0.6); }
+.mekton-fusion.sheet.actor .resource-input { width: 64px; }
+
+.mekton-fusion.sheet.actor .resource-row[data-resource="psi"] .resource-fill,
+.mekton-fusion.sheet.actor .resource-bar[data-resource="psi"] .resource-fill {
+  background: linear-gradient(90deg,var(--mf-psi-grad-a),var(--mf-psi-grad-b));
 }
 
-.mekton-fusion.sheet.actor .stat-inline {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.mekton-fusion.sheet.actor .stat-inline .stat-input {
-  width: 40px;
-  margin: 0;
-}
-.mekton-fusion.sheet.actor .stat-inline .stat-roll {
-  margin: 0;
-}
-
-/* Responsive adjustments for the top stats grid */
+/* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 900px) {
   .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(3, 1fr); }
   .mekton-fusion.sheet.actor .stat-input { width: 36px; }
+}
+@media (max-width: 720px) {
+  .mekton-fusion.sheet.actor .substats-cards .substats-grid { grid-template-columns: repeat(2, 1fr); }
+  .mekton-fusion.sheet.actor .stats-two-col { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(2, 1fr); }
@@ -491,25 +303,10 @@
   .mekton-fusion.sheet.actor .stat-input { width: 48px; }
 }
 
-/* Two-column panels */
-.mekton-fusion.sheet.actor .stats-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem; }
-.mekton-fusion.sheet.actor .panel { background: #fff; border: 2px solid #000; padding: 0.5rem; }
-.mekton-fusion.sheet.actor .panel h4 { margin: 0 0 0.5rem 0; font-size: 0.95rem; }
-.mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }
-
-/* Resource bars */
-.mekton-fusion.sheet.actor .resource-bars { margin-top: 0.75rem; display:flex; flex-direction:column; gap:0.5rem; }
-.mekton-fusion.sheet.actor .resource-row { display:flex; align-items:center; gap:0.5rem; }
-.mekton-fusion.sheet.actor .resource-label { width: 80px; font-weight:700; }
-.mekton-fusion.sheet.actor .resource-bar { position:relative; flex:1; height:20px; background:#ddd; border:1px solid #000; overflow:hidden; }
-.mekton-fusion.sheet.actor .resource-fill { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#2ecc71,#27ae60); width:0%; }
-.mekton-fusion.sheet.actor .resource-values { position:absolute; right:6px; top:0; bottom:0; display:flex; align-items:center; font-weight:700; color:#fff; text-shadow:0 0 2px rgba(0,0,0,0.6); }
-.mekton-fusion.sheet.actor .resource-input { width: 64px; }
-
-/* Psi resource distinct color */
-.mekton-fusion.sheet.actor .resource-row[data-resource="psi"] .resource-fill,
-.mekton-fusion.sheet.actor .resource-bar[data-resource="psi"] .resource-fill { background: linear-gradient(90deg,#8e44ad,#6f42c1); }
-
-@media (max-width: 720px) {
-  .mekton-fusion.sheet.actor .stats-two-col { grid-template-columns: 1fr; }
+/* ---------- Two-column panels ---------- */
+.mekton-fusion.sheet.actor .stats-two-col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--mf-gap); margin-top: var(--mf-gap);
 }
+.mekton-fusion.sheet.actor .panel { background: var(--mf-card); border: 2px solid var(--mf-border); padding: var(--mf-pad-sm); }
+.mekton-fusion.sheet.actor .panel h4 { margin: 0 0 var(--mf-gap-sm) 0; font-size: 0.95rem; }
+.mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }
