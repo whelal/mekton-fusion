@@ -29,7 +29,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       submitOnChange: true,
       submitOnClose: true,
       closeOnSubmit: false,
-  scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells"]
+      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells", ".tab.notes"]
     });
   }
 
@@ -266,18 +266,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Sorting helper
     function sortList(list, sortBy, dir) {
       const factor = dir === 'desc' ? -1 : 1;
-      list.sort((a,b) => {
+      list.sort((a, b) => {
         // primary: saved manual order
         const order = (Number(a.system?.sort ?? 999999) - Number(b.system?.sort ?? 999999));
         if (order !== 0) return order;
 
         let av, bv;
+        let cmp;
         switch (sortBy) {
-          case 'stat': av = a.stat; bv = b.stat; return collator.compare(av,bv)*factor || collator.compare(a.name,b.name);
-          case 'rank': av = a.rank; bv = b.rank; return (av-bv)*factor || collator.compare(a.name,b.name);
-          case 'total': av = a.total; bv = b.total; return (av-bv)*factor || collator.compare(a.name,b.name);
+          case 'stat':
+            av = a.stat; bv = b.stat;
+            cmp = collator.compare(av, bv);
+            if (cmp !== 0) return cmp * factor;
+            // Fallback to name, apply factor
+            return collator.compare(a.name, b.name) * factor;
+          case 'rank':
+            av = a.rank; bv = b.rank;
+            cmp = (av - bv) * factor;
+            if (cmp !== 0) return cmp;
+            return collator.compare(a.name, b.name) * factor;
+          case 'total':
+            av = a.total; bv = b.total;
+            cmp = (av - bv) * factor;
+            if (cmp !== 0) return cmp;
+            return collator.compare(a.name, b.name) * factor;
           case 'name':
-          default: av = a.name; bv = b.name; return collator.compare(av,bv)*factor;
+          default:
+            av = a.name; bv = b.name;
+            return collator.compare(av, bv) * factor;
         }
       });
     }
@@ -337,21 +353,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".skill-roll", ev => this._onRollSkill(ev));
     html.on("click", ".skill-fav", ev => this._onToggleFavorite(ev));
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
+    html.on("change", ".skill-ip", ev => this._onChangeSkillIP(ev));
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
     html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
     html.on("click", ".spell-add-power", ev => this._onAddSpell(ev));
-  html.on("click", ".psi-delete", ev => this._onDeletePsiPower(ev));
+    html.on("click", ".psi-delete", ev => this._onDeletePsiPower(ev));
     html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
     html.on("change", ".spell-rank", ev => this._onChangeSpellRank(ev));
     html.on("change", ".spell-stat", ev => this._onChangeSpellStat(ev));
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
-    html.on("click", ".spell-roll", ev => this._onRollSpell(ev));    const getTabFromEvent = ev => {
+    html.on("click", ".spell-roll", ev => this._onRollSpell(ev));
+
+    // Tab helpers
+    const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
       if (tabEl?.dataset.tab === 'psi') return 'psi';
       if (tabEl?.dataset.tab === 'spells') return 'spells';
       return 'skills';
     };
-
     // Favorites toggle
     html.on('click', '.skill-filter-fav-toggle', ev => {
       ev.preventDefault();
@@ -361,7 +380,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this._saveViewState?.();
       this.render(false);
     });
-
     // Sort selector
     html.on('change', '.skill-sort-by', ev => {
       const tab = getTabFromEvent(ev);
@@ -370,7 +388,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this._saveViewState?.();
       this.render(false);
     });
-
     // Direction toggle
     html.on('click', '.skill-sort-dir', ev => {
       const tab = getTabFromEvent(ev);
@@ -383,7 +400,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this._saveViewState?.();
       this.render(false);
     });
-
     // Drag and drop for psi skills reordering
     const sortableContainer = html.find('.sortable-skills')[0];
     if (sortableContainer) {
@@ -392,7 +408,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       sortableContainer.addEventListener('drop', this._onDrop.bind(this));
       sortableContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
-
     // Drag and drop for spells reordering
     const sortableSpellsContainer = html.find('.sortable-spells')[0];
     if (sortableSpellsContainer) {
@@ -401,12 +416,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       sortableSpellsContainer.addEventListener('drop', this._onDropSpell.bind(this));
       sortableSpellsContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
+    // Substat controls: +/- buttons and direct input changes
+    html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
+    html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
+    html.on('change input', '.substat-input', ev => this._queueSubstatChange(ev));
+    html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
+  }
 
-  // Substat controls: +/- buttons and direct input changes
-  html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
-  html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
-  html.on('change input', '.substat-input', ev => this._queueSubstatChange(ev));
-  html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
+  /** Handle IP input changes for skills */
+  async _onChangeSkillIP(ev) {
+    const input = ev.currentTarget;
+    const li = input.closest("[data-skill-id]"); if (!li) return;
+    const skill = this.actor.items.get(li.dataset.skillId); if (!skill) return;
+    const val = MektonActorSheet._num(input.value, 0);
+    await skill.update({ "system.ip": val });
   }
 
   /** Increment/decrement a substat by delta and persist immediately */
@@ -511,99 +534,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!name) return;
     const match = name.match(/^system\.stats\.(\w+)\.value$/);
     if (!match) return;
-    const key = match[1];
-    const val = MektonActorSheet._num(input.value, 5);
-    try {
-      await this.actor.update({ [`system.stats.${key}.value`]: val });
-    } catch (e) { 
-      console.warn('mekton-fusion | Failed updating stat', key, e); 
-    }
-  }
-
-
-  /** Override _updateObject to handle form data properly */
-  async _updateObject(event, formData) {
-    // Let the parent class handle the form data update
-    return super._updateObject(event, formData);
-  }
-
-  /** Roll 1d10 + selected stat (with optional modifier) */
-  async _onRollStat(ev) {
-    ev.preventDefault();
-    const btn = ev.currentTarget;
-    const rawKey = btn.dataset.ability; if (!rawKey) return;
-    const keyMap = { ref: "REF", int: "INT", body: "BODY", tech: "TECH", cool: "COOL", will: "COOL", luck: "LUCK", move: "MA", ma: "MA", emp: "EMP", attr: "ATTR", edu: "EDU" };
-    const statKey = keyMap[rawKey.toLowerCase()] || rawKey.toUpperCase();
-    const label = statKey;
-    // Resolve stat numeric value supporting either numeric or {value:number} structure
-    const statSource = this.actor.system?.stats?.[statKey];
-    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
-    let mod = 0;
-    if (!ev.shiftKey) {
-      try {
-        mod = Number(await Dialog.prompt({
-          title: `Modifier for ${label}`,
-          content: `<p>Enter a temporary modifier for ${label} (can be negative):</p><input type="number" name="mod" value="0" style="width:100%"/>`,
-          label: "Roll",
-          callback: html => Number(html.find("[name='mod']").val() || 0)
-        })) || 0;
-      } catch (_) { return; }
-    }
-    // Exploding d10 core roll
-  const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + statVal + (mod||0);
-    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const parts = [`(${plusStr}${minusStr})`, `${label} ${statVal}`];
-    if (mod) parts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
-    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
-    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
-    const tag = (explodedUp || explodedDown) ? `<span class=\"exploding\">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
-    const capTag = capped ? ` <span class=\"exploding cap\">[Cap ${maxExtra}]</span>` : '';
-    const flavor = `<strong>${this.actor.name}</strong> rolls <em>${label}</em> ${tag}${capTag} = ${parts.join(' + ')} = <strong>${finalTotal}</strong>`;
-  await roll.toMessage({ speaker, flavor });
-  }
-
-  /** Roll 1d10 + STAT + skill rank (+ optional modifier) */
-  async _onRollSkill(ev) {
-    ev.preventDefault();
-    const li = ev.currentTarget.closest("[data-skill-id]"); if (!li) return;
-    const id = li.dataset.skillId; const skill = this.actor.items.get(id); if (!skill) return;
-    const stat = String(skill.system?.stat || "REF").toUpperCase();
-    const rank = MektonActorSheet._num(skill.system?.rank, 0);
-    const statLabel = stat;
-    const statSource = this.actor.system?.stats?.[stat];
-    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
-
-    let mod = 0;
-    if (!ev.shiftKey) {
-      try {
-        mod = Number(await Dialog.prompt({
-          title: `Modifier for ${skill.name}`,
-          content: `<p>Enter a temporary modifier for ${skill.name} (can be negative):</p><input type=\"number\" name=\"mod\" value=\"0\" style=\"width:100%\"/>`,
-          label: "Roll",
-          callback: html => Number(html.find("[name='mod']").val() || 0)
-        })) || 0;
-      } catch (_) { return; }
-    }
-  const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + statVal + rank + (mod||0);
-    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const category = skill.system?.category || statLabel;
-    const hard = skill.system?.hard || /\(H\)|\[H\]/i.test(skill.name);
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
-    if (rank) flavorParts.push(`Rank ${rank}`);
-    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
-    if (hard) flavorParts.push('Hard');
-    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
-    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
-    const tag = (explodedUp || explodedDown) ? `<span class=\"exploding\">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
-    const capTag = capped ? ` <span class=\"exploding cap\">[Cap ${maxExtra}]</span>` : '';
-    const flavor = `<strong>${this.actor.name}</strong> rolls <em>${skill.name}</em> <small>[${category}${hard ? '; Hard' : ''}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>`;
-  await roll.toMessage({ speaker, flavor });
+    const li = input.closest("[data-skill-id]"); if (!li) return;
+    const skill = this.actor.items.get(li.dataset.skillId); if (!skill) return;
+    const val = MektonActorSheet._num(input.value, 0);
+    await skill.update({ "system.ip": val });
   }
 
   async _onToggleFavorite(ev) {
@@ -952,7 +886,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
     const flavor = `<strong>${this.actor.name}</strong> casts <em>${spell.name}</em> <small>[${school}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>`;
-    roll.toMessage({ speaker, flavor });
+  await roll.toMessage({ speaker, flavor });
   }
 
   /** Drop spell handler */

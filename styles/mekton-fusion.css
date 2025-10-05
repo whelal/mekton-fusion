@@ -1,3 +1,44 @@
+/* Make skill rank and IP input fields short and compact */
+.skills-table .short-input {
+  width: 3.5em;
+  min-width: 0;
+  max-width: 4em;
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 1em;
+}
+.skills-table .skill-rank {
+  width: 3.5em;
+  min-width: 0;
+  max-width: 4em;
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 1em;
+}
+/* Notes Tab Styles */
+.tab.notes .notes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 1em 0.5em;
+}
+.tab.notes .notes-label {
+  font-weight: bold;
+  margin-bottom: 0.25em;
+}
+.tab.notes .notes-textarea {
+  width: 100%;
+  min-height: 8em;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 1em;
+  padding: 0.5em;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background: #181818;
+  color: #eee;
+  box-sizing: border-box;
+}
 .mf-sheet { padding: 8px; }
 .mf-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .mf-name { flex: 1; font-size: 1.1rem; }

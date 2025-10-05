@@ -1,7 +1,7 @@
 export class ActorDataModel extends foundry.abstract.DataModel {
     static defineSchema() {
         const fields = foundry.data.fields;
-        return {
+    return {
             meta: new fields.SchemaField({
                 role: new fields.StringField({initial: ""}),
                 age: new fields.NumberField({initial: 25, min: 0, integer: true}),
@@ -60,7 +60,9 @@ export class ActorDataModel extends foundry.abstract.DataModel {
             }),
             equipment: new fields.SchemaField({
                 entries: new fields.ArrayField(new fields.ObjectField())
-            })
+            }),
+            // Player notes field
+            notes: new fields.StringField({ initial: "" })
         };
     }
 }

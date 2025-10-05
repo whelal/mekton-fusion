@@ -28,6 +28,7 @@
     <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
     <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
     <a class="item" data-tab="spells">{{localize 'MF.TabSpells'}}</a>
+    <a class="item" data-tab="notes">{{localize 'MF.TabNotes' 'Notes'}}</a>
   </nav>
 
   <section class="sheet-body">
@@ -235,6 +236,7 @@
                 <th>{{localize 'MF.ColName'}}</th>
                 <th>{{localize 'MF.ColStat'}}</th>
                 <th>{{localize 'MF.ColRank'}}</th>
+                <th>IP</th>
                 <th>{{localize 'MF.ColTotal'}}</th>
                 <th>{{localize 'MF.Roll'}}</th>
                 <th></th>
@@ -247,6 +249,7 @@
                   <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
                   <td class="skill-stat">{{sk.stat}}</td>
                   <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
+                  <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" value="{{sk.system.ip}}" title="Improvement Points (IP)"/></td>
                   <td class="skill-total">{{sk.total}}</td>
                   <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
                   <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
@@ -281,8 +284,8 @@
           <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
           <button type="button" class="spell-add-power" title="{{localize 'MF.AddSpell'}}">+</button>
         </div>
-        {{#if hasSpells}}
-        <table class="skills-table spell-skills">
+  {{#if hasSpells}}
+  <table class="skills-table spell-skills">
           <thead>
             <tr>
               <th>{{localize 'MF.ColFav'}}</th>
@@ -320,7 +323,7 @@
                     <option value="PSI" {{#if (eq sp.stat 'PSI')}}selected{{/if}}>PSI</option>
                   </select>
                 </td>
-                <td class="spell-rank-cell"><input class="spell-rank" type="number" min="0" value="{{sp.rank}}"/></td>
+                <td class="spell-rank-cell"><input class="spell-rank short-input" type="number" min="0" value="{{sp.rank}}"/></td>
                 <td class="spell-total">{{sp.total}}</td>
                 <td class="spell-school">{{sp.school}}</td>
                 <td class="spell-cost">{{sp.cost}}</td>
@@ -341,7 +344,7 @@
       {{/if}}
     </div>
 
-    <div class="tab psi" data-tab="psi">
+  <div class="tab psi" data-tab="psi">
       {{#if hasAnyPsiSkills}}
         <div class="skill-controls flexrow psi-controls">
           <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStatePsi.favOnly}}">
@@ -370,6 +373,7 @@
               <th>{{localize 'MF.ColName'}}</th>
               <th>{{localize 'MF.ColStat'}}</th>
               <th>{{localize 'MF.ColRank'}}</th>
+              <th>IP</th>
               <th>{{localize 'MF.ColTotal'}}</th>
               <th>{{localize 'MF.Roll'}}</th>
               <th></th>
@@ -386,7 +390,8 @@
                   {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
                 </td>
                 <td class="skill-stat">{{sk.stat}}</td>
-                <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" value="{{sk.rank}}"/></td>
+                <td class="skill-rank-cell"><input class="skill-rank short-input" type="number" min="0" value="{{sk.rank}}"/></td>
+                <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" value="{{sk.system.ip}}" title="Improvement Points (IP)"/></td>
                 <td class="skill-total">{{sk.total}}</td>
                 <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
                 <td class="skill-edit">
@@ -396,13 +401,21 @@
               </tr>
             {{/each}}
           </tbody>
+
         </table>
-        {{else}}
-        <p class="mf-empty">{{#if _skillViewStatePsi.favOnly}}{{localize 'MF.NoFavoritePsiSkills'}}{{else}}{{localize 'MF.NoPsiSkills'}}{{/if}}</p>
-        {{/if}}
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoPsiSkills'}}</p>
       {{/if}}
-    </div>
-  </section>
+    {{else}}
+      <p class="mf-empty">{{localize 'MF.NoPsiCategory'}}</p>
+    {{/if}}
+
+</div>
+<div class="tab notes" data-tab="notes">
+  <div class="notes-container">
+    <label for="actor-notes-textarea" class="notes-label">{{localize 'MF.NotesLabel' 'Notes'}}</label>
+    <textarea id="actor-notes-textarea" name="system.notes" class="notes-textarea" rows="12" placeholder="Enter any extra info here...">{{system.notes}}</textarea>
+  </div>
+</div>
+</section>
 </form>
