@@ -1,0 +1,7 @@
+/* ---------- Two-column panels ---------- */
+.mekton-fusion.sheet.actor .stats-two-col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--mf-gap); margin-top: var(--mf-gap);
+}
+.mekton-fusion.sheet.actor .panel { background: var(--mf-card); border: 2px solid var(--mf-border); padding: var(--mf-pad-sm); }
+.mekton-fusion.sheet.actor .panel h4 { margin: 0 0 var(--mf-gap-sm) 0; font-size: 0.95rem; }
+.mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }

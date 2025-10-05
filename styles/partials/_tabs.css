@@ -1,0 +1,27 @@
+/* ---------- Tabs & Tables (DRY: grouped selectors) ---------- */
+.mekton-fusion .sheet-body .tab { padding: 0; margin: 0; } /* overrides Foundry padding safely */
+
+.mekton-fusion .tab.skills .skill-controls,
+.mekton-fusion .tab.psi .skill-controls,
+.mekton-fusion .tab.spells .spell-controls { margin: var(--mf-gap-xs) var(--mf-gap-sm) var(--mf-gap-sm); }
+
+.mekton-fusion .tab.skills .skills-table,
+.mekton-fusion .tab.psi .skills-table,
+.mekton-fusion .tab.spells .skills-table,
+.mekton-fusion .tab.skills .mf-empty,
+.mekton-fusion .tab.psi .mf-empty,
+.mekton-fusion .tab.spells .mf-empty { margin: 0 var(--mf-gap-sm) var(--mf-gap-sm); }
+
+.mekton-fusion .skills-table { table-layout: fixed; width: 100%; }
+
+.mekton-fusion .skills-table .short-input,
+.mekton-fusion .skills-table .skill-rank {
+  width: var(--mf-input-w-sm);
+  min-width: 0;
+  max-width: calc(var(--mf-input-w-sm) + 0.5em);
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 1em;
+}
+
+.mekton-fusion .tab.skills .skill-category-header { margin: var(--mf-gap-sm) var(--mf-gap-sm) var(--mf-gap-xs); }

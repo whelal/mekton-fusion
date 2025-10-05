@@ -1,0 +1,6 @@
+/* ---------- Filters / Toggles ---------- */
+.mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle {
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.mekton-fusion.sheet.actor .skill-controls .skill-filter-fav-toggle:hover { background: #222; }

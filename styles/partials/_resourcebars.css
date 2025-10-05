@@ -1,0 +1,13 @@
+/* ---------- Resource bars ---------- */
+.mekton-fusion.sheet.actor .resource-bars { margin-top: var(--mf-gap); display:flex; flex-direction:column; gap:var(--mf-gap-sm); }
+.mekton-fusion.sheet.actor .resource-row { display:flex; align-items:center; gap:var(--mf-gap-sm); }
+.mekton-fusion.sheet.actor .resource-label { width: 80px; font-weight:700; }
+.mekton-fusion.sheet.actor .resource-bar { position:relative; flex:1; height:20px; background:#ddd; border:1px solid var(--mf-border); overflow:hidden; }
+.mekton-fusion.sheet.actor .resource-fill { position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#2ecc71,#27ae60); width:0%; }
+.mekton-fusion.sheet.actor .resource-values { position:absolute; right:6px; top:0; bottom:0; display:flex; align-items:center; font-weight:700; color:#fff; text-shadow:0 0 2px rgba(0,0,0,0.6); }
+.mekton-fusion.sheet.actor .resource-input { width: 64px; }
+
+.mekton-fusion.sheet.actor .resource-row[data-resource="psi"] .resource-fill,
+.mekton-fusion.sheet.actor .resource-bar[data-resource="psi"] .resource-fill {
+  background: linear-gradient(90deg,var(--mf-psi-grad-a),var(--mf-psi-grad-b));
+}

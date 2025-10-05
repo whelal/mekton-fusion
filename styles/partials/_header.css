@@ -1,0 +1,22 @@
+/* ---------- Header (Cyberpunk 2020 vibe) ---------- */
+.mekton-fusion.sheet.actor .sheet-header {
+  background: var(--mf-black); color: var(--mf-white);
+  padding: 0.5rem; border: 2px solid var(--mf-white); margin-bottom: 1rem;
+}
+.mekton-fusion.sheet.actor .sheet-header h1 { margin: 0; }
+.mekton-fusion.sheet.actor .sheet-header h1 input {
+  color: var(--mf-white); background: transparent; border: none; font-weight: 700; width: 100%;
+  text-shadow: 0 0 2px rgba(0,0,0,0.6);
+}
+.mekton-fusion.sheet.actor .sheet-header h1 input::placeholder { color: #bbb; }
+
+.mekton-fusion.sheet.actor .header-stats { gap: 0.5rem; margin-top: 0.5rem; }
+.mekton-fusion.sheet.actor .header-field {
+  display: flex; flex-direction: column; align-items: center;
+  background: var(--mf-white); color: var(--mf-text);
+  padding: 0.2rem 0.4rem; border: 1px solid var(--mf-black); min-width: 70px;
+}
+.mekton-fusion.sheet.actor .header-field label { font-size: 0.7rem; font-weight: bold; margin: 0; }
+.mekton-fusion.sheet.actor .header-field input {
+  background: transparent; border: none; text-align: center; font-weight: bold; font-size: 0.9rem; width: 100%;
+}

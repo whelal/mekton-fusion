@@ -1,0 +1,19 @@
+/* ---------- Utilities / Generic ---------- */
+.mf-sheet { padding: 8px; }
+.mf-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.mf-name { flex: 1; font-size: 1.1rem; }
+.mf-type { opacity: 0.7; }
+.mf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mf-stat { display: flex; align-items: center; gap: 6px; }
+.mf-stat label { width: 48px; font-weight: 600; }
+.mf-list { list-style: none; padding: 0; margin: 0; }
+.mf-row { display: grid; grid-template-columns: 1fr 120px 120px; gap: 8px; align-items: center; padding: 4px 0; }
+.mf-key { font-weight: 600; }
+.mf-empty { opacity: 0.7; font-style: italic; padding: 6px 0; }
+
+.mekton-fusion input[type="number"]::-webkit-outer-spin-button,
+.mekton-fusion input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mekton-fusion input[type="number"] { 
+  -moz-appearance: textfield; 
+  appearance: textfield; 
+}

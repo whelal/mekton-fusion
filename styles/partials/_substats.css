@@ -1,0 +1,36 @@
+/* ---------- Substats (table + cards) ---------- */
+.mekton-fusion.sheet.actor .substats-wrapper { margin-top: 0.75rem; }
+.mekton-fusion.sheet.actor .substats-table {
+  width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.95); border: 2px solid var(--mf-border);
+  table-layout: fixed;
+}
+.mekton-fusion.sheet.actor .substats-table td {
+  padding: 6px 8px; border: 1px solid var(--mf-soft-border); vertical-align: middle;
+}
+.mekton-fusion.sheet.actor .substats-table input {
+  width: 100%; border: none; background: transparent; text-align: center; font-weight: bold;
+}
+
+.mekton-fusion.sheet.actor .substats-cards .substats-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--mf-gap-sm); margin-top: var(--mf-gap-sm);
+}
+.mekton-fusion.sheet.actor .substat-card {
+  background: var(--mf-card); border: 2px solid var(--mf-border); padding: 0.4rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+}
+.mekton-fusion.sheet.actor .substat-label {
+  font-weight: 800; font-size: 0.85rem; letter-spacing: 0.05em;
+}
+.mekton-fusion.sheet.actor .substat-value-row { display: flex; align-items: center; gap: 0.25rem; }
+.mekton-fusion.sheet.actor .substat-input {
+  width: var(--mf-input-w-lg); text-align: center; font-weight: 800; font-size: 1.1rem;
+  border: 1px solid var(--mf-border); background: #f8f8f8; padding: 0.15rem 0.25rem;
+}
+.mekton-fusion.sheet.actor .substat-incr,
+.mekton-fusion.sheet.actor .substat-decr {
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  width: var(--mf-btn); height: var(--mf-btn); display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-weight: 700; border-radius: 4px;
+}
+.mekton-fusion.sheet.actor .substat-incr:hover,
+.mekton-fusion.sheet.actor .substat-decr:hover { background: #222; }

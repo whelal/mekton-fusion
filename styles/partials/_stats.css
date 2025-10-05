@@ -1,0 +1,34 @@
+/* ---------- Core Stats ---------- */
+.mekton-fusion.sheet.actor .stats-container {
+  background: var(--mf-bg); padding: var(--mf-pad); border: 2px solid var(--mf-border);
+}
+.mekton-fusion.sheet.actor .stats-row { gap: 0.5rem; justify-content: space-between; flex-wrap: wrap; }
+.mekton-fusion.sheet.actor .stat-box {
+  background: var(--mf-card); border: 2px solid var(--mf-border);
+  padding: 0.5rem; text-align: center; min-width: 80px; flex: 1;
+  display: flex; flex-direction: column; gap: 0.2rem;
+}
+.mekton-fusion.sheet.actor .stat-header {
+  font-weight: bold; font-size: 0.8rem; background: var(--mf-black); color: var(--mf-white);
+  padding: 0.2rem; margin: -0.5rem -0.5rem 0.2rem;
+}
+.mekton-fusion.sheet.actor .stat-value-row { gap: 0.3rem; align-items: center; justify-content: center; }
+.mekton-fusion.sheet.actor .stat-input {
+  width: var(--mf-input-w); text-align: center; font-weight: bold; font-size: 1rem;
+  border: 1px solid var(--mf-border); background: var(--mf-card);
+}
+.mekton-fusion.sheet.actor .stat-modifier { font-size: 0.8rem; color: var(--mf-muted); }
+.mekton-fusion.sheet.actor .stat-total {
+  font-weight: bold; font-size: 1.2rem; background: #f0f0f0;
+  border: 1px solid var(--mf-border); padding: 0.2rem; margin: 0.2rem 0;
+}
+.mekton-fusion.sheet.actor .stat-roll {
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  width: var(--mf-btn); height: var(--mf-btn); display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 0.75rem; border-radius: 4px;
+}
+.mekton-fusion.sheet.actor .stat-roll:hover { background: #222; }
+
+/* legacy compat */
+.mekton-fusion.sheet.actor .ability .flexrow { display:flex; gap:0.4rem; align-items:center; }
+.mekton-fusion.sheet.actor .ability button.ability-roll { padding: 0 0.5rem; }

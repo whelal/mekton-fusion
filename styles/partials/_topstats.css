@@ -1,0 +1,13 @@
+/* ---------- Top stats grid (rows of equal columns) ---------- */
+.mekton-fusion.sheet.actor .stats-grid-top { display: flex; flex-direction: column; gap: var(--mf-gap-sm); }
+.mekton-fusion.sheet.actor .stat-row-top {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--mf-gap-sm); align-items: stretch;
+}
+.mekton-fusion.sheet.actor .stat-row-top.row-six { grid-template-columns: repeat(6, 1fr); }
+.mekton-fusion.sheet.actor .stat-row-top.row-five { grid-template-columns: repeat(5, 1fr); }
+.mekton-fusion.sheet.actor .stat-box.large {
+  padding: 0.4rem; min-height: 68px; display: flex; flex-direction: column; justify-content: space-between;
+}
+.mekton-fusion.sheet.actor .stat-inline { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.mekton-fusion.sheet.actor .stat-inline .stat-input { width: 40px; margin: 0; }
+.mekton-fusion.sheet.actor .stat-inline .stat-roll { margin: 0; }

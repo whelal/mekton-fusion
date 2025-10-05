@@ -1,0 +1,40 @@
+/* ---------- Custom flags & rows ---------- */
+.mekton-fusion.sheet.actor .custom-skill { background: var(--mf-gold-bg); }
+.mekton-fusion.sheet.actor .custom-spell { background: var(--mf-purple-bg); }
+.mekton-fusion.sheet.actor .custom-flag { color: #ff6b35; font-weight: bold; margin-left: 0.25rem; font-size: 0.9rem; }
+
+/* ---------- Drag/Sort ---------- */
+.mekton-fusion.sheet.actor .skill-drag-handle {
+  color: #666; cursor: grab; margin-right: 0.5rem; font-weight: bold; opacity: 0.6;
+}
+.mekton-fusion.sheet.actor .skill-drag-handle:hover { color: var(--mf-text); opacity: 1; }
+.mekton-fusion.sheet.actor .skill-drag-handle:active { cursor: grabbing; }
+.mekton-fusion.sheet.actor .skill-item-row.dragging { opacity: 0.5; background: rgba(0, 123, 255, 0.1); }
+
+.mekton-fusion.sheet.actor .sortable-skills,
+.mekton-fusion.sheet.actor .sortable-spells { min-height: 2rem; }
+
+.mekton-fusion.sheet.actor .spell-item-row.dragging { opacity: 0.5; background: rgba(111, 66, 193, 0.1); }
+
+/* ---------- Item buttons ---------- */
+.mekton-fusion.sheet.actor .item-delete,
+.mekton-fusion.sheet.actor .spell-delete { color: var(--mf-danger); margin-left: 0.25rem; }
+.mekton-fusion.sheet.actor .item-delete:hover,
+.mekton-fusion.sheet.actor .spell-delete:hover { color: var(--mf-danger-hover); }
+
+.mekton-fusion.sheet.actor .psi-add-power,
+.mekton-fusion.sheet.actor .spell-add-power {
+  color: var(--mf-white); padding: 0.25rem 0.5rem; cursor: pointer; font-size: 1rem; font-weight: bold; margin-left: 0.5rem;
+  border: 1px solid transparent;
+}
+.mekton-fusion.sheet.actor .psi-add-power {
+  background: #28a745; border-color: #1e7e34;
+}
+.mekton-fusion.sheet.actor .psi-add-power:hover { background: #218838; }
+.mekton-fusion.sheet.actor .spell-add-power {
+  background: var(--mf-psi); border-color: var(--mf-psi-dark);
+}
+.mekton-fusion.sheet.actor .spell-add-power:hover { background: var(--mf-psi-dark); }
+
+/* ---------- Spells small inputs ---------- */
+.mekton-fusion.sheet.actor .spell-stat { width: 60px; font-size: 0.8rem; padding: 0.1rem; }

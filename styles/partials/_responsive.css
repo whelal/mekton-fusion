@@ -1,0 +1,20 @@
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 900px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(3, 1fr); }
+  .mekton-fusion.sheet.actor .stat-input { width: 36px; }
+}
+@media (max-width: 720px) {
+  .mekton-fusion.sheet.actor .substats-cards .substats-grid { grid-template-columns: repeat(2, 1fr); }
+  .mekton-fusion.sheet.actor .stats-two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: repeat(2, 1fr); }
+  .mekton-fusion.sheet.actor .stat-input { width: 36px; }
+}
+@media (max-width: 420px) {
+  .mekton-fusion.sheet.actor .stat-row-top { grid-template-columns: 1fr; }
+  .mekton-fusion.sheet.actor .stat-input { width: 48px; }
+}

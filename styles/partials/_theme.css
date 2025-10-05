@@ -1,0 +1,43 @@
+/* =========================
+   Theme Vars (scoped so we don't leak)
+   ========================= */
+.mekton-fusion {
+  --mf-black: #000;
+  --mf-white: #fff;
+  --mf-bg: #f5f5f5;
+  --mf-card: #fff;
+  --mf-text: #000;
+  --mf-muted: #666;
+  --mf-border: #000;
+  --mf-soft-border: rgba(0,0,0,0.08);
+  --mf-accent: #007bff;
+  --mf-danger: #dc3545;
+  --mf-danger-hover: #c82333;
+  --mf-psi: #6f42c1;
+  --mf-psi-dark: #5a32a3;
+  --mf-psi-grad-a: #8e44ad;
+  --mf-psi-grad-b: #6f42c1;
+  --mf-gold-bg: rgba(255, 215, 0, 0.1);
+  --mf-purple-bg: rgba(138, 43, 226, 0.1);
+
+  /* Sizing */
+  --mf-gap-xs: 0.25rem;
+  --mf-gap-sm: 0.5rem;
+  --mf-gap: 0.75rem;
+  --mf-pad-xs: 0.25rem;
+  --mf-pad-sm: 0.5rem;
+  --mf-pad: 1rem;
+
+  /* Inputs */
+  --mf-input-w-sm: 3.5em;
+  --mf-input-w: 40px;
+  --mf-input-w-lg: 56px;
+  --mf-btn: 28px;
+}
+
+html.theme-dark .mekton-fusion {
+  --mf-bg: #1a1a1a;
+  --mf-card: #181818;
+  --mf-text: #eee;
+  --mf-soft-border: rgba(255,255,255,0.08);
+}
