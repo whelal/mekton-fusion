@@ -225,39 +225,53 @@
         {{/unless}}
       </div>
       {{#if hasSkillItems}}
-        {{#each skillGroups as |group|}}
-          <h3 class="skill-category-header">
-            {{#if (eq group.category 'REF:COMBAT')}}Combat{{else}}{{#if (eq group.category 'REF:MECHA')}}Mecha{{else}}{{#if (eq group.category 'REF:UTILITY')}}Utility{{else}}{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}{{/if}}{{/if}}{{/if}}
-          </h3>
-          <table class="skills-table">
-            <thead>
-              <tr>
-                <th>{{localize 'MF.ColFav'}}</th>
-                <th>{{localize 'MF.ColName'}}</th>
-                <th>{{localize 'MF.ColStat'}}</th>
-                <th>{{localize 'MF.ColRank'}}</th>
-                <th>{{localize 'MF.ColIP'}}</th>
-                <th>{{localize 'MF.ColTotal'}}</th>
-                <th>{{localize 'MF.Roll'}}</th>
-                <th></th>
+        <table class="skills-table all-skills">
+          <colgroup>
+            <col /> <!-- Fav -->
+            <col /> <!-- Name -->
+            <col /> <!-- Stat -->
+            <col /> <!-- Rank -->
+            <col /> <!-- IP -->
+            <col /> <!-- Total -->
+            <col /> <!-- Roll -->
+            <col /> <!-- Edit -->
+          </colgroup>
+          <thead>
+            <tr>
+              <th>{{localize 'MF.ColFav'}}</th>
+              <th>{{localize 'MF.ColName'}}</th>
+              <th>{{localize 'MF.ColStat'}}</th>
+              <th>{{localize 'MF.ColRank'}}</th>
+              <th>{{localize 'MF.ColIP'}}</th>
+              <th>{{localize 'MF.ColTotal'}}</th>
+              <th>{{localize 'MF.Roll'}}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each skillGroups as |group|}}
+              <tr class="skill-category-row" data-category="{{group.category}}">
+                <th colspan="8" class="skill-category-divider">
+                  {{#if (eq group.category 'REF:COMBAT')}}Combat{{else}}{{#if (eq group.category 'REF:MECHA')}}Mecha{{else}}{{#if (eq group.category 'REF:UTILITY')}}Utility{{else}}{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}{{/if}}{{/if}}{{/if}}
+                </th>
               </tr>
-            </thead>
-            <tbody>
               {{#each group.skills as |sk|}}
                 <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="{{group.category}}">
                   <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
-                  <td class="skill-name">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</td>
+                  <td class="skill-name">
+                    {{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
+                  </td>
                   <td class="skill-stat">{{sk.stat}}</td>
-                                    <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
+                  <td class="skill-rank-cell"><input class="skill-rank" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
                   <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" max="999" step="1" value="{{sk.system.ip}}" title="{{localize 'MF.IPTooltip'}}"/></td>
                   <td class="skill-total">{{sk.total}}</td>
                   <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
                   <td class="skill-edit"><a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a></td>
                 </tr>
               {{/each}}
-            </tbody>
-          </table>
-        {{/each}}
+            {{/each}}
+          </tbody>
+        </table>
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoSkills'}}</p>
       {{/if}}
@@ -290,11 +304,10 @@
             <tr>
               <th>{{localize 'MF.ColFav'}}</th>
               <th>{{localize 'MF.ColName'}}</th>
-              <th>{{localize 'MF.ColStat'}}</th>
-              <th>{{localize 'MF.ColRank'}}</th>
-              <th>{{localize 'MF.ColTotal'}}</th>
-              <th>{{localize 'MF.School'}}</th>
               <th>{{localize 'MF.Cost'}}</th>
+              <th>{{localize 'MF.Range'}}</th>
+              <th>{{localize 'MF.Duration'}}</th>
+              <th>{{localize 'MF.Defense'}}</th>
               <th>{{localize 'MF.Roll'}}</th>
               <th></th>
             </tr>
@@ -308,25 +321,10 @@
                   {{sp.name}} 
                   {{#if sp.custom}}<span class="custom-flag" title="Custom Spell">✦</span>{{/if}}
                 </td>
-                <td class="spell-stat-cell">
-                  <select class="spell-stat" data-item-id="{{sp.id}}">
-                    <option value="INT" {{#if (eq sp.stat 'INT')}}selected{{/if}}>INT</option>
-                    <option value="REF" {{#if (eq sp.stat 'REF')}}selected{{/if}}>REF</option>
-                    <option value="TECH" {{#if (eq sp.stat 'TECH')}}selected{{/if}}>TECH</option>
-                    <option value="COOL" {{#if (eq sp.stat 'COOL')}}selected{{/if}}>COOL</option>
-                    <option value="ATTR" {{#if (eq sp.stat 'ATTR')}}selected{{/if}}>ATTR</option>
-                    <option value="LUCK" {{#if (eq sp.stat 'LUCK')}}selected{{/if}}>LUCK</option>
-                    <option value="MA" {{#if (eq sp.stat 'MA')}}selected{{/if}}>MA</option>
-                    <option value="BODY" {{#if (eq sp.stat 'BODY')}}selected{{/if}}>BODY</option>
-                    <option value="EMP" {{#if (eq sp.stat 'EMP')}}selected{{/if}}>EMP</option>
-                    <option value="EDU" {{#if (eq sp.stat 'EDU')}}selected{{/if}}>EDU</option>
-                    <option value="PSI" {{#if (eq sp.stat 'PSI')}}selected{{/if}}>PSI</option>
-                  </select>
-                </td>
-                <td class="spell-rank-cell"><input class="spell-rank short-input" type="number" min="0" max="50" step="1" value="{{sp.rank}}"/></td>
-                <td class="spell-total">{{sp.total}}</td>
-                <td class="spell-school">{{sp.school}}</td>
-                <td class="spell-cost">{{sp.cost}}</td>
+                <td class="spell-cost-cell"><input class="spell-cost short-input" type="number" min="0" max="99" step="1" value="{{sp.cost}}" data-item-id="{{sp.id}}"/></td>
+                <td class="spell-range-cell"><input class="spell-range" type="text" value="{{sp.range}}" placeholder="m/self" data-item-id="{{sp.id}}"/></td>
+                <td class="spell-duration-cell"><input class="spell-duration" type="text" value="{{sp.duration}}" placeholder="rounds/instant" data-item-id="{{sp.id}}"/></td>
+                <td class="spell-defense-cell"><input class="spell-defense" type="text" value="{{sp.defense}}" placeholder="dodge/block" data-item-id="{{sp.id}}"/></td>
                 <td class="spell-roll-cell"><button type="button" class="spell-roll" title="Cast {{sp.name}}"><i class="fas fa-magic"></i></button></td>
                 <td class="spell-edit">
                   <a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sp.id}}"><i class="fas fa-edit"></i></a>
@@ -337,7 +335,13 @@
           </tbody>
         </table>
         {{else}}
-        <p class="mf-empty">{{#if _skillViewStateSpells.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
+          {{#if spells.length}}
+            {{#unless spells.[0].spellcasting}}
+              <tr><td colspan="8" class="mf-warning">{{localize 'MF.SpellcastingMissing'}}</td></tr>
+            {{/unless}}
+          {{else}}
+            <p class="mf-empty">{{#if _skillViewStateSpells.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
+          {{/if}}
         {{/if}}
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoSpells'}}</p>
@@ -367,6 +371,16 @@
         </div>
         {{#if hasPsiSkills}}
         <table class="skills-table psi-skills">
+          <colgroup>
+            <col /> <!-- Fav -->
+            <col /> <!-- Name -->
+            <col /> <!-- Stat -->
+            <col /> <!-- Rank -->
+            <col /> <!-- IP -->
+            <col /> <!-- Total -->
+            <col /> <!-- Roll -->
+            <col /> <!-- Edit -->
+          </colgroup>
           <thead>
             <tr>
               <th>{{localize 'MF.ColFav'}}</th>

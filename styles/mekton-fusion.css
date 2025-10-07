@@ -81,8 +81,8 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .tab.psi .mf-empty,
 .mekton-fusion .tab.spells .mf-empty { margin: 0 var(--mf-gap-sm) var(--mf-gap-sm); }
 
-/* Keep skill column widths stable */
-.mekton-fusion .skills-table { table-layout: fixed; width: 100%; }
+/* Skills table: allow flexible layout (overrides previous fixed layout) */
+.mekton-fusion .skills-table { width: 100%; }
 
 /* Compact inputs used in skills/IP columns */
 .mekton-fusion .skills-table .short-input,
