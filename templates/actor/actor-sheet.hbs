@@ -225,7 +225,8 @@
         {{/unless}}
       </div>
       {{#if hasSkillItems}}
-        <table class="skills-table all-skills">
+        <div class="skills-table-wrapper" aria-label="All Skills" role="region">
+        <table class="skills-table all-skills" role="table">
           <colgroup>
             <col /> <!-- Fav -->
             <col /> <!-- Name -->
@@ -238,25 +239,25 @@
           </colgroup>
           <thead>
             <tr>
-              <th>{{localize 'MF.ColFav'}}</th>
-              <th>{{localize 'MF.ColName'}}</th>
-              <th>{{localize 'MF.ColStat'}}</th>
-              <th>{{localize 'MF.ColRank'}}</th>
-              <th>{{localize 'MF.ColIP'}}</th>
-              <th>{{localize 'MF.ColTotal'}}</th>
-              <th>{{localize 'MF.Roll'}}</th>
-              <th></th>
+              <th scope="col">{{localize 'MF.ColFav'}}</th>
+              <th scope="col">{{localize 'MF.ColName'}}</th>
+              <th scope="col">{{localize 'MF.ColStat'}}</th>
+              <th scope="col">{{localize 'MF.ColRank'}}</th>
+              <th scope="col" class="col-ip">{{localize 'MF.ColIP'}}</th>
+              <th scope="col" class="col-total">{{localize 'MF.ColTotal'}}</th>
+              <th scope="col">{{localize 'MF.Roll'}}</th>
+              <th scope="col" aria-label="Actions"></th>
             </tr>
           </thead>
           <tbody>
             {{#each skillGroups as |group|}}
               <tr class="skill-category-row" data-category="{{group.category}}">
-                <th colspan="8" class="skill-category-divider">
+                <th colspan="8" class="skill-category-divider" scope="colgroup">
                   {{#if (eq group.category 'REF:COMBAT')}}Combat{{else}}{{#if (eq group.category 'REF:MECHA')}}Mecha{{else}}{{#if (eq group.category 'REF:UTILITY')}}Utility{{else}}{{localize (concat 'MF.SkillCat.' group.category) fallback=group.category}}{{/if}}{{/if}}{{/if}}
                 </th>
               </tr>
               {{#each group.skills as |sk|}}
-                <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="{{group.category}}">
+                <tr data-skill-id="{{sk.id}}" class="skill-item-row" data-favorite="{{sk.favorite}}" data-category="{{group.category}}" role="row">
                   <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
                   <td class="skill-name">
                     {{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
@@ -272,6 +273,7 @@
             {{/each}}
           </tbody>
         </table>
+        </div>
       {{else}}
         <p class="mf-empty">{{localize 'MF.NoSkills'}}</p>
       {{/if}}

@@ -235,23 +235,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Build spell Items listing
     const spellItems = this.actor.items.filter(i => i.type === "spell");
+    // Determine global Spellcasting skill (COOL) if present
+    const spellcastingSkill = flatSkills.find(sk => sk.name.toLowerCase() === 'spellcasting');
+    const spellcastingRank = spellcastingSkill ? this.constructor._num(spellcastingSkill.rank, 0) : 0;
+    const spellcastingStat = 'COOL';
+    const spellcastingStatVal = ctx.system.stats?.[spellcastingStat]?.value ?? 0;
+    const spellcastingTotal = spellcastingStatVal + spellcastingRank;
     let spells = spellItems.map(it => {
       const stat = String(it.system?.stat || it.system?.test || "INT").toUpperCase();
       const statVal = ctx.system.stats?.[stat]?.value ?? 0;
-      const rank = this.constructor._num(it.system?.rank, 0);
-      const total = statVal + rank;
+      // Legacy per-spell rank retained for backward compatibility but not used in main total
+      const legacyRank = this.constructor._num(it.system?.rank, 0);
+      const totalGlobal = spellcastingTotal; // COOL + spellcasting rank (no spell stat)
       const custom = !!it.system?.custom;
       return {
         id: it.id,
         name: it.name,
         stat,
-        rank,
-        total,
+        legacyRank,
+        spellcasting: spellcastingTotal,
+        totalGlobal,
         favorite: !!it.system?.favorite,
         item: it,
         system: it.system,
         school: it.system?.school || 'Unknown',
         cost: it.system?.cost || 0,
+        range: it.system?.range || '',
+        duration: it.system?.duration || '',
+        defense: it.system?.defense || '',
         effect: it.system?.effect || '',
         custom
       };
@@ -359,12 +370,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".spell-add-power", ev => this._onAddSpell(ev));
     html.on("click", ".psi-delete", ev => this._onDeletePsiPower(ev));
     html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
-    html.on("change", ".spell-rank", ev => this._onChangeSpellRank(ev));
-    html.on("change", ".spell-stat", ev => this._onChangeSpellStat(ev));
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
     html.on("click", ".spell-roll", ev => this._onRollSpell(ev));
-
-    // Input validation: prevent negative values and enforce max limits
+    html.on("change", ".spell-cost", ev => this._onChangeSpellField(ev, 'cost'));
+    html.on("change", ".spell-range", ev => this._onChangeSpellField(ev, 'range'));
+    html.on("change", ".spell-duration", ev => this._onChangeSpellField(ev, 'duration'));
+    html.on("change", ".spell-defense", ev => this._onChangeSpellField(ev, 'defense'));    // Input validation: prevent negative values and enforce max limits
     html.on("input", ".skill-rank, .skill-ip", ev => {
       const input = ev.currentTarget;
       const value = parseInt(input.value);
@@ -378,11 +389,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     });
     
-    html.on("input", ".spell-rank", ev => {
+    html.on("input", ".spell-cost", ev => {
       const input = ev.currentTarget;
       const value = parseInt(input.value);
       const min = parseInt(input.min) || 0;
-      const max = parseInt(input.max) || 50;
+      const max = parseInt(input.max) || 99;
       
       if (isNaN(value) || value < min) {
         input.value = min;
@@ -390,6 +401,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         input.value = max;
       }
     });
+    
 
     // Tab helpers
     const getTabFromEvent = ev => {
@@ -448,6 +460,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
     html.on('change input', '.substat-input', ev => this._queueSubstatChange(ev));
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
+
+    // (Category collapse feature removed)
   }
 
   /** Handle IP input changes for skills */
@@ -781,6 +795,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           stat: 'INT',
           school: 'Custom',
           cost: 1,
+          range: '',
+          duration: '',
+          defense: '',
           rank: 0,
           favorite: false,
           custom: true,
@@ -818,6 +835,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.info(game.i18n.format('MF.DeletedSpell', { name: item.name }) || `Deleted spell: ${item.name}`);
       this.render(false);
     }
+  }
+
+  /** Change spell field (cost, range, duration, defense) */
+  async _onChangeSpellField(ev, fieldName) {
+    const input = ev.currentTarget;
+    const li = input.closest("[data-item-id]");
+    if (!li) return;
+    const spell = this.actor.items.get(li.dataset.itemId);
+    if (!spell) return;
+    
+    let val;
+    if (fieldName === 'cost') {
+      val = MektonActorSheet._num(input.value, 0);
+    } else {
+      val = String(input.value).trim();
+    }
+    
+    await spell.update({ [`system.${fieldName}`]: val });
   }
 
   /** Toggle spell favorite */
@@ -1019,13 +1054,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const spell = this.actor.items.get(id);
     if (!spell) return;
     
-    const stat = String(spell.system?.stat || "INT").toUpperCase();
-    const rank = MektonActorSheet._num(spell.system?.rank, 0);
-    const statLabel = stat;
-    const statSource = this.actor.system?.stats?.[stat];
-    const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
-
-    let mod = 0;
+    const stat = 'COOL'; // All spell casting uses COOL
+    // Global spellcasting rank (COOL-based) lookup
+    const spellcastingSkill = this.actor.items.find(i => i.type === 'skill' && i.name.toLowerCase() === 'spellcasting');
+    const spellcastingRank = spellcastingSkill ? MektonActorSheet._num(spellcastingSkill.system?.rank, 0) : 0;
+    const spellcastingStatVal = this.actor.system?.stats?.COOL?.value ?? 0;
+    const spellcastingTotal = spellcastingStatVal + spellcastingRank;
+    const statLabel = 'COOL';
+    const statVal = spellcastingStatVal;    let mod = 0;
     let difficulty = null;
     
     if (!ev.shiftKey) {
@@ -1054,22 +1090,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       } catch (_) { return; }
     }
     
-    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + statVal + rank + (mod||0);
+    const roll = new Roll('1d10');
+    await roll.evaluate();
+    const diceResult = roll.total;
+    const finalTotal = diceResult + spellcastingTotal + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const school = spell.system?.school || 'Unknown';
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
-    if (rank) flavorParts.push(`Rank ${rank}`);
-    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
-    
-    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
-    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
-    const tag = (explodedUp || explodedDown) ? `<span class="exploding">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
-    const capTag = capped ? ` <span class="exploding cap">[Cap ${maxExtra}]</span>` : '';
-    
-    let resultText = '';
+    const flavorParts = [`1d10: ${diceResult}`, `COOL ${spellcastingStatVal}`];
+    if (spellcastingRank) flavorParts.push(`Spellcasting ${spellcastingRank}`);
+    if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);    let resultText = '';
     if (difficulty !== null) {
       const success = finalTotal >= difficulty;
       resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
@@ -1079,7 +1108,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollWithDifficulty', { name: spell.name, difficulty }) :
       game.i18n.format('MF.RollSimple', { name: spell.name });
     
-    const flavor = `<strong>${this.actor.name}</strong> casts <em>${rollTitle}</em> <small>[${school}]</small> ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    const flavor = `<strong>${this.actor.name}</strong> casts <em>${rollTitle}</em> <small>[${school}]</small> = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
     await roll.toMessage({ speaker, flavor });
   }
 

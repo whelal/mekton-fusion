@@ -105,3 +105,13 @@
   border-top: 2px solid #222;
   border-bottom: 1px solid #222;
 }
+
+/* Sticky header & scroll wrapper */
+.mekton-fusion.sheet.actor .skills-table-wrapper { max-height: 540px; overflow-y: auto; position: relative; }
+.mekton-fusion.sheet.actor .skills-table thead th { position: sticky; top: 0; z-index: 5; background: #333; color: #fff; }
+
+/* (Category collapse removed) */
+
+/* Responsive column hiding */
+@media (max-width: 820px) { .mekton-fusion.sheet.actor .skills-table col:nth-child(5), .mekton-fusion.sheet.actor .skills-table th.col-ip, .mekton-fusion.sheet.actor .skills-table td.skill-ip-cell { display: none; } }
+@media (max-width: 600px) { .mekton-fusion.sheet.actor .skills-table col:nth-child(6), .mekton-fusion.sheet.actor .skills-table th.col-total, .mekton-fusion.sheet.actor .skills-table td.skill-total { display: none; } }
