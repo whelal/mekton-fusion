@@ -8,36 +8,22 @@
     {{#if isSkill}}
       <div class="form-group">
         <label>Stat</label>
-        {{#if system.custom}}
+        {{#if isCustom}}
           <select name="system.stat">
-            {{#each statOptions}}
-              <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-            {{/each}}
+            <option value="INT">INT</option>
+            <option value="REF">REF</option>
+            <option value="TECH">TECH</option>
+            <option value="COOL">COOL</option>
+            <option value="ATTR">ATTR</option>
+            <option value="LUCK">LUCK</option>
+            <option value="MA">MA</option>
+            <option value="BODY">BODY</option>
+            <option value="EMP">EMP</option>
           </select>
         {{else}}
           <input type="text" value="{{system.stat}}" readonly style="background: #f0f0f0;"/>
           <small style="color: #666; font-style: italic;">Default skills use fixed stats. Only custom skills can be edited.</small>
         {{/if}}
-      </div>
-      <div class="form-group">
-        <label>Category</label>
-        <input type="text" name="system.category" value="{{system.category}}" placeholder="CUSTOM"/>
-      </div>
-      <div class="form-group">
-        <label>Rank</label>
-        <input type="number" name="system.rank" value="{{system.rank}}" min="0" step="1"/>
-      </div>
-      <div class="form-group">
-        <label>IP (Improvement Points)</label>
-        <input type="number" name="system.ip" value="{{system.ip}}" min="0" step="1"/>
-      </div>
-      <div class="form-group">
-        <label>Hard Skill</label>
-        <input type="checkbox" name="system.hard" {{#if system.hard}}checked{{/if}}/>
-      </div>
-      <div class="form-group">
-        <label>Favorite</label>
-        <input type="checkbox" name="system.favorite" {{#if system.favorite}}checked{{/if}}/>
       </div>
     {{/if}}
 
