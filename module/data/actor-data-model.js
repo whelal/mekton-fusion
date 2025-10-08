@@ -39,7 +39,7 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 psi_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 psihybrid: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 psihybrid_current: new fields.NumberField({initial: 0, min: 0, integer: true}),
-                initiative: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                initiative: new fields.NumberField({initial: 0, integer: true}), // removed min: 0 to allow negative modifiers
                 dodge: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 enc: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 punch: new fields.NumberField({initial: 0, min: 0, integer: true}),

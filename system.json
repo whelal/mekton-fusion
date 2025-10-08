@@ -13,8 +13,8 @@
   "changelog": "CHANGELOG.md",
   "scripts": [],
   "esmodules": [
-    "scripts/sheets/mekton-fusion.js"
-    
+    "scripts/sheets/mekton-fusion.js",
+    "scripts/sheets/actor-sheet.js"
   ],
 
   "styles": ["styles/mekton-fusion.css"],
@@ -33,7 +33,7 @@
   },
 
   "template": "templates", 
-  "initiative": "1d10 + @system.stats.REF.value",
+  "initiative": "1d10 + @system.stats.REF.value + @system.substats.initiative",
 
   "homebrew": {
     "free": true,

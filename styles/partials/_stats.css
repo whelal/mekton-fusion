@@ -32,3 +32,17 @@
 /* legacy compat */
 .mekton-fusion.sheet.actor .ability .flexrow { display:flex; gap:0.4rem; align-items:center; }
 .mekton-fusion.sheet.actor .ability button.ability-roll { padding: 0 0.5rem; }
+
+/* Initiative panel styling */
+.mekton-fusion.sheet.actor .panel-initiative {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--mf-border);
+}
+
+.mekton-fusion.sheet.actor .panel-initiative h5 {
+  margin: 0 0 0.3rem 0;
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: var(--mf-muted);
+}

@@ -83,4 +83,6 @@
   , "MF.DeletedCustomSkill": "Deleted custom skill: {name}"
   , "MF.ErrorCreateCustomSkill": "Failed to create custom skill"
   , "MF.ErrorDeleteCustomSkill": "Failed to delete custom skill"
+  , "MF.InitiativeMod": "Initiative Mod"
+  , "MF.InitiativeModTooltip": "Initiative modifier (can be negative)"
 }

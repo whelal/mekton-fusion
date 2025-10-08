@@ -230,3 +230,14 @@
   letter-spacing: 0.12em;
   color: rgba(0, 0, 0, 0.6);
 }
+
+/* Exploding dice styling for chat messages */
+.exploding {
+  color: #ff6600;
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+.exploding.cap {
+  color: #cc3300;
+}
