@@ -12,3 +12,6 @@
 @import url("partials/_resourcebars.css");
 @import url("partials/_responsive.css");
 @import url("partials/_twocol.css");
+
+/* TEMP: Debug outlines for Spells and Notes tabs */
+@import url("_debug.css");

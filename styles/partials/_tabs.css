@@ -84,33 +84,57 @@
 
 /* Compact action buttons */
 .mekton-fusion.sheet.actor .skills-table .roll-button,
-.mekton-fusion.sheet.actor .skills-table .edit-button {
-  width: 28px !important;
-  height: 28px !important;
-  padding: 0 !important;
-  display: inline-grid;
-  place-items: center;
-}
 
-/* Category divider row inside unified skills table */
-.mekton-fusion.sheet.actor .skills-table.all-skills .skill-category-row th.skill-category-divider {
-  text-align: left;
-  background: #444;
+/* Base style for all add buttons */
+/* Base style for all add buttons */
+.mekton-fusion.sheet.actor button.psi-add-power,
+.mekton-fusion.sheet.actor button.spell-add-power,
+.mekton-fusion.sheet.actor button.custom-skill-add,
+.mekton-fusion.sheet.actor button.custom-skill-add-top {
   color: #fff;
-  font-size: 0.95rem; /* increased */
-  font-weight: 700;   /* bold */
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 6px 8px 4px 0; /* remove left padding for flush-left alignment */
-  border-top: 2px solid #222;
-  border-bottom: 1px solid #222;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
 }
 
-/* Sticky header & scroll wrapper */
-.mekton-fusion.sheet.actor .skills-table-wrapper { max-height: 540px; overflow-y: auto; position: relative; }
-.mekton-fusion.sheet.actor .skills-table thead th { position: sticky; top: 0; z-index: 5; background: #333; color: #fff; }
+/* Add Psionics button: green */
+.mekton-fusion.sheet.actor button.psi-add-power {
+  background: #43a047;
+  border: 1px solid #2e7031;
+}
+.mekton-fusion.sheet.actor button.psi-add-power:hover { background: #66bb6a; }
+.mekton-fusion.sheet.actor button.psi-add-power:active { background: #388e3c; }
 
-/* (Category collapse removed) */
+/* Add Spell button: purple */
+.mekton-fusion.sheet.actor button.spell-add-power {
+  background: #7e57c2;
+  border: 1px solid #4b2e83;
+}
+.mekton-fusion.sheet.actor button.spell-add-power:hover { background: #9575cd; }
+.mekton-fusion.sheet.actor button.spell-add-power:active { background: #5e35b1; }
+
+/* Add Custom Skill button: blue (top only) */
+.mekton-fusion.sheet.actor button.custom-skill-add-top {
+  background: #1976d2;
+  border: 1px solid #115293;
+}
+.mekton-fusion.sheet.actor button.custom-skill-add-top:hover { background: #2196f3; }
+
+
+/* Inline + inside category divider should not stretch layout */
+.mekton-fusion.sheet.actor .skills-table .skill-category-divider button.custom-skill-add {
+  margin-left: 8px;
+  vertical-align: middle;
+}
 
 /* Responsive column hiding */
 @media (max-width: 820px) { .mekton-fusion.sheet.actor .skills-table col:nth-child(5), .mekton-fusion.sheet.actor .skills-table th.col-ip, .mekton-fusion.sheet.actor .skills-table td.skill-ip-cell { display: none; } }

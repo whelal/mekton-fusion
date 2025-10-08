@@ -1,8 +1,64 @@
-/* ---------- Spells Tab White Space Fix ---------- */
-.mekton-fusion .tab.spells,
-.mekton-fusion .tab.spells > * {
-  padding: 0 !important;
+/* AGGRESSIVE: Remove all margin/padding from all descendants in Spells tab */
+.mekton-fusion.sheet.actor .tab.spells, .mekton-fusion.sheet.actor .tab.spells * {
   margin: 0 !important;
+  padding: 0 !important;
+}
+/* Debug: show tab bounds */
+.mekton-fusion.sheet.actor .tab.spells {
+  background: rgba(0,0,255,0.05) !important;
+}
+/* ---------- Spells Tab White Space Fix (Advanced) ---------- */
+.mekton-fusion.sheet.actor .tab.spells,
+.mekton-fusion.sheet.actor .tab.spells > * {
+  margin: 0;
+  padding: 0;
+}
+
+/* 2) Spells wrapper (if present) */
+.mekton-fusion.sheet.actor .tab.spells .spells-container {
+  padding: 0.25rem 0.5rem 0.5rem;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+/* 3) Foundry editor wrappers (ProseMirror + legacy .editor/.editor-content) */
+.mekton-fusion.sheet.actor .tab.spells .editor,
+.mekton-fusion.sheet.actor .tab.spells .editor-content,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none;
+  background: transparent;
+}
+
+/* 4) Paragraph and heading trims inside the editor */
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror p,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror h1,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror h2,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror h3,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror h4 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Remove edge padding at very start/end of content */
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror > *:first-child { margin-top: 0; }
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror > *:last-child  { margin-bottom: 0; }
+
+/* 5) Tiptap/ProseMirror code blocks & lists can add extra vertical rhythm */
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror pre,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror ul,
+.mekton-fusion.sheet.actor .tab.spells .ProseMirror ol {
+  margin: 0.25rem 0;
+}
+
+/* 6) Table and row trims */
+.mekton-fusion.sheet.actor .tab.spells table,
+.mekton-fusion.sheet.actor .tab.spells tr,
+.mekton-fusion.sheet.actor .tab.spells td,
+.mekton-fusion.sheet.actor .tab.spells th {
+  margin: 0;
+  padding: 0;
 }
 /* ---------- Custom flags & rows ---------- */
 .mekton-fusion.sheet.actor .custom-skill { background: var(--mf-gold-bg); }

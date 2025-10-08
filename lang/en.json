@@ -18,6 +18,8 @@
   "MF.ColStat": "Stat",
   "MF.ColRank": "Rank",
   "MF.ColTotal": "Total",
+  "MF.ColSpellcasting": "Spellcasting",
+  "MF.Spellcasting": "Spellcasting",
   "MF.SkillCat.ATTR": "Attractiveness",
   "MF.SkillCat.COOL": "Cool",
   "MF.SkillCat.EMP": "Empathy",
@@ -55,8 +57,11 @@
   ,"MF.DeleteSpell": "Delete Spell"
   ,"MF.DeleteSpellConfirm": "Delete spell '{name}'?"
   ,"MF.DeletedSpell": "Deleted spell: {name}"
-  ,"MF.Cost": "Cost"
-  ,  "MF.NoFavoriteSpells": "No favorite spells",
+  ,  "MF.Cost": "Cost",
+  "MF.Range": "Range",
+  "MF.Duration": "Duration",
+  "MF.Defense": "Defense",
+  "MF.NoFavoriteSpells": "No favorite spells",
   "MF.NoFavoritePsiSkills": "No favorite psionic powers",
   "MF.ColIP": "IP",
   "MF.IPTooltip": "Improvement Points (IP)",
@@ -65,5 +70,17 @@
   "MF.NoPsiCategory": "No psionics category available",
   "MF.RollDifficultyPrompt": "Enter difficulty (optional):",
   "MF.RollWithDifficulty": "Roll {name} vs Difficulty {difficulty}",
-  "MF.RollSimple": "Roll {name}"
+  "MF.RollSimple": "Roll {name}",
+  "MF.SpellcastingMissing": "No global Spellcasting skill found. Add it to your skills to enable spellcasting."
+  , "MF.AddCustomSkill": "Add Custom Skill"
+  , "MF.NewCustomSkill": "New Custom Skill"
+  , "MF.CustomSkillsCategory": "Custom Skills"
+  , "MF.CustomSkillNamePrompt": "Enter name for the new custom skill:"
+  , "MF.CreatedCustomSkill": "Created custom skill: {name}"
+  , "MF.DuplicateCustomSkillName": "A custom skill named '{name}' already exists."
+  , "MF.DeleteCustomSkill": "Delete Custom Skill"
+  , "MF.DeleteCustomSkillConfirm": "Delete custom skill '{name}'?"
+  , "MF.DeletedCustomSkill": "Deleted custom skill: {name}"
+  , "MF.ErrorCreateCustomSkill": "Failed to create custom skill"
+  , "MF.ErrorDeleteCustomSkill": "Failed to delete custom skill"
 }

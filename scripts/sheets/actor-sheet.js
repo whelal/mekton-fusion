@@ -312,7 +312,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     sortList(psiSkills, vsPsi.sortBy, vsPsi.dir);
     sortList(spells, vsSpells.sortBy, vsSpells.dir);
 
-    // Group non-PSI categories
+  // Extract custom (non-PSI) skills so they can render in their own section at the bottom.
+  // We do this AFTER sorting so customSkills preserve the active sort order.
+  let customSkills = nonPsi.filter(sk => sk.custom && sk.category !== 'PSI');
+  // Remove them from the normal category grouping list to avoid duplicate rows
+  nonPsi = nonPsi.filter(sk => !(sk.custom && sk.category !== 'PSI'));
+
+    // Group non-PSI categories (custom skills removed above)
     const byCategory = new Map();
     for (const sk of nonPsi) {
       if (!byCategory.has(sk.category)) byCategory.set(sk.category, []);
@@ -323,6 +329,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .map(([category, skills]) => ({ category, skills: skills.sort((a,b)=>a.name.localeCompare(b.name)) }));
 
     ctx.skillGroups = grouped;
+    ctx.customSkills = customSkills || [];
     ctx.psiSkills = psiSkills;
     ctx.spells = spells;
   ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential future use)
@@ -368,6 +375,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".seed-skills", ev => this._onSeedSkills(ev));
     html.on("click", ".psi-add-power", ev => this._onAddPsiPower(ev));
     html.on("click", ".spell-add-power", ev => this._onAddSpell(ev));
+  html.on("click", ".custom-skill-add", ev => this._onAddCustomSkill(ev));
+  html.on("click", ".custom-skill-delete", ev => this._onDeleteCustomSkill(ev));
     html.on("click", ".psi-delete", ev => this._onDeletePsiPower(ev));
     html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
@@ -815,6 +824,99 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
   }
 
+  /** Create a new generic custom (non-PSI) skill. */
+  async _onAddCustomSkill(ev) {
+    ev.preventDefault();
+    try {
+      const existingNames = this.actor.items
+        .filter(i => i.type === 'skill' && i.system?.category !== 'PSI' && i.system?.custom)
+        .map(i => i.name.toLowerCase());
+
+      // Collect available stats from actor (fallback to common set)
+      const statKeys = Object.keys(this.actor.system?.stats || { REF:1, INT:1, COOL:1, TECH:1, BODY:1, EMP:1, LUCK:1, MA:1, ATTR:1, EDU:1 })
+        .map(k => k.toUpperCase());
+      const stats = Array.from(new Set(statKeys));
+
+      let name, chosenStat;
+      try {
+        const result = await Dialog.prompt({
+          title: game.i18n.localize('MF.AddCustomSkill') || 'Add Custom Skill',
+            content: `
+              <p>${game.i18n.localize('MF.CustomSkillNamePrompt') || 'Enter name for the new custom skill:'}</p>
+              <input type="text" name="skillName" value="" style="width:100%;margin-bottom:6px;" placeholder="${game.i18n.localize('MF.NewCustomSkill') || 'New Custom Skill'}"/>
+              <label style="display:block;margin-top:4px;">Stat:
+                <select name="skillStat" style="width:100%;">
+                  ${stats.map(s => `<option value="${s}">${s}</option>`).join('')}
+                </select>
+              </label>
+            `,
+          label: game.i18n.localize('MF.Create') || 'Create',
+          callback: html => {
+            const nm = html.find("[name='skillName']").val().trim();
+            const st = (html.find("[name='skillStat']").val() || 'REF').toUpperCase();
+            return { name: nm || (game.i18n.localize('MF.NewCustomSkill') || 'New Custom Skill'), stat: st };
+          }
+        });
+        if (!result) return; // cancelled
+        name = result.name;
+        chosenStat = result.stat;
+      } catch (_) { return; }
+
+      if (existingNames.includes(name.toLowerCase())) {
+        ui.notifications.warn(game.i18n.format('MF.DuplicateCustomSkillName', { name }) || `A custom skill named "${name}" already exists.`);
+        return;
+      }
+
+      const doc = await this.actor.createEmbeddedDocuments('Item', [{
+        name,
+        type: 'skill',
+        system: {
+          stat: chosenStat || 'REF',
+          category: 'CUSTOM',
+          rank: 0,
+          favorite: false,
+          hard: false,
+          ip: 0,
+          custom: true
+        }
+      }]);
+      if (doc?.length) {
+        const created = doc[0];
+        ui.notifications.info(game.i18n.format('MF.CreatedCustomSkill', { name: created.name }));
+        this.render(false);
+      }
+    } catch (e) {
+      console.error('mekton-fusion | Failed to create custom skill', e);
+      ui.notifications.error(game.i18n.localize('MF.ErrorCreateCustomSkill') || 'Failed to create custom skill');
+    }
+  }
+
+  /** Delete a custom skill (non-PSI) */
+  async _onDeleteCustomSkill(ev) {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    const id = btn?.dataset.itemId || btn.closest('[data-skill-id]')?.dataset.skillId;
+    if (!id) return;
+    const item = this.actor.items.get(id);
+    if (!item || item.type !== 'skill' || !item.system?.custom) return;
+
+    const confirmed = await Dialog.confirm({
+      title: game.i18n.localize('MF.DeleteCustomSkill') || 'Delete Custom Skill',
+      content: game.i18n.format('MF.DeleteCustomSkillConfirm', { name: item.name }) || `Delete custom skill "${item.name}"?`,
+      yes: () => true,
+      no: () => false
+    });
+    if (!confirmed) return;
+    try {
+      await item.delete();
+      ui.notifications.info(game.i18n.format('MF.DeletedCustomSkill', { name: item.name }) || `Deleted custom skill: ${item.name}`);
+      this.render(false);
+    } catch (e) {
+      console.error('mekton-fusion | Failed to delete custom skill', e);
+      ui.notifications.error(game.i18n.localize('MF.ErrorDeleteCustomSkill') || 'Failed to delete custom skill');
+    }
+  }
+
   /** Delete a spell */
   async _onDeleteSpell(ev) {
     ev.preventDefault();
@@ -1053,17 +1155,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const id = li.dataset.itemId;
     const spell = this.actor.items.get(id);
     if (!spell) return;
-    
+      // Build stat list from actor stats keys (fallback to standard set)
+      const statKeys = Object.keys(this.actor.system?.stats || { REF:1, INT:1, COOL:1, TECH:1, BODY:1, EMP:1, LUCK:1, MA:1, ATTR:1, EDU:1 })
+        .map(k => k.toUpperCase());
+      const uniqueStats = Array.from(new Set(statKeys));
+
+      let name, chosenStat;
     const stat = 'COOL'; // All spell casting uses COOL
-    // Global spellcasting rank (COOL-based) lookup
-    const spellcastingSkill = this.actor.items.find(i => i.type === 'skill' && i.name.toLowerCase() === 'spellcasting');
-    const spellcastingRank = spellcastingSkill ? MektonActorSheet._num(spellcastingSkill.system?.rank, 0) : 0;
-    const spellcastingStatVal = this.actor.system?.stats?.COOL?.value ?? 0;
-    const spellcastingTotal = spellcastingStatVal + spellcastingRank;
-    const statLabel = 'COOL';
-    const statVal = spellcastingStatVal;    let mod = 0;
-    let difficulty = null;
-    
+        const result = await Dialog.prompt({
+          title: game.i18n.localize('MF.AddCustomSkill') || 'Add Custom Skill',
+          content: `
+            <p>${game.i18n.localize('MF.CustomSkillNamePrompt') || 'Enter name for the new custom skill:'}</p>
+            <input type="text" name="skillName" value="" style="width:100%; margin-bottom:6px;" placeholder="${game.i18n.localize('MF.NewCustomSkill') || 'New Custom Skill'}"/>
+            <label style="display:block; margin-top:4px;">Stat:
+              <select name="skillStat" style="width:100%;">
+                ${uniqueStats.map(s => `<option value="${s}">${s}</option>`).join('')}
+              </select>
+            </label>
+          `,
+          label: game.i18n.localize('MF.Create') || 'Create',
+          callback: html => {
+            const inputName = html.find("[name='skillName']").val().trim();
+            const statVal = (html.find("[name='skillStat']").val() || 'REF').toUpperCase();
+            return { name: inputName || (game.i18n.localize('MF.NewCustomSkill') || 'New Custom Skill'), stat: statVal };
+          }
+        });
+        if (!result) return; // canceled
+        name = result.name;
+        chosenStat = result.stat;
     if (!ev.shiftKey) {
       try {
         const result = await Dialog.prompt({
@@ -1075,7 +1194,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             </div>
             <div>
               <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
-              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
+          stat: chosenStat || 'REF',
             </div>
           `,
           label: "Roll",

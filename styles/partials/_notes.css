@@ -1,19 +1,59 @@
-/* ---------- Notes tab ---------- */
-.mekton-fusion .tab.notes .notes-container {
-  display: flex; flex-direction: column; gap: var(--mf-gap-xs);
-  padding: 0 !important;
+/* AGGRESSIVE: Remove all margin/padding from all descendants in Notes tab */
+.mekton-fusion.sheet.actor .tab.notes, .mekton-fusion.sheet.actor .tab.notes * {
   margin: 0 !important;
+  padding: 0 !important;
 }
-.mekton-fusion .tab.notes .notes-label { font-weight: bold; margin-bottom: var(--mf-gap-xs); }
-.mekton-fusion .tab.notes .notes-textarea {
-  width: 100%; min-height: 8em; resize: vertical; font: inherit;
-  padding: 0.5em; border-radius: 4px; border: 1px solid #888;
-  background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
+/* Debug: show tab bounds */
+.mekton-fusion.sheet.actor .tab.notes {
+  background: rgba(255,0,0,0.05) !important;
+}
+/* 1) Tab container and children */
+.mekton-fusion.sheet.actor .tab.notes,
+.mekton-fusion.sheet.actor .tab.notes > * {
+  margin: 0;
+  padding: 0;
 }
 
-/* Remove extra white space from Notes tab */
-.mekton-fusion .tab.notes,
-.mekton-fusion .tab.notes > * {
-  padding: 0 !important;
+/* 2) Your notes wrapper */
+.mekton-fusion.sheet.actor .tab.notes .notes-container {
+  padding: 0.25rem 0.5rem 0.5rem;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+/* 3) Foundry editor wrappers (ProseMirror + legacy .editor/.editor-content) */
+.mekton-fusion.sheet.actor .tab.notes .editor,
+.mekton-fusion.sheet.actor .tab.notes .editor-content,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror {
   margin: 0 !important;
+  padding: 0 !important;
+  border: none;
+  background: transparent;
+}
+
+/* 4) Paragraph and heading trims inside the editor */
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror p,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror h1,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror h2,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror h3,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror h4 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Remove edge padding at very start/end of content */
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror > *:first-child { margin-top: 0; }
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror > *:last-child  { margin-bottom: 0; }
+
+/* 5) Tiptap/ProseMirror code blocks & lists can add extra vertical rhythm */
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror pre,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror ul,
+.mekton-fusion.sheet.actor .tab.notes .ProseMirror ol {
+  margin: 0.25rem 0;
+}
+
+/* 6) If you use a textarea instead of RTE */
+.mekton-fusion.sheet.actor .tab.notes .notes-textarea {
+  margin: 0;
+  padding: 0.5rem;
 }

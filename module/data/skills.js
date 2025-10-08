@@ -11,6 +11,7 @@ export const CP2020_SKILLS = [
   { name: "Streetwise", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
   { name: "Courage", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
   { name: "Resist Magic", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
+  { name: "Spellcasting", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
 
   // EMP (Emotional / Interaction / Bio Mod)
   { name: "Acting", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },

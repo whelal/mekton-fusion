@@ -1,0 +1,3 @@
+/* _debug.css (temporary) */
+.mekton-fusion.sheet.actor .tab.spells * { outline: 1px dashed rgba(255,0,0,0.25); }
+.mekton-fusion.sheet.actor .tab.notes  * { outline: 1px dashed rgba(0,128,255,0.25); }
