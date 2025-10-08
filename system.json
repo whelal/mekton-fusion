@@ -14,7 +14,8 @@
   "scripts": [],
   "esmodules": [
     "scripts/sheets/mekton-fusion.js",
-    "scripts/sheets/actor-sheet.js"
+    "scripts/sheets/actor-sheet.js",
+    "module/sheets/item-sheet.js"
   ],
 
   "styles": ["styles/mekton-fusion.css"],

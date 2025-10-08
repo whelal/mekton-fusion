@@ -1,5 +1,6 @@
 // module/script/sheets/mekton-fusion.js
 import { MektonActorSheet } from "./actor-sheet.js";
+import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
 
@@ -37,11 +38,18 @@ Hooks.once("init", () => {
   // Unregister the core Actor sheet (V1) by specifying the class explicitly
   DSC.unregisterSheet(Actor, "core", foundry.appv1.sheets.ActorSheet);
 
-  // Register our sheet
+  // Register our actor sheet
   DSC.registerSheet(Actor, "mekton-fusion", MektonActorSheet, {
     types: ["character", "npc", "vehicle"], // must match system.json actor types
     makeDefault: true,
     label: "Mekton Actor Sheet"
+  });
+
+  // Register our item sheet
+  DSC.registerSheet(Item, "mekton-fusion", MektonFusionItemSheet, {
+    types: ["skill", "spell"], // handle skills and spells
+    makeDefault: true,
+    label: "Mekton Item Sheet"
   });
 
   // Initiative - Keep the fallback formula
