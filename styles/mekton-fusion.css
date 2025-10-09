@@ -111,6 +111,33 @@ html.theme-dark .mekton-fusion {
   background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
 }
 
+/* ---------- Equipment tab ---------- */
+.mekton-fusion .tab.equipment .equipment-container {
+  display: flex; flex-direction: column; gap: var(--mf-gap-xs);
+  padding: var(--mf-pad-xs) var(--mf-gap-sm) var(--mf-gap-sm);
+  margin: 0;
+}
+.mekton-fusion .tab.equipment .equipment-header {
+  display: flex; align-items: center; gap: var(--mf-gap-sm);
+  margin-bottom: var(--mf-gap-xs);
+}
+.mekton-fusion .tab.equipment .weight-label { 
+  font-weight: bold; 
+  white-space: nowrap;
+}
+.mekton-fusion .tab.equipment .weight-input {
+  width: 100px; padding: 0.25em; border-radius: 4px; border: 1px solid #888;
+  background: var(--mf-card); color: var(--mf-text); font: inherit;
+}
+.mekton-fusion .tab.equipment .gear-label { 
+  font-weight: bold; margin-bottom: var(--mf-gap-xs); 
+}
+.mekton-fusion .tab.equipment .gear-textarea {
+  width: 100%; min-height: 12em; resize: vertical; font: inherit;
+  padding: 0.5em; border-radius: 4px; border: 1px solid #888;
+  background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
+}
+
 /* ---------- Header (Cyberpunk 2020 vibe) ---------- */
 .mekton-fusion.sheet.actor .sheet-header {
   background: var(--mf-black); color: var(--mf-white);

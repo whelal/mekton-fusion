@@ -29,7 +29,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       submitOnChange: true,
       submitOnClose: true,
       closeOnSubmit: false,
-      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells", ".tab.notes"]
+      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells", ".tab.equipment", ".tab.notes"]
     });
   }
 
@@ -112,6 +112,60 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     roll.flags ??= {};
     roll.flags['mekton-fusion'] = { plusDice: [...plusDice], minusDice: [...minusDice], capped };
     return { roll, total, plusDice, minusDice, capped, maxExtra: MAX_EXTRA };
+  }
+
+  /** @override */
+  async _updateObject(event, formData) {
+    // Ensure proper data synchronization when updating actor
+    console.log("mekton-fusion | _updateObject called with:", formData);
+    console.log("mekton-fusion | Actor ID:", this.actor.id);
+    console.log("mekton-fusion | Is Token Actor:", this.actor.isToken);
+    console.log("mekton-fusion | Actor Link:", this.actor.token?.actorLink);
+    
+    // Call the parent method to handle the update
+    const result = await super._updateObject(event, formData);
+    
+    // For unlinked tokens, we need to manually sync with other sheets of the same actor name
+    if (this.actor.isToken && !this.actor.token?.actorLink) {
+      console.log("mekton-fusion | Handling unlinked token update - syncing by name");
+      
+      // Find other sheets with the same actor name and manually update them
+      Object.values(ui.windows).forEach(app => {
+        if (app.constructor.name === "MektonActorSheet" && 
+            app.rendered && 
+            app !== this && 
+            app.actor?.name === this.actor.name) {
+          
+          console.log("mekton-fusion | Manually syncing unlinked actor:", app.actor.name);
+          
+          // If the other sheet is also an unlinked token or the base actor, sync the data
+          if ((!app.actor.isToken) || (app.actor.isToken && !app.actor.token?.actorLink)) {
+            // Copy the form data to the other actor
+            const updateData = foundry.utils.expandObject(formData);
+            app.actor.update(updateData).catch(err => {
+              console.warn("mekton-fusion | Failed to sync unlinked actor data:", err);
+            });
+          }
+        }
+      });
+    } else {
+      console.log("mekton-fusion | Standard linked actor update");
+    }
+    
+    // Force refresh of all related sheets
+    console.log("mekton-fusion | Forcing refresh of all related sheets");
+    Object.values(ui.windows).forEach(app => {
+      if (app.constructor.name === "MektonActorSheet" && 
+          app.rendered && 
+          app !== this &&
+          (app.actor?.id === this.actor.id || 
+           (app.actor?.name === this.actor.name && !app.actor?.token?.actorLink))) {
+        console.log("mekton-fusion | Force refreshing sheet for:", app.actor.name);
+        app.render(false);
+      }
+    });
+    
+    return result;
   }
 
   async getData(options = {}) {

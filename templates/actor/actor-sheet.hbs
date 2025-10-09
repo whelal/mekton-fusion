@@ -28,6 +28,7 @@
     <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
     <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
     <a class="item" data-tab="spells">{{localize 'MF.TabSpells'}}</a>
+    <a class="item" data-tab="equipment">{{localize 'MF.TabEquipment' 'Equipment'}}</a>
     <a class="item" data-tab="notes">{{localize 'MF.TabNotes' 'Notes'}}</a>
   </nav>
 
@@ -460,6 +461,16 @@
       <p class="mf-empty">{{localize 'MF.NoPsiCategory'}}</p>
     {{/if}}
 
+</div>
+<div class="tab equipment" data-tab="equipment">
+  <div class="equipment-container">
+    <div class="equipment-header">
+      <label for="equipment-weight-input" class="weight-label">{{localize 'MF.TotalWeight' 'Total Weight'}}</label>
+      <input id="equipment-weight-input" name="system.equipment.totalWeight" type="number" class="weight-input" min="0" step="0.1" value="{{system.equipment.totalWeight}}" placeholder="0"/>
+    </div>
+    <label for="equipment-gear-textarea" class="gear-label">{{localize 'MF.GearLog' 'Gear Log'}}</label>
+    <textarea id="equipment-gear-textarea" name="system.equipment.gear" class="gear-textarea" rows="15" placeholder="List your equipment here...">{{system.equipment.gear}}</textarea>
+  </div>
 </div>
 <div class="tab notes" data-tab="notes">
   <div class="notes-container">

@@ -15,7 +15,11 @@
           "EMP": { "value": 5 }
         },
         "skills": {},
-        "spells": {}
+        "spells": {},
+        "equipment": {
+          "gear": "",
+          "totalWeight": 0
+        }
       }
     },
     "character": { "templates": ["base"] },

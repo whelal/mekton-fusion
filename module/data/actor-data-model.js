@@ -59,7 +59,8 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 maxPoints: new fields.NumberField({initial: 0, min: 0, integer: true})
             }),
             equipment: new fields.SchemaField({
-                entries: new fields.ArrayField(new fields.ObjectField())
+                gear: new fields.StringField({ initial: "" }),
+                totalWeight: new fields.NumberField({ initial: 0, min: 0 })
             }),
             // Player notes field
             notes: new fields.StringField({ initial: "" })
