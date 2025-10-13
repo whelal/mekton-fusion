@@ -125,26 +125,48 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Call the parent method to handle the update
     const result = await super._updateObject(event, formData);
     
-    // For unlinked tokens, we need to manually sync with other sheets of the same actor name
+    // For unlinked tokens, we need to manually sync with other sheets. Use multiple heuristics
+    // (prototype token, token.actorId, fallback name) to avoid false-positive mismatches.
+    function likelySameActorInstance(a, b) {
+      if (!a || !b) return false;
+      if (a.id === b.id) return true;
+      // If either has a token document with a recorded actorId that references the other, match
+      try {
+        const aToken = a.token ?? {};
+        const bToken = b.token ?? {};
+        if (aToken.actorId && aToken.actorId === b.id) return true;
+        if (bToken.actorId && bToken.actorId === a.id) return true;
+
+        // Compare prototype token definitions when available (stringified compare)
+        const aProto = a.prototypeToken ?? a.system?.prototypeToken ?? aToken.prototypeToken ?? null;
+        const bProto = b.prototypeToken ?? b.system?.prototypeToken ?? bToken.prototypeToken ?? null;
+        if (aProto && bProto) {
+          try {
+            if (JSON.stringify(aProto) === JSON.stringify(bProto)) return true;
+          } catch (e) {
+            // ignore stringify errors
+          }
+        }
+      } catch (e) {
+        console.warn('mekton-fusion | Error comparing actor prototypes', e);
+      }
+      // Fallback to name match
+      return a.name === b.name;
+    }
+
     if (this.actor.isToken && !this.actor.token?.actorLink) {
-      console.log("mekton-fusion | Handling unlinked token update - syncing by name");
-      
-      // Find other sheets with the same actor name and manually update them
+      console.log("mekton-fusion | Handling unlinked token update - syncing by heuristics");
+
+      // Find other sheets that likely represent the same actor data and manually update them
       Object.values(ui.windows).forEach(app => {
-        if (app.constructor.name === "MektonActorSheet" && 
-            app.rendered && 
-            app !== this && 
-            app.actor?.name === this.actor.name) {
-          
-          console.log("mekton-fusion | Manually syncing unlinked actor:", app.actor.name);
-          
-          // If the other sheet is also an unlinked token or the base actor, sync the data
-          if ((!app.actor.isToken) || (app.actor.isToken && !app.actor.token?.actorLink)) {
-            // Copy the form data to the other actor
-            const updateData = foundry.utils.expandObject(formData);
-            app.actor.update(updateData).catch(err => {
-              console.warn("mekton-fusion | Failed to sync unlinked actor data:", err);
-            });
+        if (app.constructor.name === "MektonActorSheet" && app.rendered && app !== this && app.actor) {
+          if (likelySameActorInstance(app.actor, this.actor)) {
+            console.log("mekton-fusion | Manually syncing unlinked actor (heuristic):", app.actor.name);
+            // Only sync to other unlinked tokens or to the base actor (not to linked token sheets)
+            if ((!app.actor.isToken) || (app.actor.isToken && !app.actor.token?.actorLink)) {
+              const updateData = foundry.utils.expandObject(formData);
+              app.actor.update(updateData).catch(err => console.warn("mekton-fusion | Failed to sync unlinked actor data:", err));
+            }
           }
         }
       });

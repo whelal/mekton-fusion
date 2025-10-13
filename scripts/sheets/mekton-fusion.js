@@ -92,19 +92,27 @@ Hooks.on("updateActor", (actor, changes, options, userId) => {
   
   // Find all related actor sheets (including token actors and base actors)
   const sheetsToUpdate = [];
-  Object.values(ui.windows).forEach(app => {
-    if (app.constructor.name === "MektonActorSheet" && app.rendered) {
-      // Check if this sheet belongs to the updated actor
-      if (app.actor?.id === actor.id) {
-        sheetsToUpdate.push({ app, reason: "direct match" });
-      } 
-      // For unlinked tokens, also check if they share the same name and base prototype
-      else if (app.actor?.isToken && !app.actor?.token?.actorLink && actor.name === app.actor.name) {
-        sheetsToUpdate.push({ app, reason: "unlinked token with same name" });
+  function likelySameActorInstance(a, b) {
+    if (!a || !b) return false;
+    if (a.id === b.id) return true;
+    try {
+      const aToken = a.token ?? {};
+      const bToken = b.token ?? {};
+      if (aToken.actorId && aToken.actorId === b.id) return true;
+      if (bToken.actorId && bToken.actorId === a.id) return true;
+      const aProto = a.prototypeToken ?? a.system?.prototypeToken ?? aToken.prototypeToken ?? null;
+      const bProto = b.prototypeToken ?? b.system?.prototypeToken ?? bToken.prototypeToken ?? null;
+      if (aProto && bProto) {
+        try { if (JSON.stringify(aProto) === JSON.stringify(bProto)) return true; } catch (e) {}
       }
-      // Check if this is a base actor that has unlinked token sheets open
-      else if (!actor.isToken && app.actor?.isToken && !app.actor?.token?.actorLink && app.actor.name === actor.name) {
-        sheetsToUpdate.push({ app, reason: "base actor with unlinked token" });
+    } catch (e) { console.warn('mekton-fusion | Error comparing actor prototypes', e); }
+    return a.name === b.name;
+  }
+
+  Object.values(ui.windows).forEach(app => {
+    if (app.constructor.name === "MektonActorSheet" && app.rendered && app.actor) {
+      if (likelySameActorInstance(app.actor, actor)) {
+        sheetsToUpdate.push({ app, reason: 'likely match' });
       }
     }
   });
