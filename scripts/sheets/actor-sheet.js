@@ -593,17 +593,35 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       return ui.notifications.warn("No matching controlled token found. Please select the token representing this actor on the canvas and try again.");
     }
 
-    try {
-      await found.document.update({ actorLink: true });
-      ui.notifications.info("Token linked to actor. Reopening sheets to refresh.");
-      // Force re-render of open sheets for this actor
-      Object.values(ui.windows).forEach(app => {
-        if (app.constructor.name === "MektonActorSheet" && app.actor?.id === this.actor.id) app.render(false);
-      });
-    } catch (err) {
-      console.error('mekton-fusion | Failed to link token to actor', err);
-      ui.notifications.error('Failed to link token to actor. See console for details.');
-    }
+    // Confirm with the user before linking
+    new Dialog({
+      title: "Link Token to Actor",
+      content: `<p>Link the selected token '<strong>${found.document.name}</strong>' to actor '<strong>${this.actor.name}</strong>'? This will make the token use the actor's data directly.</p>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-link"></i>',
+          label: 'Link Token',
+          callback: async () => {
+            try {
+              await found.document.update({ actorLink: true });
+              ui.notifications.info("Token linked to actor. Reopening sheets to refresh.");
+              // Force re-render of open sheets for this actor
+              Object.values(ui.windows).forEach(app => {
+                if (app.constructor.name === "MektonActorSheet" && app.actor?.id === this.actor.id) app.render(false);
+              });
+            } catch (err) {
+              console.error('mekton-fusion | Failed to link token to actor', err);
+              ui.notifications.error('Failed to link token to actor. See console for details.');
+            }
+          }
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: 'Cancel'
+        }
+      },
+      default: 'confirm'
+    }).render(true);
   }
 
   /** Handle IP input changes for skills */
