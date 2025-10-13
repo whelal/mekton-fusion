@@ -476,6 +476,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".spell-delete", ev => this._onDeleteSpell(ev));
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
     html.on("click", ".spell-roll", ev => this._onRollSpell(ev));
+  html.on("click", ".link-token-button", ev => this._onLinkTokenClick(ev));
     html.on("change", ".spell-cost", ev => this._onChangeSpellField(ev, 'cost'));
     html.on("change", ".spell-range", ev => this._onChangeSpellField(ev, 'range'));
     html.on("change", ".spell-duration", ev => this._onChangeSpellField(ev, 'duration'));
@@ -566,6 +567,43 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
 
     // (Category collapse feature removed)
+  }
+
+  /**
+   * Link the actor to a currently controlled token (if present) by setting actorLink=true
+   * If no token is controlled that matches this actor, informs the user to re-place the actor.
+   */
+  async _onLinkTokenClick(ev) {
+    ev.preventDefault();
+    // Find a controlled token on the canvas that refers to this actor
+    const controlled = canvas?.tokens?.controlled || [];
+    let found = null;
+    for (const t of controlled) {
+      try {
+        if (t.document?.actorId === this.actor.id || t.document?.name === this.actor.name) {
+          found = t;
+          break;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!found) {
+      return ui.notifications.warn("No matching controlled token found. Please select the token representing this actor on the canvas and try again.");
+    }
+
+    try {
+      await found.document.update({ actorLink: true });
+      ui.notifications.info("Token linked to actor. Reopening sheets to refresh.");
+      // Force re-render of open sheets for this actor
+      Object.values(ui.windows).forEach(app => {
+        if (app.constructor.name === "MektonActorSheet" && app.actor?.id === this.actor.id) app.render(false);
+      });
+    } catch (err) {
+      console.error('mekton-fusion | Failed to link token to actor', err);
+      ui.notifications.error('Failed to link token to actor. See console for details.');
+    }
   }
 
   /** Handle IP input changes for skills */
