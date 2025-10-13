@@ -397,6 +397,25 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx._skillViewStatePsi = vsPsi;
     ctx._skillViewStateSpells = vsSpells;
 
+    // Pre-render tab templates to avoid partial-registration timing issues.
+    try {
+      ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
+      ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
+      ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
+      ctx._tabSpellsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/spells.hbs", ctx);
+      ctx._tabEquipmentHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/equipment.hbs", ctx);
+      ctx._tabNotesHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/notes.hbs", ctx);
+    } catch (err) {
+      console.error('mekton-fusion | Failed to pre-render actor tab templates', err);
+      // Fall back to empty strings so template rendering doesn't throw further
+      ctx._tabStatsHtml = ctx._tabStatsHtml || '';
+      ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
+      ctx._tabPsiHtml = ctx._tabPsiHtml || '';
+      ctx._tabSpellsHtml = ctx._tabSpellsHtml || '';
+      ctx._tabEquipmentHtml = ctx._tabEquipmentHtml || '';
+      ctx._tabNotesHtml = ctx._tabNotesHtml || '';
+    }
+
     return ctx;
   }
 
