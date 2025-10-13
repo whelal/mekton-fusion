@@ -9,6 +9,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (as !== bs) return as - bs;
     return collator.compare(a.name, b.name);
   }
+
+  _refreshBodyItemIcons() {
+    try {
+      const locs = this.actor.system?.body?.locations || {};
+      const svgel = this.element[0].querySelector('.mf-doll-svg');
+      if (!svgel) return;
+      const icons = svgel.querySelectorAll('.item-icon');
+      icons.forEach(img => {
+        const loc = img.dataset.loc;
+        const itemId = locs?.[loc]?.itemId;
+        if (itemId) {
+          const item = this.actor.items.get(itemId);
+          img.setAttribute('href', item?.img || '');
+          img.style.display = item?.img ? '' : 'none';
+        } else {
+          img.setAttribute('href', '');
+          img.style.display = 'none';
+        }
+      });
+    } catch (e) { console.warn('mekton-fusion | Failed to refresh body item icons', e); }
+  }
   constructor(...args) {
     super(...args);
     // Per-tab (skills, psi, spells) view state; loaded from user flag lazily
@@ -164,8 +185,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             console.log("mekton-fusion | Manually syncing unlinked actor (heuristic):", app.actor.name);
             // Only sync to other unlinked tokens or to the base actor (not to linked token sheets)
             if ((!app.actor.isToken) || (app.actor.isToken && !app.actor.token?.actorLink)) {
-              const updateData = foundry.utils.expandObject(formData);
-              app.actor.update(updateData).catch(err => console.warn("mekton-fusion | Failed to sync unlinked actor data:", err));
+              // Expand the flat form data into nested object, but strip keys that would
+              // cause Foundry to try to update embedded Documents (items/token) on
+              // a TokenDocument-backed actor. Such updates throw when the target actor
+              // is not a proper base Actor document.
+              const expanded = foundry.utils.expandObject(formData);
+              const disallowedTopLevel = ['items', 'token', 'prototypeToken', 'actor', 'tokenId'];
+              for (const k of disallowedTopLevel) {
+                if (Object.prototype.hasOwnProperty.call(expanded, k)) {
+                  console.debug(`mekton-fusion | Stripping disallowed update key from sync: ${k}`);
+                  delete expanded[k];
+                }
+              }
+              // Also ensure we don't accidentally pass an "actor" object nested under token
+              if (expanded.token && typeof expanded.token === 'object') {
+                delete expanded.token.actor;
+                delete expanded.token.actorId;
+              }
+              app.actor.update(expanded).catch(err => console.warn("mekton-fusion | Failed to sync unlinked actor data:", err));
             }
           }
         }
@@ -210,6 +247,40 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!this.actor.system?.substats) {
       await this.actor.update({ 'system.substats': {} });
     }
+
+    // Ensure a body model exists for the paperdoll. If absent, seed with a minimal default structure.
+    if (!this.actor.system?.body || !this.actor.system?.body?.locations) {
+      console.log('mekton-fusion | Initializing body locations for', this.actor.name);
+      const defaultBody = {
+        locations: {
+          head:   { label: "Head",   sp: 4, spMax: 4, hp: 4, hpMax: 4, ablates: true, itemId: null },
+          torso:  { label: "Torso",  sp: 10, spMax: 10, hp: 10, hpMax: 10, ablates: true, itemId: null },
+          rArm:   { label: "Right Arm", sp: 5, spMax: 5, hp: 5, hpMax: 5, ablates: true, itemId: null },
+          lArm:   { label: "Left Arm",  sp: 5, spMax: 5, hp: 5, hpMax: 5, ablates: true, itemId: null },
+          rLeg:   { label: "Right Leg", sp: 6, spMax: 6, hp: 6, hpMax: 6, ablates: true, itemId: null },
+          lLeg:   { label: "Left Leg",  sp: 6, spMax: 6, hp: 6, hpMax: 6, ablates: true, itemId: null }
+        },
+        notes: ""
+      };
+      try {
+        await this.actor.update({ 'system.body': defaultBody });
+        console.log('mekton-fusion | Body locations initialized successfully');
+        // Refresh context after update
+        ctx.system = this.actor.system ?? {};
+      } catch (e) {
+        console.warn('mekton-fusion | Failed to initialize actor.body default', e);
+      }
+    } else {
+      console.log('mekton-fusion | Body locations found:', this.actor.system.body.locations);
+    }
+    
+    // Debug: Always log body state before template render
+    console.log('mekton-fusion | getData body check:', {
+      hasBody: !!ctx.system.body,
+      hasLocations: !!ctx.system?.body?.locations,
+      locationKeys: ctx.system?.body?.locations ? Object.keys(ctx.system.body.locations) : [],
+      fullBody: ctx.system?.body
+    });
 
     // Compute resource objects for template (current/max/percent)
     const makeResource = (maxKey, curKey) => {
@@ -421,21 +492,29 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Pre-render tab templates to avoid partial-registration timing issues.
     try {
-      ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
+  ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
       ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
       ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
       ctx._tabSpellsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/spells.hbs", ctx);
       ctx._tabEquipmentHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/equipment.hbs", ctx);
       ctx._tabNotesHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/notes.hbs", ctx);
+  // Optional paperdoll/body tab (empty by default until filled)
+  console.log('mekton-fusion | Before rendering body tab:', {
+    hasSystemBody: !!ctx.system?.body,
+    hasLocations: !!ctx.system?.body?.locations,
+    locations: ctx.system?.body?.locations
+  });
+  ctx._tabBodyHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/body.hbs", ctx);
     } catch (err) {
       console.error('mekton-fusion | Failed to pre-render actor tab templates', err);
       // Fall back to empty strings so template rendering doesn't throw further
-      ctx._tabStatsHtml = ctx._tabStatsHtml || '';
+  ctx._tabStatsHtml = ctx._tabStatsHtml || '';
       ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
       ctx._tabPsiHtml = ctx._tabPsiHtml || '';
       ctx._tabSpellsHtml = ctx._tabSpellsHtml || '';
       ctx._tabEquipmentHtml = ctx._tabEquipmentHtml || '';
       ctx._tabNotesHtml = ctx._tabNotesHtml || '';
+  ctx._tabBodyHtml = ctx._tabBodyHtml || '';
     }
 
     return ctx;
@@ -477,6 +556,97 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on("click", ".spell-fav", ev => this._onToggleSpellFavorite(ev));
     html.on("click", ".spell-roll", ev => this._onRollSpell(ev));
   html.on("click", ".link-token-button", ev => this._onLinkTokenClick(ev));
+  html.on("click", ".unlink-token-button", ev => this._onUnlinkTokenClick(ev));
+  // Paperdoll region clicks
+  html.on('click', '.paperdoll-svg .pd-region', ev => this._onPaperdollClick(ev));
+    // Legacy: also support newer .hit-zone elements in the redesigned body tab
+    // Click a body zone -> focus row + toggle highlight (delegated)
+    html.on('click', '.hit-zone', ev => {
+      const loc = ev.currentTarget.dataset.loc;
+      // Clear previous active markers
+      html.find('.hit-zone').removeClass('active');
+      // Ensure jQuery wrapped element for class toggling
+      const $t = $(ev.currentTarget);
+      $t.addClass('active');
+      // Focus the first numeric input for that location if present
+      const row = html.find(`.mf-row[data-loc="${loc}"] input:first`);
+      if (row && row.length) row[0].focus();
+    });
+
+    // Quick actions (single handler for body tab buttons)
+    html.on('click', '[data-action]', async ev => {
+      const btn = ev.currentTarget;
+      const action = btn.dataset.action;
+      if (action === 'roll-hitloc') {
+        console.log('mekton-fusion | Hit location button clicked');
+        return await this._rollHitLocation();
+      }
+
+      const loc = btn.dataset.loc;
+      if (!loc) return;
+      const path = `system.body.locations.${loc}`;
+
+      const data = foundry.utils.getProperty(this.actor, path);
+      if (!data) return;
+
+      try {
+        switch (action) {
+          case 'ablate':
+            if ((data.sp ?? 0) > 0) await this.actor.update({ [`${path}.sp`]: (data.sp ?? 0) - 1 });
+            this.render(false);
+            break;
+          case 'heal1':
+            await this.actor.update({ [`${path}.hp`]: Math.min((data.hp ?? 0) + 1, data.hpMax ?? 0) });
+            this.render(false);
+            break;
+          case 'dmg1':
+            await this.actor.update({ [`${path}.hp`]: Math.max((data.hp ?? 0) - 1, 0) });
+            this.render(false);
+            break;
+          case 'unequip':
+            await this.actor.update({ [`${path}.itemId`]: null });
+            // Refresh icons after unequip
+            this._refreshBodyItemIcons();
+            this.render(false);
+            break;
+          case 'show-item':
+            this.actor.items.get(btn.dataset.itemId)?.sheet?.render(true);
+            break;
+        }
+      } catch (err) {
+        console.warn('mekton-fusion | Body action failed', action, err);
+      }
+    });
+
+    // Drag armor item → slot
+    const zones = html.find('.hit-zone');
+    zones.on('dragover', ev => ev.preventDefault());
+    zones.on('drop', async ev => {
+      ev.preventDefault();
+      const loc = ev.currentTarget.dataset.loc;
+      const data = TextEditor.getDragEventData(ev);
+
+      // Accept Items only
+      if (data?.type !== 'Item') return;
+
+      const item = await fromUuid(data.uuid);
+      if (!item || item.type !== 'armor') return;
+
+      // OPTIONAL: pull SP from item.system and set sp/spMax
+      const spVal = item.system?.sp ?? 0;
+      const path = `system.body.locations.${loc}`;
+      try {
+        await this.actor.update({
+          [`${path}.itemId`]: item.id,
+          [`${path}.sp`]: spVal,
+          [`${path}.spMax`]: Math.max(spVal, foundry.utils.getProperty(this.actor, `${path}.spMax`) ?? spVal)
+        });
+        // Refresh icons after equip
+        this._refreshBodyItemIcons();
+      } catch (err) {
+        console.warn('mekton-fusion | Failed equipping armor to body slot', err);
+      }
+    });
     html.on("change", ".spell-cost", ev => this._onChangeSpellField(ev, 'cost'));
     html.on("change", ".spell-range", ev => this._onChangeSpellField(ev, 'range'));
     html.on("change", ".spell-duration", ev => this._onChangeSpellField(ev, 'duration'));
@@ -567,6 +737,32 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
 
     // (Category collapse feature removed)
+    // Refresh body item icons now that listeners are attached
+    try { this._refreshBodyItemIcons(); } catch (e) { /* ignore */ }
+  }
+
+  /** Focus the inputs for a paperdoll location when the SVG region is clicked */
+  _onPaperdollClick(ev) {
+    ev.preventDefault();
+    const target = ev.currentTarget;
+    const loc = target.dataset?.loc;
+    if (!loc) return;
+    // Deselect other regions
+    this.element.find('.paperdoll-svg .pd-region').forEach(el => el.classList.remove('selected'));
+    target.classList.add('selected');
+
+    // Focus the first numeric input for that location
+    const inputSelector = `[name="system.body.locations.${loc}.sp"]`;
+    const input = this.element[0].querySelector(inputSelector);
+    if (input) {
+      input.focus();
+      // also visually highlight the inputs container
+      const container = input.closest('.body-loc');
+      if (container) {
+        this.element.find('.body-loc').forEach(el => el.classList.remove('selected'));
+        container.classList.add('selected');
+      }
+    }
   }
 
   /**
@@ -624,6 +820,58 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }).render(true);
   }
 
+  /**
+   * Unlink the actor from a currently controlled token (if present) by setting actorLink=false
+   * If no token is controlled that matches this actor, informs the user to re-select the token.
+   */
+  async _onUnlinkTokenClick(ev) {
+    ev.preventDefault();
+    const controlled = canvas?.tokens?.controlled || [];
+    let found = null;
+    for (const t of controlled) {
+      try {
+        if (t.document?.actorId === this.actor.id || t.document?.name === this.actor.name) {
+          found = t;
+          break;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!found) {
+      return ui.notifications.warn("No matching controlled token found. Please select the token representing this actor on the canvas and try again.");
+    }
+
+    new Dialog({
+      title: "Unlink Token from Actor",
+      content: `<p>Unlink the selected token '<strong>${found.document.name}</strong>' from actor '<strong>${this.actor.name}</strong>'? This will make the token independent of the actor's data.</p>`,
+      buttons: {
+        confirm: {
+          icon: '<i class="fas fa-unlink"></i>',
+          label: 'Unlink Token',
+          callback: async () => {
+            try {
+              await found.document.update({ actorLink: false });
+              ui.notifications.info("Token unlinked from actor. Reopening sheets to refresh.");
+              Object.values(ui.windows).forEach(app => {
+                if (app.constructor.name === "MektonActorSheet" && app.actor?.id === this.actor.id) app.render(false);
+              });
+            } catch (err) {
+              console.error('mekton-fusion | Failed to unlink token from actor', err);
+              ui.notifications.error('Failed to unlink token from actor. See console for details.');
+            }
+          }
+        },
+        cancel: {
+          icon: '<i class="fas fa-times"></i>',
+          label: 'Cancel'
+        }
+      },
+      default: 'confirm'
+    }).render(true);
+  }
+
   /** Handle IP input changes for skills */
   async _onChangeSkillIP(ev) {
     const input = ev.currentTarget;
@@ -631,6 +879,99 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skill = this.actor.items.get(li.dataset.skillId); if (!skill) return;
     const val = MektonActorSheet._num(input.value, 0);
     await skill.update({ "system.ip": val });
+  }
+
+  /* ---------- Body tab actions ---------- */
+  _onRollHitLocation(ev) {
+    ev.preventDefault();
+    // Simple random pick among locations
+    const keys = Object.keys(this.actor.system?.body?.locations || {});
+    if (!keys.length) return ui.notifications.warn('No body locations defined');
+    const idx = Math.floor(Math.random() * keys.length);
+    const loc = keys[idx];
+    ui.notifications.info(`Hit location: ${this.actor.system.body.locations[loc].label}`);
+  }
+
+  async _onBodyAblate(ev) {
+    ev.preventDefault();
+    const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
+    try {
+      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.sp ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.sp`]: Math.max(0, cur - 1) });
+      this.render(false);
+    } catch (e) { console.error('mekton-fusion | Failed ablate', e); }
+  }
+
+  async _onBodyHeal(ev, amt = 1) {
+    ev.preventDefault();
+    const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
+    try {
+      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hp ?? 0, 0);
+      const max = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hpMax ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.hp`]: Math.min(max, cur + amt) });
+      this.render(false);
+    } catch (e) { console.error('mekton-fusion | Failed heal', e); }
+  }
+
+  async _onBodyDamage(ev, amt = 1) {
+    ev.preventDefault();
+    const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
+    try {
+      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hp ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.hp`]: Math.max(0, cur - amt) });
+      this.render(false);
+    } catch (e) { console.error('mekton-fusion | Failed damage', e); }
+  }
+
+  _onShowBodyItem(ev) {
+    ev.preventDefault();
+    const id = ev.currentTarget.dataset?.itemId; if (!id) return;
+    const item = this.actor.items.get(id);
+    if (item) item.sheet?.render(true);
+  }
+
+  async _onUnequipBodyItem(ev) {
+    ev.preventDefault();
+    const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
+    try {
+      await this.actor.update({ [`system.body.locations.${loc}.itemId`]: null });
+      this.render(false);
+    } catch (e) { console.error('mekton-fusion | Failed unequip', e); }
+  }
+
+  // Sample hit location roller (customize to your table)
+  async _rollHitLocation() {
+    console.log('mekton-fusion | Rolling hit location...');
+    // Mekton Fusion hit location: 1d10 map
+    const map = { 1:'head', 2:'torso', 3:'torso', 4:'torso', 5:'rArm', 6:'lArm', 7:'rLeg', 8:'rLeg', 9:'lLeg', 10:'lLeg' };
+    const roll = new Roll('1d10');
+    await roll.evaluate();
+    const total = roll.total;
+    const loc = map[total] ?? 'torso';
+    
+    console.log('mekton-fusion | Hit location result:', { total, loc });
+    
+    // Show the roll in chat with proper label
+    const locLabel = {
+      head: 'Head',
+      torso: 'Torso',
+      rArm: 'Right Arm',
+      lArm: 'Left Arm',
+      rLeg: 'Right Leg',
+      lLeg: 'Left Leg'
+    }[loc] || loc;
+    
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      flavor: `<strong>Hit Location: ${locLabel}</strong>`
+    });
+    
+    // Optional: flash that zone
+    const el = this.element.find(`.hit-zone.${loc}`);
+    if (el && el.length) {
+      el.addClass('active');
+      setTimeout(() => el.removeClass('active'), 500);
+    }
   }
 
   /** Increment/decrement a substat by delta and persist immediately */

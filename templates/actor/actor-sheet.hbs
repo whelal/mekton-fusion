@@ -5,6 +5,7 @@
       <h1><input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/></h1>
       <div class="header-actions">
         <button type="button" class="link-token-button" title="Link this Actor to the selected Token">Link Token</button>
+        <button type="button" class="unlink-token-button" title="Unlink this Actor from the selected Token">Unlink Token</button>
       </div>
       
       <div class="header-stats flexrow">
@@ -32,11 +33,14 @@
     <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
     <a class="item" data-tab="spells">{{localize 'MF.TabSpells'}}</a>
     <a class="item" data-tab="equipment">{{localize 'MF.TabEquipment' 'Equipment'}}</a>
+    <a class="item" data-tab="body">{{localize 'MF.TabBody' 'Body'}}</a>
     <a class="item" data-tab="notes">{{localize 'MF.TabNotes' 'Notes'}}</a>
   </nav>
 
   <section class="sheet-body">
   {{{_tabStatsHtml}}}
+
+  {{{_tabBodyHtml}}}
 
   {{{_tabSkillsHtml}}}
 

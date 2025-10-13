@@ -7,6 +7,18 @@ import { syncActorCoreItems } from "../../module/seed.js";
 Hooks.once("init", () => {
   console.log("mekton-fusion | init");
 
+  // Handlebars helpers used by templates
+  try {
+    Handlebars.registerHelper('percent', (cur, max) => {
+      const c = Number(cur) || 0;
+      const m = Number(max) || 0;
+      return m > 0 ? Math.round((c / m) * 100) : 0;
+    });
+    console.log('mekton-fusion | Handlebars helper "percent" registered');
+  } catch (e) {
+    console.warn('mekton-fusion | Failed to register Handlebars helper percent', e);
+  }
+
   // Preload actor tab partials for modular templates
   loadTemplates([
     "systems/mekton-fusion/templates/actor/tabs/stats.hbs",

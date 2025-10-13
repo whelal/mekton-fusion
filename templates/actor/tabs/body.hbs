@@ -1,0 +1,111 @@
+<div class="tab body" data-tab="body">
+  <div class="mf-body-grid">
+    <!-- LEFT: Silhouette / paper-doll -->
+    <section class="mf-doll">
+      <svg class="mf-doll-svg" viewBox="0 0 200 420" aria-label="Paper doll body map">
+        <!-- Torso -->
+        <rect class="hit-zone torso"   x="70" y="100" width="60" height="90" data-loc="torso"  />
+        <!-- Head -->
+        <circle class="hit-zone head"  cx="100" cy="60" r="22" data-loc="head" />
+        <!-- Arms -->
+        <rect class="hit-zone lArm"    x="38" y="110" width="28" height="70" data-loc="lArm"  />
+        <rect class="hit-zone rArm"    x="134" y="110" width="28" height="70" data-loc="rArm" />
+        <!-- Legs -->
+        <rect class="hit-zone lLeg"    x="78" y="194" width="20" height="90" data-loc="lLeg"  />
+        <rect class="hit-zone rLeg"    x="102" y="194" width="20" height="90" data-loc="rLeg" />
+
+        <!-- Item icon placeholders (placed above regions) -->
+        <image class="item-icon" data-loc="head"  x="78" y="28" width="44" height="44" href=""/>
+        <image class="item-icon" data-loc="torso" x="85" y="120" width="30" height="30" href=""/>
+        <image class="item-icon" data-loc="lArm"  x="28" y="120" width="30" height="30" href=""/>
+        <image class="item-icon" data-loc="rArm"  x="138" y="120" width="30" height="30" href=""/>
+        <image class="item-icon" data-loc="lLeg"  x="74" y="270" width="24" height="24" href=""/>
+        <image class="item-icon" data-loc="rLeg"  x="100" y="270" width="24" height="24" href=""/>
+      </svg>
+
+      <div class="mf-doll-help">
+        <button type="button" class="mf-roll-hitloc" data-action="roll-hitloc">🎯 Roll Hit Location</button>
+        <div class="mf-drop-hint">Drag armor here to a slot</div>
+      </div>
+      <!-- Hit Location Table -->
+      <div class="mf-hitloc-table">
+        <table>
+          <thead>
+            <tr><th colspan="2">Human Random Hit Chart</th></tr>
+            <tr><th>1D10</th><th>Result</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Head</td></tr>
+            <tr><td>2–4</td><td>Torso</td></tr>
+            <tr><td>5</td><td>Right Arm</td></tr>
+            <tr><td>6</td><td>Left Arm</td></tr>
+            <tr><td>7–8</td><td>Right Leg</td></tr>
+            <tr><td>9–10</td><td>Left Leg</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- RIGHT: Detail table -->
+    <section class="mf-body-table">
+      <header class="mf-table-head">
+        <div>Location</div>
+        <div title="Stopping Power">SP</div>
+        <div>Max</div>
+        <div>HP</div>
+        <div>Max</div>
+        <div>Equip</div>
+        <div>Actions</div>
+      </header>
+
+      {{#each system.body.locations as |loc key|}}
+        <div class="mf-row" data-loc="{{key}}">
+          <div class="mf-loc-label">
+            <span class="mf-dot mf-{{key}}"></span>{{loc.label}}
+          </div>
+
+          <div>
+            <input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" />
+          </div>
+          <div>
+            <input type="number" name="system.body.locations.{{key}}.spMax" value="{{loc.spMax}}" min="0" />
+          </div>
+          <div>
+            <input type="number" name="system.body.locations.{{key}}.hp" value="{{loc.hp}}" min="0" />
+          </div>
+          <div>
+            <input type="number" name="system.body.locations.{{key}}.hpMax" value="{{loc.hpMax}}" min="0" />
+          </div>
+
+          <!-- Equipped armor (optional link) -->
+          <div class="mf-equip">
+            {{#if loc.itemId}}
+              <a data-action="show-item" data-item-id="{{loc.itemId}}">{{localize "MF.Equipped"}}</a>
+              <button type="button" class="icon-btn" title="Unequip" data-action="unequip" data-loc="{{key}}">⏏</button>
+            {{else}}
+              <span class="mf-muted">—</span>
+            {{/if}}
+          </div>
+
+          <!-- Quick actions -->
+          <div class="mf-actions">
+            <button type="button" class="icon-btn" title="Ablate -1 SP" data-action="ablate" data-loc="{{key}}">–SP</button>
+            <button type="button" class="icon-btn" title="Heal 1 HP" data-action="heal1" data-loc="{{key}}">+HP</button>
+            <button type="button" class="icon-btn" title="Damage 1 HP" data-action="dmg1" data-loc="{{key}}">–HP</button>
+          </div>
+
+          <!-- Progress bars -->
+          <div class="mf-bars">
+            <div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div>
+            <div class="bar hp" style="--val: {{percent loc.hp loc.hpMax}}"></div>
+          </div>
+        </div>
+      {{/each}}
+
+      <div class="mf-body-notes">
+        <label>{{localize "MF.Notes"}}</label>
+        <textarea name="system.body.notes">{{system.body.notes}}</textarea>
+      </div>
+    </section>
+  </div>
+</div>

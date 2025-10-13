@@ -151,6 +151,23 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion.sheet.actor .sheet-header h1 input::placeholder { color: #bbb; }
 
 .mekton-fusion.sheet.actor .header-stats { gap: 0.5rem; margin-top: 0.5rem; }
+
+/* Header actions: small utility buttons in the top-right of the header (e.g. Link Token) */
+.mekton-fusion.sheet.actor .sheet-header .header-actions {
+  display: flex; gap: 0.5rem; align-items: center; margin-left: auto;
+}
+.mekton-fusion.sheet.actor .link-token-button {
+  background: transparent; color: var(--mf-white); border: 1px solid var(--mf-white);
+  padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; border-radius: 4px;
+  text-transform: none; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+}
+.mekton-fusion.sheet.actor .link-token-button:hover { background: rgba(255,255,255,0.06); }
+.mekton-fusion.sheet.actor .unlink-token-button {
+  background: transparent; color: var(--mf-white); border: 1px solid var(--mf-white);
+  padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; border-radius: 4px;
+  text-transform: none; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+}
+.mekton-fusion.sheet.actor .unlink-token-button:hover { background: rgba(255,255,255,0.06); }
 .mekton-fusion.sheet.actor .header-field {
   display: flex; flex-direction: column; align-items: center;
   background: var(--mf-white); color: var(--mf-text);
@@ -337,3 +354,365 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion.sheet.actor .panel { background: var(--mf-card); border: 2px solid var(--mf-border); padding: var(--mf-pad-sm); }
 .mekton-fusion.sheet.actor .panel h4 { margin: 0 0 var(--mf-gap-sm) 0; font-size: 0.95rem; }
 .mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }
+
+/* Paperdoll / Body tab */
+.mekton-fusion .tab.body .body-container { padding: var(--mf-pad); }
+/* Body tab: main grid layout */
+.mekton-fusion .tab.body .mf-body-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Left column: paperdoll section */
+.mekton-fusion .tab.body .mf-doll {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Paperdoll SVG wrapper */
+.mekton-fusion .tab.body .mf-doll-svg {
+  width: 200px;
+  height: 420px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  display: block;
+}
+
+/* Paperdoll help section */
+.mekton-fusion .tab.body .mf-doll-help {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mekton-fusion .tab.body .mf-roll-hitloc {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--mf-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.mekton-fusion .tab.body .mf-roll-hitloc:hover {
+  background: #0056b3;
+}
+
+.mekton-fusion .tab.body .mf-drop-hint {
+  font-size: 0.85rem;
+  color: var(--mf-muted);
+  text-align: center;
+}
+
+/* Hit location table */
+.mekton-fusion .tab.body .mf-hitloc-table {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--mf-card);
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table thead {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table th {
+  padding: 0.5rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--mf-soft-border);
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table th:first-child {
+  text-align: center;
+  width: 30%;
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table thead tr:first-child th {
+  text-align: center;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--mf-soft-border);
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table td:first-child {
+  text-align: center;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.mekton-fusion .tab.body .mf-hitloc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hit zones on paperdoll - interactive */
+.mekton-fusion .tab.body .hit-zone {
+  fill: rgba(0, 123, 255, 0.05);
+  stroke: rgba(0, 0, 0, 0.2);
+  stroke-width: 1;
+  cursor: pointer;
+  pointer-events: all;
+  transition: fill 0.15s, stroke 0.15s;
+}
+
+.mekton-fusion .tab.body .hit-zone:hover {
+  fill: rgba(0, 123, 255, 0.15);
+  stroke: var(--mf-accent);
+  stroke-width: 2;
+}
+
+.mekton-fusion .tab.body .hit-zone.active {
+  fill: rgba(0, 123, 255, 0.3);
+  stroke: var(--mf-accent);
+  stroke-width: 2;
+}
+
+/* Item icons on paperdoll */
+.mekton-fusion .tab.body .mf-doll-svg .item-icon {
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.mekton-fusion .tab.body .mf-doll-svg .item-icon[href=""] {
+  display: none;
+}
+
+/* Right column: body location table */
+.mekton-fusion .tab.body .mf-body-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.body .mf-table-head {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 2fr;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.mekton-fusion .tab.body .mf-table-head > div:first-child {
+  text-align: left;
+}
+
+.mekton-fusion .tab.body .mf-row {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 2fr;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  align-items: center;
+  background: var(--mf-card);
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.mekton-fusion .tab.body .mf-row:hover {
+  background: rgba(0, 123, 255, 0.03);
+}
+
+.mekton-fusion .tab.body .mf-loc-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.mekton-fusion .tab.body .mf-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.mekton-fusion .tab.body .mf-dot.mf-head { background: #ff6b6b; }
+.mekton-fusion .tab.body .mf-dot.mf-torso { background: #4ecdc4; }
+.mekton-fusion .tab.body .mf-dot.mf-rArm { background: #45b7d1; }
+.mekton-fusion .tab.body .mf-dot.mf-lArm { background: #96ceb4; }
+.mekton-fusion .tab.body .mf-dot.mf-rLeg { background: #ffeaa7; }
+.mekton-fusion .tab.body .mf-dot.mf-lLeg { background: #fdcb6e; }
+
+.mekton-fusion .tab.body .mf-row > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mekton-fusion .tab.body .mf-row > div:first-child {
+  justify-content: flex-start;
+}
+
+.mekton-fusion .tab.body .mf-row input[type="number"] {
+  width: 100%;
+  max-width: 60px;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mekton-fusion .tab.body .mf-row input[type="number"]:focus {
+  outline: none;
+  border-color: var(--mf-accent);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  background: #f8fbff;
+}
+
+.mekton-fusion .tab.body .mf-row input[type="number"]:hover {
+  border-color: #aaa;
+  background: #fafafa;
+}
+
+.mekton-fusion .tab.body .mf-equip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.mekton-fusion .tab.body .mf-equip a {
+  color: var(--mf-accent);
+  text-decoration: none;
+}
+
+.mekton-fusion .tab.body .mf-equip a:hover {
+  text-decoration: underline;
+}
+
+.mekton-fusion .tab.body .mf-muted {
+  color: var(--mf-muted);
+  font-style: italic;
+}
+
+.mekton-fusion .tab.body .mf-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.mekton-fusion .tab.body .icon-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mekton-fusion .tab.body .icon-btn:hover {
+  background: var(--mf-accent);
+  color: white;
+  border-color: var(--mf-accent);
+}
+
+.mekton-fusion .tab.body .mf-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+}
+
+.mekton-fusion .tab.body .bar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mekton-fusion .tab.body .bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--val) * 1%);
+  background: var(--mf-accent);
+  transition: width 0.3s;
+}
+
+.mekton-fusion .tab.body .bar.sp::before {
+  background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+}
+
+.mekton-fusion .tab.body .bar.hp::before {
+  background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
+}
+
+.mekton-fusion .tab.body .mf-body-notes {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.body .mf-body-notes label {
+  font-weight: 600;
+}
+
+.mekton-fusion .tab.body .mf-body-notes textarea {
+  width: 100%;
+  min-height: 6em;
+  padding: 0.5rem;
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+/* Legacy body styles */
+.mekton-fusion .tab.body .body-loc { background: var(--mf-card); border: 1px solid var(--mf-soft-border); padding: 0.5rem; }
+.mekton-fusion .tab.body .body-loc label { font-weight: 700; display:block; margin-bottom: 0.25rem; }
+.mekton-fusion .tab.body .body-values input { width: 100%; margin-bottom: 0.25rem; }
+
+/* Responsive: stack on small screens */
+@media (max-width: 1100px) {
+  .mekton-fusion .tab.body .mf-body-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mekton-fusion .tab.body .mf-doll {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+  
+  .mekton-fusion .tab.body .mf-table-head,
+  .mekton-fusion .tab.body .mf-row {
+    grid-template-columns: 1.5fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 1.5fr;
+    font-size: 0.85rem;
+  }
+}

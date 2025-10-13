@@ -19,6 +19,65 @@
         "equipment": {
           "gear": "",
           "totalWeight": 0
+        },
+        "body": {
+          "locations": {
+            "head": {
+              "label": "Head",
+              "sp": 4,
+              "spMax": 4,
+              "hp": 4,
+              "hpMax": 4,
+              "ablates": true,
+              "itemId": null
+            },
+            "torso": {
+              "label": "Torso",
+              "sp": 10,
+              "spMax": 10,
+              "hp": 10,
+              "hpMax": 10,
+              "ablates": true,
+              "itemId": null
+            },
+            "rArm": {
+              "label": "Right Arm",
+              "sp": 5,
+              "spMax": 5,
+              "hp": 5,
+              "hpMax": 5,
+              "ablates": true,
+              "itemId": null
+            },
+            "lArm": {
+              "label": "Left Arm",
+              "sp": 5,
+              "spMax": 5,
+              "hp": 5,
+              "hpMax": 5,
+              "ablates": true,
+              "itemId": null
+            },
+            "rLeg": {
+              "label": "Right Leg",
+              "sp": 6,
+              "spMax": 6,
+              "hp": 6,
+              "hpMax": 6,
+              "ablates": true,
+              "itemId": null
+            },
+            "lLeg": {
+              "label": "Left Leg",
+              "sp": 6,
+              "spMax": 6,
+              "hp": 6,
+              "hpMax": 6,
+              "ablates": true,
+              "itemId": null
+            }
+          },
+          "notes": ""
         }
       }
     },
