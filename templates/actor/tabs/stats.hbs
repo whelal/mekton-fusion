@@ -1,0 +1,169 @@
+{{!-- Stats tab partial --}}
+<div class="tab stats" data-tab="stats">
+  <div class="stats-container">
+    <!-- Stats grid: Row 1 (6 stats), Row 2 (5 stats) -->
+    <div class="stats-grid-top">
+      <div class="stat-row-top row-six">
+        {{!-- Row 1: INT REF TECH COOL ATTR LUCK --}}
+        <div class="stat-box" data-stat="INT">
+          <div class="stat-header">INT</div>
+          <div class="stat-inline">
+            <input name="system.stats.INT.value" type="number" value="{{system.stats.INT.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="INT" title="Roll INT" aria-label="Roll INT"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="REF">
+          <div class="stat-header">REF</div>
+          <div class="stat-inline">
+            <input name="system.stats.REF.value" type="number" value="{{system.stats.REF.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="REF" title="Roll REF" aria-label="Roll REF"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="TECH">
+          <div class="stat-header">TECH</div>
+          <div class="stat-inline">
+            <input name="system.stats.TECH.value" type="number" value="{{system.stats.TECH.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="TECH" title="Roll TECH" aria-label="Roll TECH"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="COOL">
+          <div class="stat-header">COOL</div>
+          <div class="stat-inline">
+            <input name="system.stats.COOL.value" type="number" value="{{system.stats.COOL.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="COOL" title="Roll COOL" aria-label="Roll COOL"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="ATTR">
+          <div class="stat-header">ATTR</div>
+          <div class="stat-inline">
+            <input name="system.stats.ATTR.value" type="number" value="{{system.stats.ATTR.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="ATTR" title="Roll ATTR" aria-label="Roll ATTR"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="LUCK">
+          <div class="stat-header">LUCK</div>
+          <div class="stat-inline">
+            <input name="system.stats.LUCK.value" type="number" value="{{system.stats.LUCK.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="LUCK" title="Roll LUCK" aria-label="Roll LUCK"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="stat-row-top row-five">
+        {{!-- Row 2: MA BODY EMP EDU PSI --}}
+        <div class="stat-box" data-stat="MA">
+          <div class="stat-header">MA</div>
+          <div class="stat-inline">
+            <input name="system.stats.MA.value" type="number" value="{{system.stats.MA.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="MA" title="Roll MA" aria-label="Roll MA"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="BODY">
+          <div class="stat-header">BODY</div>
+          <div class="stat-inline">
+            <input name="system.stats.BODY.value" type="number" value="{{system.stats.BODY.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="BODY" title="Roll BODY" aria-label="Roll BODY"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="EMP">
+          <div class="stat-header">EMP</div>
+          <div class="stat-inline">
+            <input name="system.stats.EMP.value" type="number" value="{{system.stats.EMP.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="EMP" title="Roll EMP" aria-label="Roll EMP"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="EDU">
+          <div class="stat-header">EDU</div>
+          <div class="stat-inline">
+            <input name="system.stats.EDU.value" type="number" value="{{system.stats.EDU.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="EDU" title="Roll EDU" aria-label="Roll EDU"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="stat-box" data-stat="PSI">
+          <div class="stat-header">PSI</div>
+          <div class="stat-inline">
+            <input name="system.stats.PSI.value" type="number" value="{{system.stats.PSI.value}}" class="stat-input"/>
+            <button type="button" class="stat-roll" data-ability="PSI" title="Roll PSI" aria-label="Roll PSI"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two-column body/ref panels -->
+    <div class="stats-two-col">
+      <div class="panel panel-left">
+        <h4>BODY</h4>
+        <div class="panel-list">
+          <label>• Stun Save: <input class="substat-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}"/></label>
+          <label>• Death Save: <input class="substat-input" name="system.substats.death" type="number" min="0" value="{{system.substats.death}}"/></label>
+          <label>• Lift: <input class="substat-input" name="system.substats.lift" type="number" min="0" value="{{system.substats.lift}}"/></label>
+          <label>• Carry: <input class="substat-input" name="system.substats.carry" type="number" min="0" value="{{system.substats.carry}}"/></label>
+        </div>
+        <div class="panel-emp">
+          <h5>EMP</h5>
+          <label>• Humanity: <input class="substat-input" name="system.substats.humanity" type="number" min="0" value="{{system.substats.humanity}}"/></label>
+        </div>
+      </div>
+
+      <div class="panel panel-right">
+        <h4>MA</h4>
+        <div class="panel-list">
+          <label>• Run: <input class="substat-input" name="system.substats.run" type="number" min="0" value="{{system.substats.run}}"/></label>
+          <label>• Leap: <input class="substat-input" name="system.substats.leap" type="number" min="0" value="{{system.substats.leap}}"/></label>
+          <label>• Swim: <input class="substat-input" name="system.substats.swim" type="number" min="0" value="{{system.substats.swim}}"/></label>
+        </div>
+        <div class="panel-initiative">
+          <h5>REF</h5>
+          <label>• {{localize 'MF.InitiativeMod'}}: <input class="substat-input" name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" title="{{localize 'MF.InitiativeModTooltip'}}"/></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resource bars -->
+    <div class="resource-bars">
+      <div class="resource-row">
+        <label class="resource-label">HP:</label>
+        <div class="resource-bar" data-resource="hp">
+          <div class="resource-fill" style="width: {{resources.hp.percent}}%"></div>
+          <div class="resource-values" aria-live="polite">{{resources.hp.current}} / {{resources.hp.max}}</div>
+        </div>
+        <label class="visually-hidden" for="hp-current-input">Current</label>
+        <input id="hp-current-input" class="resource-input" name="system.substats.hp_current" type="number" min="0" value="{{resources.hp.current}}"/>
+        <label class="visually-hidden" for="hp-max-input">Max</label>
+        <input id="hp-max-input" class="resource-input" name="system.substats.hp" type="number" min="0" value="{{resources.hp.max}}"/>
+      </div>
+      <div class="resource-row">
+        <label class="resource-label">Stamina:</label>
+        <div class="resource-bar" data-resource="stamina">
+          <div class="resource-fill" style="width: {{resources.stamina.percent}}%"></div>
+          <div class="resource-values" aria-live="polite">{{resources.stamina.current}} / {{resources.stamina.max}}</div>
+        </div>
+        <label class="visually-hidden" for="sta-current-input">Current</label>
+        <input id="sta-current-input" class="resource-input" name="system.substats.sta_current" type="number" min="0" value="{{resources.stamina.current}}"/>
+        <label class="visually-hidden" for="sta-max-input">Max</label>
+        <input id="sta-max-input" class="resource-input" name="system.substats.sta" type="number" min="0" value="{{resources.stamina.max}}"/>
+      </div>
+      <div class="resource-row">
+        <label class="resource-label">Vigor:</label>
+        <div class="resource-bar" data-resource="vigor">
+          <div class="resource-fill" style="width: {{resources.vigor.percent}}%"></div>
+          <div class="resource-values" aria-live="polite">{{resources.vigor.current}} / {{resources.vigor.max}}</div>
+        </div>
+        <label class="visually-hidden" for="vigor-current-input">Current</label>
+        <input id="vigor-current-input" class="resource-input" name="system.substats.rec_current" type="number" min="0" value="{{resources.vigor.current}}"/>
+        <label class="visually-hidden" for="vigor-max-input">Max</label>
+        <input id="vigor-max-input" class="resource-input" name="system.substats.rec" type="number" min="0" value="{{resources.vigor.max}}"/>
+      </div>
+      <div class="resource-row">
+        <label class="resource-label">Psi Points:</label>
+        <div class="resource-bar" data-resource="psihybrid">
+          <div class="resource-fill" style="width: {{resources.psihybrid.percent}}%"></div>
+          <div class="resource-values" aria-live="polite">{{resources.psihybrid.current}} / {{resources.psihybrid.max}}</div>
+        </div>
+        <label class="visually-hidden" for="psihybrid-current-input">Current</label>
+        <input id="psihybrid-current-input" class="resource-input" name="system.substats.psihybrid_current" type="number" min="0" value="{{resources.psihybrid.current}}"/>
+        <label class="visually-hidden" for="psihybrid-max-input">Max</label>
+        <input id="psihybrid-max-input" class="resource-input" name="system.substats.psihybrid" type="number" min="0" value="{{resources.psihybrid.max}}"/>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+{{!-- Spells tab partial --}}
+<div class="tab spells" data-tab="spells">
+  {{#if hasAnySpells}}
+    <div class="skill-controls flexrow spell-controls">
+      <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSpells.favOnly}}">
+        {{#if _skillViewStateSpells.favOnly}}
+          {{localize 'MF.ShowAllSkills'}}
+        {{else}}
+          {{localize 'MF.ShowFavOnly'}}
+        {{/if}}
+      </button>
+      <label>{{localize 'MF.SortBy'}}:
+        <select class="skill-sort-by">
+          <option value="name" {{#if (eq _skillViewStateSpells.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+          <option value="stat" {{#if (eq _skillViewStateSpells.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+          <option value="rank" {{#if (eq _skillViewStateSpells.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+          <option value="total" {{#if (eq _skillViewStateSpells.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
+        </select>
+      </label>
+      <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+      <button type="button" class="spell-add-power" title="{{localize 'MF.AddSpell'}}">+</button>
+    </div>
+    {{#if hasSpells}}
+    <table class="skills-table spell-skills">
+      <thead>
+        <tr>
+          <th>{{localize 'MF.ColFav'}}</th>
+          <th>{{localize 'MF.ColName'}}</th>
+          <th>{{localize 'MF.Cost'}}</th>
+          <th>{{localize 'MF.Range'}}</th>
+          <th>{{localize 'MF.Duration'}}</th>
+          <th>{{localize 'MF.Defense'}}</th>
+          <th>{{localize 'MF.Roll'}}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody class="sortable-spells">
+        {{#each spells as |sp|}}
+          <tr data-item-id="{{sp.id}}" class="spell-item-row {{#if sp.custom}}custom-spell{{/if}}" data-favorite="{{sp.favorite}}" draggable="true">
+            <td class="spell-fav-cell"><a class="spell-fav" title="Toggle Favorite">{{#if sp.favorite}}★{{else}}☆{{/if}}</a></td>
+            <td class="spell-name">
+              <span class="skill-drag-handle" title="Drag to reorder">⋮⋮</span>
+              {{sp.name}} 
+              {{#if sp.custom}}<span class="custom-flag" title="Custom Spell">✦</span>{{/if}}
+            </td>
+            <td class="spell-cost-cell"><input class="spell-cost short-input" type="number" min="0" max="99" step="1" value="{{sp.cost}}" data-item-id="{{sp.id}}"/></td>
+            <td class="spell-range-cell"><input class="spell-range" type="text" value="{{sp.range}}" placeholder="m/self" data-item-id="{{sp.id}}"/></td>
+            <td class="spell-duration-cell"><input class="spell-duration" type="text" value="{{sp.duration}}" placeholder="rounds/instant" data-item-id="{{sp.id}}"/></td>
+            <td class="spell-defense-cell"><input class="spell-defense" type="text" value="{{sp.defense}}" placeholder="dodge/block" data-item-id="{{sp.id}}"/></td>
+            <td class="spell-roll-cell"><button type="button" class="spell-roll" title="Cast {{sp.name}}"><i class="fas fa-magic"></i></button></td>
+            <td class="spell-edit">
+              <a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sp.id}}"><i class="fas fa-edit"></i></a>
+              {{#if sp.custom}}<a class="item-control spell-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sp.id}}"><i class="fas fa-trash"></i></a>{{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    {{else}}
+      {{#if spells.length}}
+        {{#unless spells.[0].spellcasting}}
+          <tr><td colspan="8" class="mf-warning">{{localize 'MF.SpellcastingMissing'}}</td></tr>
+        {{/unless}}
+      {{else}}
+        <p class="mf-empty">{{#if _skillViewStateSpells.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
+      {{/if}}
+    {{/if}}
+  {{else}}
+    <p class="mf-empty">{{localize 'MF.NoSpells'}}</p>
+  {{/if}}
+</div>

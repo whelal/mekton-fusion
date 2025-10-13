@@ -1,0 +1,78 @@
+{{!-- PSI tab partial --}}
+<div class="tab psi" data-tab="psi">
+  {{#if hasAnyPsiSkills}}
+    <div class="skill-controls flexrow psi-controls">
+      <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStatePsi.favOnly}}">
+        {{#if _skillViewStatePsi.favOnly}}
+          {{localize 'MF.ShowAllSkills'}}
+        {{else}}
+          {{localize 'MF.ShowFavOnly'}}
+        {{/if}}
+      </button>
+      <label>{{localize 'MF.SortBy'}}:
+        <select class="skill-sort-by">
+          <option value="name" {{#if (eq _skillViewStatePsi.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+          <option value="stat" {{#if (eq _skillViewStatePsi.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+          <option value="rank" {{#if (eq _skillViewStatePsi.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+          <option value="total" {{#if (eq _skillViewStatePsi.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
+        </select>
+      </label>
+      <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStatePsi.dir}}" title="Toggle direction">{{#if (eq _skillViewStatePsi.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+        <button type="button" class="psi-add-power" title="{{localize 'MF.AddPsiPower'}}">+</button>
+    </div>
+    {{#if hasPsiSkills}}
+    <table class="skills-table psi-skills">
+      <colgroup>
+        <col /> <!-- Fav -->
+        <col /> <!-- Name -->
+        <col /> <!-- Stat -->
+        <col /> <!-- Rank -->
+        <col /> <!-- IP -->
+        <col /> <!-- Total -->
+        <col /> <!-- Roll -->
+        <col /> <!-- Edit -->
+      </colgroup>
+      <thead>
+        <tr>
+          <th>{{localize 'MF.ColFav'}}</th>
+          <th>{{localize 'MF.ColName'}}</th>
+          <th>{{localize 'MF.ColStat'}}</th>
+          <th>{{localize 'MF.ColRank'}}</th>
+          <th>{{localize 'MF.ColIP'}}</th>
+          <th>{{localize 'MF.ColTotal'}}</th>
+          <th>{{localize 'MF.Roll'}}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody class="sortable-skills">
+        {{#each psiSkills as |sk|}}
+          <tr data-skill-id="{{sk.id}}" class="skill-item-row {{#if sk.custom}}custom-skill{{/if}}" data-favorite="{{sk.favorite}}" data-category="PSI" draggable="true">
+            <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
+            <td class="skill-name">
+              <span class="skill-drag-handle" title="Drag to reorder">⋮⋮</span>
+              {{sk.name}} 
+              {{#if sk.custom}}<span class="custom-flag" title="Custom/Homebrew Power">✦</span>{{/if}}
+              {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
+            </td>
+            <td class="skill-stat">{{sk.stat}}</td>
+            <td class="skill-rank-cell"><input class="skill-rank short-input" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
+            <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" max="999" step="1" value="{{sk.system.ip}}" title="{{localize 'MF.IPTooltip'}}"/></td>
+            <td class="skill-total">{{sk.total}}</td>
+            <td class="skill-roll-cell"><button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button></td>
+            <td class="skill-edit">
+              <a class="item-control item-edit" title="{{localize 'MF.Edit'}}" data-item-id="{{sk.id}}"><i class="fas fa-edit"></i></a>
+              {{#if sk.custom}}<a class="item-control psi-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sk.id}}"><i class="fas fa-trash"></i></a>{{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+
+    </table>
+  {{else}}
+    <p class="mf-empty">{{localize 'MF.NoPsiSkills'}}</p>
+  {{/if}}
+{{else}}
+  <p class="mf-empty">{{localize 'MF.NoPsiCategory'}}</p>
+{{/if}}
+
+</div>

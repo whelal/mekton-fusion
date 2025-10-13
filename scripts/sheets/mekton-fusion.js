@@ -7,6 +7,16 @@ import { syncActorCoreItems } from "../../module/seed.js";
 Hooks.once("init", () => {
   console.log("mekton-fusion | init");
 
+  // Preload actor tab partials for modular templates
+  loadTemplates([
+    "systems/mekton-fusion/templates/actor/tabs/stats.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/skills.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/psi.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/spells.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/equipment.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/notes.hbs"
+  ]).then(() => console.log('mekton-fusion | Actor tab partials preloaded'));
+
   // Homebrew settings (display-only flags to indicate free, not-for-sale status)
   game.settings.register("mekton-fusion", "homebrew.free", {
     name: "Homebrew: Free",
