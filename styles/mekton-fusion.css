@@ -71,55 +71,61 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .sheet-body .tab { padding: 0; margin: 0; } /* overrides Foundry padding safely */
 
 .mekton-fusion .tab.skills .skill-controls,
-.mekton-fusion .tab.psi .skill-controls,
-.mekton-fusion .tab.spells .spell-controls { margin: var(--mf-gap-xs) var(--mf-gap-sm) var(--mf-gap-sm); }
+.mekton-fusion .tab.body .mf-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
 
-.mekton-fusion .tab.skills .skills-table,
-.mekton-fusion .tab.psi .skills-table,
-.mekton-fusion .tab.spells .skills-table,
-.mekton-fusion .tab.skills .mf-empty,
-.mekton-fusion .tab.psi .mf-empty,
-.mekton-fusion .tab.spells .mf-empty { margin: 0 var(--mf-gap-sm) var(--mf-gap-sm); }
+.mekton-fusion .tab.body .mf-action-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-/* Skills table: allow flexible layout (overrides previous fixed layout) */
-.mekton-fusion .skills-table { width: 100%; }
-
-/* Compact inputs used in skills/IP columns */
-.mekton-fusion .skills-table .short-input,
-.mekton-fusion .skills-table .skill-rank {
-  width: var(--mf-input-w-sm);
-  min-width: 0;
-  max-width: calc(var(--mf-input-w-sm) + 0.5em);
-  padding: 2px 4px;
+.mekton-fusion .tab.body .mf-adjust-input {
+  width: 48px;
+  height: 28px;
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
   text-align: center;
-  font-size: 1em;
+  background: white;
 }
 
-/* Category heading */
-.mekton-fusion .tab.skills .skill-category-header { margin: var(--mf-gap-sm) var(--mf-gap-sm) var(--mf-gap-xs); }
-
-/* ---------- Notes tab ---------- */
-.mekton-fusion .tab.notes .notes-container {
-  display: flex; flex-direction: column; gap: var(--mf-gap-xs);
-  padding: var(--mf-pad-xs) var(--mf-gap-sm) var(--mf-gap-sm);
-  margin: 0;
-}
-.mekton-fusion .tab.notes .notes-label { font-weight: bold; margin-bottom: var(--mf-gap-xs); }
-.mekton-fusion .tab.notes .notes-textarea {
-  width: 100%; min-height: 8em; resize: vertical; font: inherit;
-  padding: 0.5em; border-radius: 4px; border: 1px solid #888;
-  background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
+.mekton-fusion .tab.body .mf-adjust-input:focus {
+  outline: none;
+  border-color: var(--mf-accent);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
-/* ---------- Equipment tab ---------- */
-.mekton-fusion .tab.equipment .equipment-container {
-  display: flex; flex-direction: column; gap: var(--mf-gap-xs);
-  padding: var(--mf-pad-xs) var(--mf-gap-sm) var(--mf-gap-sm);
-  margin: 0;
+.mekton-fusion .tab.body .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  min-width: 44px;
+  text-align: center;
+  line-height: 1;
 }
-.mekton-fusion .tab.equipment .equipment-header {
-  display: flex; align-items: center; gap: var(--mf-gap-sm);
-  margin-bottom: var(--mf-gap-xs);
+
+.mekton-fusion .tab.body .icon-btn:hover {
+  background: var(--mf-accent);
+  color: white;
+  border-color: var(--mf-accent);
 }
 .mekton-fusion .tab.equipment .weight-label { 
   font-weight: bold; 
@@ -509,7 +515,7 @@ html.theme-dark .mekton-fusion {
 
 .mekton-fusion .tab.body .mf-table-head {
   display: grid;
-  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 2fr;
+  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr;
   gap: 0.5rem;
   padding: 0.5rem;
   background: rgba(0, 0, 0, 0.05);
@@ -524,15 +530,21 @@ html.theme-dark .mekton-fusion {
 }
 
 .mekton-fusion .tab.body .mf-row {
-  display: grid;
-  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 2fr;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem 0.5rem;
-  align-items: center;
   background: var(--mf-card);
   border: 1px solid var(--mf-soft-border);
   border-radius: 4px;
   transition: background 0.15s;
+}
+
+.mekton-fusion .tab.body .mf-row-main {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 0.8fr 0.8fr 0.8fr;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .mekton-fusion .tab.body .mf-row:hover {
@@ -567,7 +579,13 @@ html.theme-dark .mekton-fusion {
   justify-content: center;
 }
 
-.mekton-fusion .tab.body .mf-row > div:first-child {
+.mekton-fusion .tab.body .mf-row-main > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mekton-fusion .tab.body .mf-row-main > div:first-child {
   justify-content: flex-start;
 }
 
@@ -617,20 +635,56 @@ html.theme-dark .mekton-fusion {
   font-style: italic;
 }
 
+
 .mekton-fusion .tab.body .mf-actions {
   display: flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.mekton-fusion .tab.body .mf-action-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.body .mf-adjust-input {
+  width: 48px;
+  height: 28px;
+  padding: 0 0.35rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--mf-soft-border);
+  border-radius: 4px;
+  text-align: center;
+  background: white;
+}
+
+.mekton-fusion .tab.body .mf-adjust-input:focus {
+  outline: none;
+  border-color: var(--mf-accent);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
 .mekton-fusion .tab.body .icon-btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
   background: rgba(0, 0, 0, 0.05);
   border: 1px solid var(--mf-soft-border);
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  min-width: 44px;
+  text-align: center;
+  line-height: 1;
 }
 
 .mekton-fusion .tab.body .icon-btn:hover {
@@ -643,8 +697,15 @@ html.theme-dark .mekton-fusion {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  grid-column: 1 / -1;
-  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.mekton-fusion .tab.body .mf-bars-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+  width: 100%;
 }
 
 .mekton-fusion .tab.body .bar {

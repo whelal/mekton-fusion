@@ -54,50 +54,48 @@
         <div>Max</div>
         <div>HP</div>
         <div>Max</div>
-        <div>Equip</div>
-        <div>Actions</div>
       </header>
 
       {{#each system.body.locations as |loc key|}}
         <div class="mf-row" data-loc="{{key}}">
-          <div class="mf-loc-label">
-            <span class="mf-dot mf-{{key}}"></span>{{loc.label}}
+          <div class="mf-row-main">
+            <div class="mf-loc-label">
+              <span class="mf-dot mf-{{key}}"></span>{{loc.label}}
+            </div>
+
+            <div>
+              <input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" />
+            </div>
+            <div>
+              <input type="number" name="system.body.locations.{{key}}.spMax" value="{{loc.spMax}}" min="0" />
+            </div>
+            <div>
+              <input type="number" name="system.body.locations.{{key}}.hp" value="{{loc.hp}}" min="0" />
+            </div>
+            <div>
+              <input type="number" name="system.body.locations.{{key}}.hpMax" value="{{loc.hpMax}}" min="0" />
+            </div>
           </div>
 
-          <div>
-            <input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" />
-          </div>
-          <div>
-            <input type="number" name="system.body.locations.{{key}}.spMax" value="{{loc.spMax}}" min="0" />
-          </div>
-          <div>
-            <input type="number" name="system.body.locations.{{key}}.hp" value="{{loc.hp}}" min="0" />
-          </div>
-          <div>
-            <input type="number" name="system.body.locations.{{key}}.hpMax" value="{{loc.hpMax}}" min="0" />
-          </div>
+          <!-- Progress bars and actions below the main row -->
+          <div class="mf-bars-actions">
+            <!-- Progress bars -->
+            <div class="mf-bars">
+              <div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div>
+              <div class="bar hp" style="--val: {{percent loc.hp loc.hpMax}}"></div>
+            </div>
 
-          <!-- Equipped armor (optional link) -->
-          <div class="mf-equip">
-            {{#if loc.itemId}}
-              <a data-action="show-item" data-item-id="{{loc.itemId}}">{{localize "MF.Equipped"}}</a>
-              <button type="button" class="icon-btn" title="Unequip" data-action="unequip" data-loc="{{key}}">⏏</button>
-            {{else}}
-              <span class="mf-muted">—</span>
-            {{/if}}
-          </div>
-
-          <!-- Quick actions -->
-          <div class="mf-actions">
-            <button type="button" class="icon-btn" title="Ablate -1 SP" data-action="ablate" data-loc="{{key}}">–SP</button>
-            <button type="button" class="icon-btn" title="Heal 1 HP" data-action="heal1" data-loc="{{key}}">+HP</button>
-            <button type="button" class="icon-btn" title="Damage 1 HP" data-action="dmg1" data-loc="{{key}}">–HP</button>
-          </div>
-
-          <!-- Progress bars -->
-          <div class="mf-bars">
-            <div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div>
-            <div class="bar hp" style="--val: {{percent loc.hp loc.hpMax}}"></div>
+            <!-- Quick actions -->
+            <div class="mf-actions">
+              <div class="mf-action-group">
+                <button type="button" class="icon-btn" title="Apply SP adjustment" data-action="adjust-sp" data-loc="{{key}}">SP</button>
+                <input type="number" class="mf-adjust-input" data-loc="{{key}}" data-type="sp" placeholder="±SP" title="Enter SP adjustment (+/-)" />
+              </div>
+              <div class="mf-action-group">
+                <button type="button" class="icon-btn" title="Apply HP adjustment" data-action="adjust-hp" data-loc="{{key}}">HP</button>
+                <input type="number" class="mf-adjust-input" data-loc="{{key}}" data-type="hp" placeholder="±HP" title="Enter HP adjustment (+/-)" />
+              </div>
+            </div>
           </div>
         </div>
       {{/each}}

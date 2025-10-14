@@ -603,6 +603,28 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             await this.actor.update({ [`${path}.hp`]: Math.max((data.hp ?? 0) - 1, 0) });
             this.render(false);
             break;
+          case 'adjust-sp':
+            const spInput = html.find(`input[data-loc="${loc}"][data-type="sp"]`);
+            const spAdjust = parseInt(spInput.val()) || 0;
+            if (spAdjust !== 0) {
+              const newSP = Math.max((data.sp ?? 0) + spAdjust, 0);
+              await this.actor.update({ [`${path}.sp`]: newSP });
+              spInput.val(''); // Clear the input after applying
+              this.render(false);
+            }
+            break;
+          case 'adjust-hp':
+            const hpInput = html.find(`input[data-loc="${loc}"][data-type="hp"]`);
+            const hpAdjust = parseInt(hpInput.val()) || 0;
+            if (hpAdjust !== 0) {
+              const newHP = Math.min(Math.max((data.hp ?? 0) + hpAdjust, 0), data.hpMax ?? 0);
+              await this.actor.update({ [`${path}.hp`]: newHP });
+              hpInput.val(''); // Clear the input after applying
+              this.render(false);
+            }
+            break;
+            this.render(false);
+            break;
           case 'unequip':
             await this.actor.update({ [`${path}.itemId`]: null });
             // Refresh icons after unequip
