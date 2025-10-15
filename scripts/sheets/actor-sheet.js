@@ -32,11 +32,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
   constructor(...args) {
     super(...args);
-    // Per-tab (skills, psi, spells) view state; loaded from user flag lazily
+    // Per-tab (skills, psi, witcher) view state; loaded from user flag lazily
     this._tabViewState = {
       skills: { favOnly: false, sortBy: 'name', dir: 'asc' },
       psi: { favOnly: false, sortBy: 'name', dir: 'asc' },
-      spells: { favOnly: false, sortBy: 'name', dir: 'asc' }
+      witcher: { favOnly: false, sortBy: 'name', dir: 'asc' }
     };
     this._viewStateLoaded = false;
   }
@@ -50,7 +50,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       submitOnChange: true,
       submitOnClose: true,
       closeOnSubmit: false,
-      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.spells", ".tab.equipment", ".tab.notes"]
+      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.witcher", ".tab.equipment", ".tab.notes"]
     });
   }
 
@@ -293,7 +293,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       return { max, current: cur, percent };
     };
     ctx.resources = {
-      hp: makeResource('hp','hp_current'),
+      witcherHP: makeResource('hp','hp_current'),
       stamina: makeResource('sta','sta_current'),
       vigor: makeResource('rec','rec_current'),
       psi: makeResource('psi','psi_current'),
@@ -321,7 +321,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             }
         }
         if (saved && typeof saved === 'object') {
-          for (const tab of ['skills','psi','spells']) {
+          for (const tab of ['skills','psi','witcher']) {
             if (saved[tab]) this._tabViewState[tab] = foundry.utils.mergeObject(this._tabViewState[tab], saved[tab]);
           }
         }
@@ -336,7 +336,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const vsSkills = this._tabViewState.skills;
     const vsPsi = this._tabViewState.psi;
-    const vsSpells = this._tabViewState.spells;
+    const vsWitcher = this._tabViewState.witcher;
 
     // Build skill Items listing (preferred representation)
     let needsPsiFix = false;
@@ -419,7 +419,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Favorites filtering per tab
     if (vsSkills.favOnly) nonPsi = nonPsi.filter(sk => sk.favorite);
     if (vsPsi.favOnly) psiSkills = psiSkills.filter(sk => sk.favorite);
-    if (vsSpells.favOnly) spells = spells.filter(sp => sp.favorite);
+    if (vsWitcher.favOnly) spells = spells.filter(sp => sp.favorite);
 
     // Sorting helper
     function sortList(list, sortBy, dir) {
@@ -457,7 +457,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     sortList(nonPsi, vsSkills.sortBy, vsSkills.dir);
     sortList(psiSkills, vsPsi.sortBy, vsPsi.dir);
-    sortList(spells, vsSpells.sortBy, vsSpells.dir);
+    sortList(spells, vsWitcher.sortBy, vsWitcher.dir);
 
   // Extract custom (non-PSI) skills so they can render in their own section at the bottom.
   // We do this AFTER sorting so customSkills preserve the active sort order.
@@ -488,14 +488,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;
-    ctx._skillViewStateSpells = vsSpells;
+    ctx._skillViewStateWitcher = vsWitcher;
 
     // Pre-render tab templates to avoid partial-registration timing issues.
     try {
   ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
       ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
       ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
-      ctx._tabSpellsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/spells.hbs", ctx);
+      ctx._tabWitcherHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/spells.hbs", ctx);
       ctx._tabEquipmentHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/equipment.hbs", ctx);
       ctx._tabNotesHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/notes.hbs", ctx);
   // Optional paperdoll/body tab (empty by default until filled)
@@ -511,7 +511,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   ctx._tabStatsHtml = ctx._tabStatsHtml || '';
       ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
       ctx._tabPsiHtml = ctx._tabPsiHtml || '';
-      ctx._tabSpellsHtml = ctx._tabSpellsHtml || '';
+      ctx._tabWitcherHtml = ctx._tabWitcherHtml || '';
       ctx._tabEquipmentHtml = ctx._tabEquipmentHtml || '';
       ctx._tabNotesHtml = ctx._tabNotesHtml || '';
   ctx._tabBodyHtml = ctx._tabBodyHtml || '';
@@ -573,72 +573,53 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (row && row.length) row[0].focus();
     });
 
-    // Quick actions (single handler for body tab buttons)
-    html.on('click', '[data-action]', async ev => {
-      const btn = ev.currentTarget;
-      const action = btn.dataset.action;
-      if (action === 'roll-hitloc') {
-        console.log('mekton-fusion | Hit location button clicked');
-        return await this._rollHitLocation();
-      }
-
-      const loc = btn.dataset.loc;
+    // Quick actions for new single action row
+    html.on('click', '#mf-btn-adjust-sp', async ev => {
+      ev.preventDefault();
+      const loc = html.find('#mf-selected-loc').val();
       if (!loc) return;
       const path = `system.body.locations.${loc}`;
-
       const data = foundry.utils.getProperty(this.actor, path);
       if (!data) return;
-
-      try {
-        switch (action) {
-          case 'ablate':
-            if ((data.sp ?? 0) > 0) await this.actor.update({ [`${path}.sp`]: (data.sp ?? 0) - 1 });
-            this.render(false);
-            break;
-          case 'heal1':
-            await this.actor.update({ [`${path}.hp`]: Math.min((data.hp ?? 0) + 1, data.hpMax ?? 0) });
-            this.render(false);
-            break;
-          case 'dmg1':
-            await this.actor.update({ [`${path}.hp`]: Math.max((data.hp ?? 0) - 1, 0) });
-            this.render(false);
-            break;
-          case 'adjust-sp':
-            const spInput = html.find(`input[data-loc="${loc}"][data-type="sp"]`);
-            const spAdjust = parseInt(spInput.val()) || 0;
-            if (spAdjust !== 0) {
-              const newSP = Math.max((data.sp ?? 0) + spAdjust, 0);
-              await this.actor.update({ [`${path}.sp`]: newSP });
-              spInput.val(''); // Clear the input after applying
-              this.render(false);
-            }
-            break;
-          case 'adjust-hp':
-            const hpInput = html.find(`input[data-loc="${loc}"][data-type="hp"]`);
-            const hpAdjust = parseInt(hpInput.val()) || 0;
-            if (hpAdjust !== 0) {
-              const newHP = Math.min(Math.max((data.hp ?? 0) + hpAdjust, 0), data.hpMax ?? 0);
-              await this.actor.update({ [`${path}.hp`]: newHP });
-              hpInput.val(''); // Clear the input after applying
-              this.render(false);
-            }
-            break;
-            this.render(false);
-            break;
-          case 'unequip':
-            await this.actor.update({ [`${path}.itemId`]: null });
-            // Refresh icons after unequip
-            this._refreshBodyItemIcons();
-            this.render(false);
-            break;
-          case 'show-item':
-            this.actor.items.get(btn.dataset.itemId)?.sheet?.render(true);
-            break;
-        }
-      } catch (err) {
-        console.warn('mekton-fusion | Body action failed', action, err);
+      const spInput = html.find('#mf-adjust-sp');
+      const spAdjust = parseInt(spInput.val()) || 0;
+      if (spAdjust !== 0) {
+        const newSP = Math.max((data.sp ?? 0) + spAdjust, 0);
+        await this.actor.update({ [`${path}.sp`]: newSP });
+        spInput.val('');
+        this.render(false);
       }
     });
+    html.on('click', '#mf-btn-adjust-sdp', async ev => {
+      ev.preventDefault();
+      const loc = html.find('#mf-selected-loc').val();
+      if (!loc) return;
+      const path = `system.body.locations.${loc}`;
+      const data = foundry.utils.getProperty(this.actor, path);
+      if (!data) return;
+      const sdpInput = html.find('#mf-adjust-sdp');
+      const sdpAdjust = parseInt(sdpInput.val()) || 0;
+      if (sdpAdjust !== 0) {
+        // Default sdpMax per Mekton table (5-7 column) for reference/percent only
+        let defaultMax = 9;
+        if (loc === 'head') defaultMax = 6;
+        else if (loc === 'torso') defaultMax = 12;
+        const sdpMax = (data.mektonHpMax && data.mektonHpMax > 0) ? data.mektonHpMax : defaultMax;
+        // Allow SDP to exceed MaxSDP (no clamping)
+        const newSDP = (data.mektonHp ?? 0) + sdpAdjust;
+        console.log('mekton-fusion | SDP adjust (no clamp):', { loc, path, sdpAdjust, sdpMax, oldSDP: data.mektonHp, newSDP });
+        // Set SDP value directly in the input and trigger change event
+        const sdpInputField = html.find(`tr[data-loc="${loc}"] input[name="system.body.locations.${loc}.mektonHp"]`);
+        if (sdpInputField.length) {
+          sdpInputField.val(newSDP).trigger('change');
+          console.log('mekton-fusion | SDP input set and change triggered:', { loc, newSDP });
+        } else {
+          console.warn('mekton-fusion | SDP input not found for location:', loc);
+        }
+        sdpInput.val('');
+      }
+    });
+    // Keep other actions (roll-hitloc, ablate, heal1, dmg1, unequip, show-item) as before
 
     // Drag armor item → slot
     const zones = html.find('.hit-zone');

@@ -1,5 +1,42 @@
-{{!-- Spells tab partial --}}
-<div class="tab spells" data-tab="spells">
+{{!-- Witcher tab partial --}}
+<div class="tab witcher" data-tab="witcher">
+  <!-- Witcher Resource bars -->
+  <div class="resource-bars">
+    <div class="resource-row">
+      <label class="resource-label">HP:</label>
+      <div class="resource-bar" data-resource="witcherHP">
+        <div class="resource-fill" style="width: {{resources.witcherHP.percent}}%"></div>
+        <div class="resource-values" aria-live="polite">{{resources.witcherHP.current}} / {{resources.witcherHP.max}}</div>
+      </div>
+      <label class="visually-hidden" for="witcherHP-current-input">Current</label>
+      <input id="witcherHP-current-input" class="resource-input" name="system.substats.hp_current" type="number" min="0" value="{{resources.witcherHP.current}}"/>
+      <label class="visually-hidden" for="witcherHP-max-input">Max</label>
+      <input id="witcherHP-max-input" class="resource-input" name="system.substats.hp" type="number" min="0" value="{{resources.witcherHP.max}}"/>
+    </div>
+    <div class="resource-row">
+      <label class="resource-label">Stamina:</label>
+      <div class="resource-bar" data-resource="stamina">
+        <div class="resource-fill" style="width: {{resources.stamina.percent}}%"></div>
+        <div class="resource-values" aria-live="polite">{{resources.stamina.current}} / {{resources.stamina.max}}</div>
+      </div>
+      <label class="visually-hidden" for="sta-current-input">Current</label>
+      <input id="sta-current-input" class="resource-input" name="system.substats.sta_current" type="number" min="0" value="{{resources.stamina.current}}"/>
+      <label class="visually-hidden" for="sta-max-input">Max</label>
+      <input id="sta-max-input" class="resource-input" name="system.substats.sta" type="number" min="0" value="{{resources.stamina.max}}"/>
+    </div>
+    <div class="resource-row">
+      <label class="resource-label">Vigor:</label>
+      <div class="resource-bar" data-resource="vigor">
+        <div class="resource-fill" style="width: {{resources.vigor.percent}}%"></div>
+        <div class="resource-values" aria-live="polite">{{resources.vigor.current}} / {{resources.vigor.max}}</div>
+      </div>
+      <label class="visually-hidden" for="vigor-current-input">Current</label>
+      <input id="vigor-current-input" class="resource-input" name="system.substats.rec_current" type="number" min="0" value="{{resources.vigor.current}}"/>
+      <label class="visually-hidden" for="vigor-max-input">Max</label>
+      <input id="vigor-max-input" class="resource-input" name="system.substats.rec" type="number" min="0" value="{{resources.vigor.max}}"/>
+    </div>
+  </div>
+
   {{#if hasAnySpells}}
     <div class="skill-controls flexrow spell-controls">
       <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSpells.favOnly}}">

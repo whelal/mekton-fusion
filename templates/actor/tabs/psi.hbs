@@ -1,5 +1,20 @@
 {{!-- PSI tab partial --}}
 <div class="tab psi" data-tab="psi">
+  <!-- Psi Resource bar -->
+  <div class="resource-bars">
+    <div class="resource-row">
+      <label class="resource-label">Psi Points:</label>
+      <div class="resource-bar" data-resource="psihybrid">
+        <div class="resource-fill" style="width: {{resources.psihybrid.percent}}%"></div>
+        <div class="resource-values" aria-live="polite">{{resources.psihybrid.current}} / {{resources.psihybrid.max}}</div>
+      </div>
+      <label class="visually-hidden" for="psihybrid-current-input">Current</label>
+      <input id="psihybrid-current-input" class="resource-input" name="system.substats.psihybrid_current" type="number" min="0" value="{{resources.psihybrid.current}}"/>
+      <label class="visually-hidden" for="psihybrid-max-input">Max</label>
+      <input id="psihybrid-max-input" class="resource-input" name="system.substats.psihybrid" type="number" min="0" value="{{resources.psihybrid.max}}"/>
+    </div>
+  </div>
+
   {{#if hasAnyPsiSkills}}
     <div class="skill-controls flexrow psi-controls">
       <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStatePsi.favOnly}}">
