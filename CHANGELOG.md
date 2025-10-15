@@ -1,3 +1,11 @@
+# 0.0.5 - 2025-10-15
+### Changed
+- Body tab: grouped SP/SDP input-button pairs on a single row for faster use.
+- Allow SDP to exceed MaxSDP (no clamping) to support over-repair/buffer scenarios.
+- Default SP and MaxSP set to 10 across all body locations.
+- Compact CSS tweaks for inline actions and spacing.
+- Horizontal layout refinements for paperdoll + table.
+
 # 0.0.4
 - Added formal DataModel schema for `system.substats` (stun, death, lift, carry, run, leap, swim, hp, hp_current, sta, sta_current, rec, rec_current, psi, psi_current, psihybrid, psihybrid_current, initiative, dodge, enc, punch, kick, humanity).
 - Removed runtime seeding logic from actor sheet; defaults now handled by schema.
