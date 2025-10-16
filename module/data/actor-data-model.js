@@ -58,6 +58,22 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 points: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 maxPoints: new fields.NumberField({initial: 0, min: 0, integer: true})
             }),
+            // Mecha data (frame-based vehicles/mechs)
+            mecha: new fields.SchemaField({
+                model: new fields.StringField({ initial: "" }),
+                type: new fields.StringField({ initial: "" }),
+                frameType: new fields.StringField({ initial: "humanoid" }), // humanoid | jet | centaur | tank | walker | vtol
+                ma: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                sp: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                armor: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                structure: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                silhouette: new fields.StringField({ initial: "" }),
+                movement: new fields.SchemaField({
+                    ground: new fields.BooleanField({ initial: true }),
+                    flight: new fields.BooleanField({ initial: false }),
+                    hover: new fields.BooleanField({ initial: false })
+                })
+            }),
             /* Body model for paperdoll locations */
             body: new fields.SchemaField({
                 locations: new fields.SchemaField({

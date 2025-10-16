@@ -24,6 +24,7 @@ Hooks.once("init", () => {
     "systems/mekton-fusion/templates/actor/tabs/stats.hbs",
     "systems/mekton-fusion/templates/actor/tabs/skills.hbs",
     "systems/mekton-fusion/templates/actor/tabs/psi.hbs",
+    "systems/mekton-fusion/templates/actor/tabs/mecha.hbs",
     "systems/mekton-fusion/templates/actor/tabs/spells.hbs",
     "systems/mekton-fusion/templates/actor/tabs/equipment.hbs",
     "systems/mekton-fusion/templates/actor/tabs/notes.hbs"

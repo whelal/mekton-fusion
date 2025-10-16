@@ -1,0 +1,69 @@
+<div class="tab mecha" data-tab="mecha">
+  <section class="mecha-core">
+    <h3>Mecha Core</h3>
+    <div class="grid two-col">
+      <label>Model <input name="system.mecha.model" type="text" value="{{system.mecha.model}}"/></label>
+      <label>Type <input name="system.mecha.type" type="text" value="{{system.mecha.type}}"/></label>
+      <label>MA <input name="system.mecha.ma" type="number" value="{{system.mecha.ma}}" min="0"/></label>
+      <label>SP <input name="system.mecha.sp" type="number" value="{{system.mecha.sp}}" min="0"/></label>
+      <label>Armor <input name="system.mecha.armor" type="number" value="{{system.mecha.armor}}" min="0"/></label>
+      <label>Structure <input name="system.mecha.structure" type="number" value="{{system.mecha.structure}}" min="0"/></label>
+    </div>
+  </section>
+
+  <section class="mecha-frame">
+    <h3>Frame</h3>
+    <label>Frame Type
+      <select name="system.mecha.frameType" class="mecha-frame-type">
+        <option value="humanoid" {{#if (eq system.mecha.frameType 'humanoid')}}selected{{/if}}>Humanoid</option>
+        <option value="jet" {{#if (eq system.mecha.frameType 'jet')}}selected{{/if}}>Jet</option>
+        <option value="centaur" {{#if (eq system.mecha.frameType 'centaur')}}selected{{/if}}>Centaur</option>
+        <option value="tank" {{#if (eq system.mecha.frameType 'tank')}}selected{{/if}}>Tank</option>
+        <option value="walker" {{#if (eq system.mecha.frameType 'walker')}}selected{{/if}}>Walker</option>
+        <option value="vtol" {{#if (eq system.mecha.frameType 'vtol')}}selected{{/if}}>VTOL</option>
+      </select>
+    </label>
+    <div class="mecha-silhouette">
+      {{#if system.mecha.silhouette}}
+        <img src="{{system.mecha.silhouette}}" alt="Mecha silhouette"/>
+      {{else}}
+        <div class="silhouette-placeholder">Add silhouette (by frame type)</div>
+      {{/if}}
+    </div>
+  </section>
+
+  <section class="mecha-movement">
+    <h3>Movement Modes</h3>
+    <label><input type="checkbox" name="system.mecha.movement.ground" {{checked system.mecha.movement.ground}}/> Ground</label>
+    <label><input type="checkbox" name="system.mecha.movement.flight" {{checked system.mecha.movement.flight}}/> Flight</label>
+    <label><input type="checkbox" name="system.mecha.movement.hover" {{checked system.mecha.movement.hover}}/> Hover</label>
+  </section>
+
+  <section class="mecha-sections">
+    <h3>Frame Sections</h3>
+    <div class="frame-section humanoid" data-frame="humanoid" {{#unless (eq system.mecha.frameType 'humanoid')}}style="display:none"{{/unless}}>
+      <h4>Arms & Legs</h4>
+      <p>Arms, legs, head, torso configuration.</p>
+    </div>
+    <div class="frame-section jet" data-frame="jet" {{#unless (eq system.mecha.frameType 'jet')}}style="display:none"{{/unless}}>
+      <h4>Wings</h4>
+      <p>Wings and hardpoints configuration.</p>
+    </div>
+    <div class="frame-section centaur" data-frame="centaur" {{#unless (eq system.mecha.frameType 'centaur')}}style="display:none"{{/unless}}>
+      <h4>Fore/Torso + Rear/Legs</h4>
+      <p>Centaur chassis configuration.</p>
+    </div>
+    <div class="frame-section tank" data-frame="tank" {{#unless (eq system.mecha.frameType 'tank')}}style="display:none"{{/unless}}>
+      <h4>Treads</h4>
+      <p>Turret and treads configuration.</p>
+    </div>
+    <div class="frame-section walker" data-frame="walker" {{#unless (eq system.mecha.frameType 'walker')}}style="display:none"{{/unless}}>
+      <h4>Walker Legs</h4>
+      <p>Multi-legged walker configuration.</p>
+    </div>
+    <div class="frame-section vtol" data-frame="vtol" {{#unless (eq system.mecha.frameType 'vtol')}}style="display:none"{{/unless}}>
+      <h4>VTOL</h4>
+      <p>VTOL nacelles and wings configuration.</p>
+    </div>
+  </section>
+</div>
