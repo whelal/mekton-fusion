@@ -199,11 +199,21 @@
     <div class="mecha-right-col">
       <!-- Mecha Image Area -->
       <section class="mecha-image-area">
-        <div class="mecha-image-placeholder">
+        <div class="mecha-image-placeholder" data-action="select-mecha-image" title="Click to select mecha image">
           {{#if system.mecha.imageUrl}}
             <img src="{{system.mecha.imageUrl}}" alt="Mecha"/>
           {{else}}
-            <div class="placeholder-text">Mecha Image</div>
+            <div class="placeholder-text">Click to Add Mecha Image</div>
+          {{/if}}
+        </div>
+        <div class="mecha-image-controls">
+          <button type="button" class="mecha-image-btn" data-action="select-mecha-image" title="Select Image">
+            <i class="fas fa-image"></i> Select Image
+          </button>
+          {{#if system.mecha.imageUrl}}
+            <button type="button" class="mecha-image-btn clear-btn" data-action="clear-mecha-image" title="Clear Image">
+              <i class="fas fa-times"></i> Clear
+            </button>
           {{/if}}
         </div>
       </section>

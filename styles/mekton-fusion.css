@@ -38,34 +38,86 @@
   gap: 0.35rem;
 }
 
+
 .mekton-fusion .tab.mecha .mecha-stats-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid var(--mf-black);
+  table-layout: auto;
   background: white;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
 }
 
 .mekton-fusion .tab.mecha .mecha-stats-table th,
 .mekton-fusion .tab.mecha .mecha-stats-table td {
-  border: 1px solid #ccc;
-  padding: 0.2rem 0.3rem;
+  border: 1px solid #bbb;
+  padding: 0.45rem 0.6rem;
   text-align: center;
+  line-height: 1.2;
+  vertical-align: middle;
 }
 
 .mekton-fusion .tab.mecha .mecha-stats-table th {
   background: var(--mf-black);
   color: var(--mf-white);
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.7rem;
 }
 
-.mekton-fusion .tab.mecha .mecha-stats-table input {
+.mekton-fusion .tab.mecha .mecha-stats-table th:first-child {
+  text-align: left;
+  padding-left: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-stats-table td input[type="text"],
+.mekton-fusion .tab.mecha .mecha-stats-table td input[type="number"] {
   width: 100%;
-  padding: 0.15rem 0.3rem;
-  font-size: 0.75rem;
-  border: 1px solid #888;
-  background: white;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+/* allow table cells to determine width from colgroup and content */
+.mekton-fusion .tab.mecha .mecha-stats-table td,
+.mekton-fusion .tab.mecha .mecha-stats-table th {
+  white-space: normal;
+  overflow: visible;
+}
+
+.mekton-fusion .tab.mecha .config-select-cell {
+  width: 60px;
   text-align: center;
+}
+
+
+.mekton-fusion .tab.mecha .config-select-btn {
+  background: transparent;
+  border: 1.5px solid #888;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s;
+  color: #888;
+}
+
+.mekton-fusion .tab.mecha .config-select-btn.active {
+  border-color: var(--mf-accent);
+  background: var(--mf-accent);
+  color: white;
+}
+
+.mekton-fusion .tab.mecha .config-row.active-config {
+  background-color: rgba(0, 123, 255, 0.08);
 }
 
 .mekton-fusion .tab.mecha .config-row {
@@ -326,6 +378,13 @@
   align-items: center;
   justify-content: center;
   background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-placeholder:hover {
+  background-color: #e8e8e8;
+  border-color: #666;
 }
 
 .mekton-fusion .tab.mecha .mecha-image-placeholder img {
@@ -338,6 +397,43 @@
   color: #999;
   font-size: 0.9rem;
   font-style: italic;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #888;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.2s;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-btn:hover {
+  background: #f0f0f0;
+  border-color: #666;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-btn.clear-btn {
+  background: #ffebee;
+  border-color: #e57373;
+  color: #c62828;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-btn.clear-btn:hover {
+  background: #ffcdd2;
+  border-color: #f44336;
 }
 
 /* Mekton Profile */
@@ -1356,24 +1452,67 @@ html.theme-dark .mekton-fusion {
 }
 
 /* Force header and row alignment for body tab using !important and more specific selectors */
-.mekton-fusion .tab.body .mf-table-head {
-  display: grid !important;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr !important;
-  gap: 0.1rem !important;
-  padding: 0.1rem !important;
-  font-size: 0.95em !important;
+.mekton-fusion .tab.body .mf-table-horizontal {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
-.mekton-fusion .tab.body .mf-row-main {
-  display: grid !important;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr !important;
-  gap: 0.1rem !important;
+
+.mekton-fusion .tab.body .mf-table-horizontal th,
+.mekton-fusion .tab.body .mf-table-horizontal td {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--mf-soft-border);
+  text-align: center;
 }
-.mekton-fusion .tab.body .mf-loc-label {
-  justify-content: flex-start !important;
+
+.mekton-fusion .tab.body .mf-table-horizontal th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: 600;
+  font-size: 0.8rem;
 }
-.mekton-fusion .tab.body .mf-row-main > div {
-  justify-content: center !important;
+
+.mekton-fusion .tab.body .mf-table-horizontal th:first-child {
+  text-align: left;
 }
-.mekton-fusion .tab.body .mf-row-main > div:first-child {
-  justify-content: flex-start !important;
+
+.mekton-fusion .tab.body .mf-table-horizontal td:first-child {
+  text-align: left;
+}
+
+.mekton-fusion .tab.body .mf-table-horizontal input[type="number"] {
+  width: 100%;
+  max-width: 60px;
+  padding: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  text-align: center;
+  background: white;
+}
+
+.mekton-fusion .tab.body .mf-table-horizontal .bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  min-width: 80px;
+}
+
+.mekton-fusion .tab.body .mf-table-horizontal .bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--val) * 1%);
+  transition: width 0.3s;
+}
+
+.mekton-fusion .tab.body .mf-table-horizontal .bar.sp::before {
+  background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+}
+
+.mekton-fusion .tab.body .mf-table-horizontal .bar.hp::before {
+  background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
 }

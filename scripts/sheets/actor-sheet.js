@@ -652,6 +652,28 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
     });
 
+    // Mecha image selection
+    html.on('click', '[data-action="select-mecha-image"]', async ev => {
+      ev.preventDefault();
+      const current = this.actor.system.mecha?.imageUrl || "";
+      const fp = new FilePicker({
+        type: "image",
+        current: current,
+        callback: async (path) => {
+          await this.actor.update({ 'system.mecha.imageUrl': path });
+        },
+        top: this.position.top + 40,
+        left: this.position.left + 10
+      });
+      fp.browse(current);
+    });
+
+    // Mecha image clear
+    html.on('click', '[data-action="clear-mecha-image"]', async ev => {
+      ev.preventDefault();
+      await this.actor.update({ 'system.mecha.imageUrl': "" });
+    });
+
     // Keep other actions (roll-hitloc, ablate, heal1, dmg1, unequip, show-item) as before
 
     // Drag armor item → slot

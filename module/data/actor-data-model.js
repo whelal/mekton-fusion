@@ -153,7 +153,8 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     notes: new fields.StringField({ initial: "" })
-                }), { initial: [{},{},{}] })
+                }), { initial: [{},{},{}] }),
+                imageUrl: new fields.StringField({ initial: "" })
             }),
             /* Body model for paperdoll locations */
             body: new fields.SchemaField({
