@@ -99,6 +99,7 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                     h: new fields.NumberField({ initial: 0, min: 0, integer: true })
                 }), { initial: [{},{}] }),
                 sensors: new fields.SchemaField({
+                    loc: new fields.StringField({ initial: "" }),
                     range: new fields.NumberField({ initial: 0, min: 0 }),
                     comm: new fields.NumberField({ initial: 0, min: 0 }),
                     hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),

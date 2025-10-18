@@ -5,15 +5,7 @@
   font-size: 0.85rem;
 }
 
-.mekton-fusion .tab.mecha .mecha-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.mekton-fusion .tab.mecha h2, 
-.mekton-fusion .tab.mecha h3, 
-.mekton-fusion .tab.mecha h4 {
+.mekton-fusion .tab.mecha h3 {
   margin: 0 0 0.3rem 0;
   padding: 0.2rem 0.3rem;
   background: var(--mf-black);
@@ -23,197 +15,420 @@
   text-transform: uppercase;
 }
 
-.mekton-fusion .tab.mecha h4 {
-  font-size: 0.8rem;
-}
-
-/* Header Section */
-.mekton-fusion .tab.mecha .mecha-header {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 0.5rem;
-  border: 2px solid var(--mf-black);
-  padding: 0.5rem;
-  background: var(--mf-card);
-}
-
-.mekton-fusion .tab.mecha .mecha-profile .profile-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.mekton-fusion .tab.mecha .mecha-profile label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: bold;
-  font-size: 0.75rem;
-}
-
-.mekton-fusion .tab.mecha .mecha-profile input {
-  flex: 1;
-  padding: 0.15rem 0.3rem;
-  font-size: 0.8rem;
-}
-
-/* Tables */
-.mekton-fusion .tab.mecha table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--mf-black);
-  background: white;
-  font-size: 0.75rem;
-}
-
-.mekton-fusion .tab.mecha table th {
-  background: var(--mf-black);
-  color: var(--mf-white);
-  padding: 0.2rem 0.3rem;
-  text-align: center;
-  font-weight: bold;
-  font-size: 0.7rem;
-  border: 1px solid var(--mf-black);
-}
-
-.mekton-fusion .tab.mecha table td {
-  padding: 0.1rem;
-  border: 1px solid #ccc;
-  text-align: center;
-}
-
-.mekton-fusion .tab.mecha table td input {
-  width: 100%;
-  padding: 0.15rem 0.2rem;
-  border: 1px solid #888;
-  text-align: center;
-  font-size: 0.75rem;
-  box-sizing: border-box;
-}
-
-.mekton-fusion .tab.mecha table td:first-child {
-  text-align: left;
-}
-
-/* Config Table */
-.mekton-fusion .tab.mecha .config-table {
-  margin-top: 0.25rem;
-}
-
-.mekton-fusion .tab.mecha .config-table input {
-  text-align: center;
-}
-
-/* Combat Row */
-.mekton-fusion .tab.mecha .mecha-row-2 {
+/* Two-Column Layout */
+.mekton-fusion .tab.mecha .mecha-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
 }
 
-.mekton-fusion .tab.mecha .mecha-combat,
-.mekton-fusion .tab.mecha .mecha-pools {
-  border: 2px solid var(--mf-black);
-  padding: 0.5rem;
-  background: var(--mf-card);
+.mekton-fusion .tab.mecha .mecha-left-col,
+.mekton-fusion .tab.mecha .mecha-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* LEFT COLUMN */
+/* Core Config Section */
+.mekton-fusion .tab.mecha .mecha-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .config-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 100px 60px;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.mekton-fusion .tab.mecha .config-row label {
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .config-row input {
+  padding: 0.15rem 0.3rem;
+  font-size: 0.75rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* Maneuver Pool & Cost Multipliers */
+.mekton-fusion .tab.mecha .mecha-pool-skills-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .maneuver-pool-section h3,
+.mekton-fusion .tab.mecha .cost-multipliers-section h3 {
+  font-size: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .pool-input {
+  width: 100%;
+  padding: 0.25rem;
+  font-size: 0.8rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+.mekton-fusion .tab.mecha .multiplier-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .multiplier-row label {
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .multiplier-row input {
+  width: 120px;
+  padding: 0.15rem;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* Combat Skills */
+.mekton-fusion .tab.mecha .combat-skills-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
 }
 
 .mekton-fusion .tab.mecha .combat-skills-table {
-  margin-top: 0.25rem;
-}
-
-.mekton-fusion .tab.mecha .combat-skills-table td:first-child {
-  font-weight: bold;
-  text-align: left;
-  padding-left: 0.5rem;
-}
-
-.mekton-fusion .tab.mecha .mecha-pools {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.mekton-fusion .tab.mecha .maneuver-pool input,
-.mekton-fusion .tab.mecha .cost-multipliers input {
   width: 100%;
-  padding: 0.3rem;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  border-collapse: collapse;
 }
 
-.mekton-fusion .tab.mecha .cost-multipliers label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.75rem;
+.mekton-fusion .tab.mecha .combat-skills-table td {
+  padding: 0.15rem 0.3rem;
+}
+
+.mekton-fusion .tab.mecha .skill-label {
+  text-align: left;
   font-weight: bold;
 }
 
-/* Main Tables Section */
-.mekton-fusion .tab.mecha .mecha-main-tables {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.mekton-fusion .tab.mecha .skill-mr {
+  text-align: center;
+  width: 60px;
+  font-weight: bold;
+  font-size: 0.7rem;
 }
 
-.mekton-fusion .tab.mecha .servos-armor,
-.mekton-fusion .tab.mecha .armament {
-  border: 2px solid var(--mf-black);
-  padding: 0.5rem;
-  background: var(--mf-card);
+.mekton-fusion .tab.mecha .combat-skills-table input {
+  width: 60px;
+  padding: 0.15rem;
+  text-align: center;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* Servos & Armor */
+.mekton-fusion .tab.mecha .servos-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .servos-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+}
+
+.mekton-fusion .tab.mecha .servos-table th,
+.mekton-fusion .tab.mecha .servos-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .servos-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .servos-table input {
+  width: 100%;
+  padding: 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
 }
 
 /* Movement & Sensors Row */
 .mekton-fusion .tab.mecha .movement-sensors-row {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.mekton-fusion .tab.mecha .movement-systems,
-.mekton-fusion .tab.mecha .sensors {
-  border: 2px solid var(--mf-black);
-  padding: 0.5rem;
-  background: var(--mf-card);
+.mekton-fusion .tab.mecha .movement-section h3,
+.mekton-fusion .tab.mecha .sensors-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
 }
 
-/* Subassemblies & Shields Row */
-.mekton-fusion .tab.mecha .sub-shields-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 0.5rem;
+.mekton-fusion .tab.mecha .movement-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
 }
 
-.mekton-fusion .tab.mecha .subassemblies,
-.mekton-fusion .tab.mecha .shields {
-  border: 2px solid var(--mf-black);
-  padding: 0.5rem;
-  background: var(--mf-card);
+.mekton-fusion .tab.mecha .movement-table th,
+.mekton-fusion .tab.mecha .movement-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
 }
 
-.mekton-fusion .tab.mecha .sub-table,
-.mekton-fusion .tab.mecha .sub-table-2 {
-  margin-top: 0.25rem;
+.mekton-fusion .tab.mecha .movement-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
 }
 
-.mekton-fusion .tab.mecha .sub-table-2 {
-  margin-top: 0.5rem;
+.mekton-fusion .tab.mecha .movement-table input {
+  width: 100%;
+  padding: 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
 }
 
-/* Armament Table */
+.mekton-fusion .tab.mecha .sensors-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+}
+
+.mekton-fusion .tab.mecha .sensors-table td {
+  padding: 0.15rem 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .sensor-label {
+  text-align: left;
+  font-weight: bold;
+  width: 80px;
+}
+
+.mekton-fusion .tab.mecha .sensors-table input {
+  width: 100%;
+  padding: 0.15rem;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* RIGHT COLUMN */
+/* Mecha Image Area */
+.mekton-fusion .tab.mecha .mecha-image-area {
+  min-height: 200px;
+  margin-bottom: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-placeholder {
+  width: 100%;
+  height: 200px;
+  border: 2px dashed #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.mekton-fusion .tab.mecha .mecha-image-placeholder img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.mekton-fusion .tab.mecha .placeholder-text {
+  color: #999;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Mekton Profile */
+.mekton-fusion .tab.mecha .mekton-profile-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .profile-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+}
+
+.mekton-fusion .tab.mecha .profile-table td {
+  padding: 0.15rem 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .profile-label {
+  font-weight: bold;
+  text-align: right;
+  padding-right: 0.35rem;
+  width: 60px;
+}
+
+.mekton-fusion .tab.mecha .profile-table input {
+  width: 100%;
+  padding: 0.15rem;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* Subassemblies */
+.mekton-fusion .tab.mecha .subassemblies-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .cockpit-table,
+.mekton-fusion .tab.mecha .subassemblies-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .cockpit-table th,
+.mekton-fusion .tab.mecha .cockpit-table td,
+.mekton-fusion .tab.mecha .subassemblies-table th,
+.mekton-fusion .tab.mecha .subassemblies-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .cockpit-table th,
+.mekton-fusion .tab.mecha .subassemblies-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .cockpit-table input,
+.mekton-fusion .tab.mecha .subassemblies-table input {
+  width: 100%;
+  padding: 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* Shields */
+.mekton-fusion .tab.mecha .shields-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .shields-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+}
+
+.mekton-fusion .tab.mecha .shields-table th,
+.mekton-fusion .tab.mecha .shields-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .shields-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .shields-table input {
+  width: 100%;
+  padding: 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
+/* BOTTOM FULL-WIDTH */
+/* Armament */
+.mekton-fusion .tab.mecha .armament-section {
+  margin-top: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .armament-section h3 {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.mekton-fusion .tab.mecha .armament-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+}
+
+.mekton-fusion .tab.mecha .armament-table th,
+.mekton-fusion .tab.mecha .armament-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .armament-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .armament-table input {
+  width: 100%;
+  padding: 0.1rem;
+  text-align: center;
+  font-size: 0.7rem;
+  border: 1px solid #888;
+  background: white;
+}
+
 .mekton-fusion .tab.mecha .armament-table td:first-child {
   min-width: 100px;
+  text-align: left;
 }
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
-  .mekton-fusion .tab.mecha .mecha-header {
+  .mekton-fusion .tab.mecha .mecha-columns {
     grid-template-columns: 1fr;
   }
   
-  .mekton-fusion .tab.mecha .mecha-row-2,
-  .mekton-fusion .tab.mecha .movement-sensors-row,
-  .mekton-fusion .tab.mecha .sub-shields-row {
+  .mekton-fusion .tab.mecha .mecha-pool-skills-row,
+  .mekton-fusion .tab.mecha .movement-sensors-row {
     grid-template-columns: 1fr;
   }
 }
