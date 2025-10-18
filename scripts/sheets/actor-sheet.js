@@ -668,10 +668,21 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       fp.browse(current);
     });
 
-    // Mecha image clear
-    html.on('click', '[data-action="clear-mecha-image"]', async ev => {
+    // Mecha image right-click to clear (when image exists)
+    html.on('contextmenu', '[data-action="select-mecha-image"]', async ev => {
       ev.preventDefault();
-      await this.actor.update({ 'system.mecha.imageUrl': "" });
+      const currentImage = this.actor.system.mecha?.imageUrl;
+      if (currentImage) {
+        const confirmed = await Dialog.confirm({
+          title: "Clear Mecha Image",
+          content: "Remove the current mecha image?",
+          yes: () => true,
+          no: () => false
+        });
+        if (confirmed) {
+          await this.actor.update({ 'system.mecha.imageUrl': "" });
+        }
+      }
     });
 
     // Keep other actions (roll-hitloc, ablate, heal1, dmg1, unequip, show-item) as before

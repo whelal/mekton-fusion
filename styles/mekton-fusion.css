@@ -399,43 +399,6 @@
   font-style: italic;
 }
 
-.mekton-fusion .tab.mecha .mecha-image-controls {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  justify-content: center;
-}
-
-.mekton-fusion .tab.mecha .mecha-image-btn {
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #888;
-  background: #fff;
-  color: #333;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  transition: all 0.2s;
-}
-
-.mekton-fusion .tab.mecha .mecha-image-btn:hover {
-  background: #f0f0f0;
-  border-color: #666;
-}
-
-.mekton-fusion .tab.mecha .mecha-image-btn.clear-btn {
-  background: #ffebee;
-  border-color: #e57373;
-  color: #c62828;
-}
-
-.mekton-fusion .tab.mecha .mecha-image-btn.clear-btn:hover {
-  background: #ffcdd2;
-  border-color: #f44336;
-}
-
 /* Mekton Profile */
 .mekton-fusion .tab.mecha .mekton-profile-section h3 {
   font-size: 0.85rem;
