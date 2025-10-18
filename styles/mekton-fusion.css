@@ -1,12 +1,222 @@
 /* -------- Mecha Tab -------- */
-.mekton-fusion .tab.mecha { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
-.mekton-fusion .tab.mecha h3 { margin: 0; font-weight: bold; }
-.mekton-fusion .tab.mecha .grid.two-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0.5rem; }
-.mekton-fusion .tab.mecha label { display: flex; align-items: center; gap: 0.5rem; }
-.mekton-fusion .tab.mecha input, .mekton-fusion .tab.mecha select { flex: 1; }
-.mekton-fusion .tab.mecha .mecha-silhouette { min-height: 160px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--mf-soft-border); background: var(--mf-card); }
-.mekton-fusion .tab.mecha .silhouette-placeholder { color: var(--mf-muted); font-style: italic; }
-.mekton-fusion .tab.mecha .mecha-sections .frame-section { border: 1px solid var(--mf-soft-border); padding: 0.5rem; background: var(--mf-card); }
+.mekton-fusion .tab.mecha { 
+  padding: 0.5rem; 
+  background: var(--mf-bg);
+  font-size: 0.85rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha h2, 
+.mekton-fusion .tab.mecha h3, 
+.mekton-fusion .tab.mecha h4 {
+  margin: 0 0 0.3rem 0;
+  padding: 0.2rem 0.3rem;
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.mekton-fusion .tab.mecha h4 {
+  font-size: 0.8rem;
+}
+
+/* Header Section */
+.mekton-fusion .tab.mecha .mecha-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0.5rem;
+  border: 2px solid var(--mf-black);
+  padding: 0.5rem;
+  background: var(--mf-card);
+}
+
+.mekton-fusion .tab.mecha .mecha-profile .profile-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-profile label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-profile input {
+  flex: 1;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.8rem;
+}
+
+/* Tables */
+.mekton-fusion .tab.mecha table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+  font-size: 0.75rem;
+}
+
+.mekton-fusion .tab.mecha table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  padding: 0.2rem 0.3rem;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.7rem;
+  border: 1px solid var(--mf-black);
+}
+
+.mekton-fusion .tab.mecha table td {
+  padding: 0.1rem;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha table td input {
+  width: 100%;
+  padding: 0.15rem 0.2rem;
+  border: 1px solid #888;
+  text-align: center;
+  font-size: 0.75rem;
+  box-sizing: border-box;
+}
+
+.mekton-fusion .tab.mecha table td:first-child {
+  text-align: left;
+}
+
+/* Config Table */
+.mekton-fusion .tab.mecha .config-table {
+  margin-top: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .config-table input {
+  text-align: center;
+}
+
+/* Combat Row */
+.mekton-fusion .tab.mecha .mecha-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-combat,
+.mekton-fusion .tab.mecha .mecha-pools {
+  border: 2px solid var(--mf-black);
+  padding: 0.5rem;
+  background: var(--mf-card);
+}
+
+.mekton-fusion .tab.mecha .combat-skills-table {
+  margin-top: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .combat-skills-table td:first-child {
+  font-weight: bold;
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-pools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .maneuver-pool input,
+.mekton-fusion .tab.mecha .cost-multipliers input {
+  width: 100%;
+  padding: 0.3rem;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .cost-multipliers label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Main Tables Section */
+.mekton-fusion .tab.mecha .mecha-main-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .servos-armor,
+.mekton-fusion .tab.mecha .armament {
+  border: 2px solid var(--mf-black);
+  padding: 0.5rem;
+  background: var(--mf-card);
+}
+
+/* Movement & Sensors Row */
+.mekton-fusion .tab.mecha .movement-sensors-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .movement-systems,
+.mekton-fusion .tab.mecha .sensors {
+  border: 2px solid var(--mf-black);
+  padding: 0.5rem;
+  background: var(--mf-card);
+}
+
+/* Subassemblies & Shields Row */
+.mekton-fusion .tab.mecha .sub-shields-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.5rem;
+}
+
+.mekton-fusion .tab.mecha .subassemblies,
+.mekton-fusion .tab.mecha .shields {
+  border: 2px solid var(--mf-black);
+  padding: 0.5rem;
+  background: var(--mf-card);
+}
+
+.mekton-fusion .tab.mecha .sub-table,
+.mekton-fusion .tab.mecha .sub-table-2 {
+  margin-top: 0.25rem;
+}
+
+.mekton-fusion .tab.mecha .sub-table-2 {
+  margin-top: 0.5rem;
+}
+
+/* Armament Table */
+.mekton-fusion .tab.mecha .armament-table td:first-child {
+  min-width: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .mekton-fusion .tab.mecha .mecha-header {
+    grid-template-columns: 1fr;
+  }
+  
+  .mekton-fusion .tab.mecha .mecha-row-2,
+  .mekton-fusion .tab.mecha .movement-sensors-row,
+  .mekton-fusion .tab.mecha .sub-shields-row {
+    grid-template-columns: 1fr;
+  }
+}
 /* =========================
    Mekton Fusion – Sheet CSS
    DRY + themeable + mobile-friendly

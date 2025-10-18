@@ -1,69 +1,271 @@
 <div class="tab mecha" data-tab="mecha">
-  <section class="mecha-core">
-    <h3>Mecha Core</h3>
-    <div class="grid two-col">
-      <label>Model <input name="system.mecha.model" type="text" value="{{system.mecha.model}}"/></label>
-      <label>Type <input name="system.mecha.type" type="text" value="{{system.mecha.type}}"/></label>
-      <label>MA <input name="system.mecha.ma" type="number" value="{{system.mecha.ma}}" min="0"/></label>
-      <label>SP <input name="system.mecha.sp" type="number" value="{{system.mecha.sp}}" min="0"/></label>
-      <label>Armor <input name="system.mecha.armor" type="number" value="{{system.mecha.armor}}" min="0"/></label>
-      <label>Structure <input name="system.mecha.structure" type="number" value="{{system.mecha.structure}}" min="0"/></label>
-    </div>
-  </section>
+  <div class="mecha-layout">
+    <!-- Top Section: Profile & Config -->
+    <section class="mecha-header">
+      <div class="mecha-profile">
+        <h2>ROADSTRIKER PROFILE</h2>
+        <div class="profile-fields">
+          <label>Name <input name="system.mecha.name" type="text" value="{{system.mecha.name}}" placeholder="VF-1D Valkyrie"/></label>
+          <label>Weight <input name="system.mecha.weight" type="number" value="{{system.mecha.weight}}" placeholder="50"/></label>
+          <label>Cost <input name="system.mecha.cost" type="number" value="{{system.mecha.cost}}" placeholder="200"/></label>
+        </div>
+      </div>
+      
+      <div class="mecha-config">
+        <h3>ROADSTRIKER STATS</h3>
+        <h4>Configuration</h4>
+        <table class="config-table">
+          <thead>
+            <tr>
+              <th>MV</th>
+              <th>MR</th>
+              <th>Land MA</th>
+              <th>Flight MA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input name="system.mecha.config.mv" type="number" value="{{system.mecha.config.mv}}" placeholder="0"/></td>
+              <td><input name="system.mecha.config.mr" type="number" value="{{system.mecha.config.mr}}" placeholder="0"/></td>
+              <td><input name="system.mecha.config.landMA" type="number" value="{{system.mecha.config.landMA}}" placeholder="0"/></td>
+              <td><input name="system.mecha.config.flightMA" type="number" value="{{system.mecha.config.flightMA}}" placeholder="0"/></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  <section class="mecha-frame">
-    <h3>Frame</h3>
-    <label>Frame Type
-      <select name="system.mecha.frameType" class="mecha-frame-type">
-        <option value="humanoid" {{#if (eq system.mecha.frameType 'humanoid')}}selected{{/if}}>Humanoid</option>
-        <option value="jet" {{#if (eq system.mecha.frameType 'jet')}}selected{{/if}}>Jet</option>
-        <option value="centaur" {{#if (eq system.mecha.frameType 'centaur')}}selected{{/if}}>Centaur</option>
-        <option value="tank" {{#if (eq system.mecha.frameType 'tank')}}selected{{/if}}>Tank</option>
-        <option value="walker" {{#if (eq system.mecha.frameType 'walker')}}selected{{/if}}>Walker</option>
-        <option value="vtol" {{#if (eq system.mecha.frameType 'vtol')}}selected{{/if}}>VTOL</option>
-      </select>
-    </label>
-    <div class="mecha-silhouette">
-      {{#if system.mecha.silhouette}}
-        <img src="{{system.mecha.silhouette}}" alt="Mecha silhouette"/>
-      {{else}}
-        <div class="silhouette-placeholder">Add silhouette (by frame type)</div>
-      {{/if}}
-    </div>
-  </section>
+    <!-- Combat & Costs Row -->
+    <div class="mecha-row-2">
+      <section class="mecha-combat">
+        <h3>MECHA COMBAT SKILLS</h3>
+        <table class="combat-skills-table">
+          <thead>
+            <tr><th></th><th>MR+</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Mecha Piloting</td><td><input name="system.mecha.skills.piloting" type="number" value="{{system.mecha.skills.piloting}}" placeholder="0"/></td></tr>
+            <tr><td>Mecha Fighting</td><td><input name="system.mecha.skills.fighting" type="number" value="{{system.mecha.skills.fighting}}" placeholder="0"/></td></tr>
+            <tr><td>Mecha Melee</td><td><input name="system.mecha.skills.melee" type="number" value="{{system.mecha.skills.melee}}" placeholder="0"/></td></tr>
+            <tr><td>Mecha Gunnery</td><td><input name="system.mecha.skills.gunnery" type="number" value="{{system.mecha.skills.gunnery}}" placeholder="0"/></td></tr>
+            <tr><td>Mecha Missiles</td><td><input name="system.mecha.skills.missiles" type="number" value="{{system.mecha.skills.missiles}}" placeholder="0"/></td></tr>
+          </tbody>
+        </table>
+      </section>
 
-  <section class="mecha-movement">
-    <h3>Movement Modes</h3>
-    <label><input type="checkbox" name="system.mecha.movement.ground" {{checked system.mecha.movement.ground}}/> Ground</label>
-    <label><input type="checkbox" name="system.mecha.movement.flight" {{checked system.mecha.movement.flight}}/> Flight</label>
-    <label><input type="checkbox" name="system.mecha.movement.hover" {{checked system.mecha.movement.hover}}/> Hover</label>
-  </section>
+      <section class="mecha-pools">
+        <div class="maneuver-pool">
+          <h3>MANEUVER POOL</h3>
+          <input name="system.mecha.maneuverPool" type="number" value="{{system.mecha.maneuverPool}}" placeholder="0"/>
+        </div>
+        <div class="cost-multipliers">
+          <h3>COST MULTIPLIERS</h3>
+          <label>Multiplier System <input name="system.mecha.costMultiplier.system" type="text" value="{{system.mecha.costMultiplier.system}}" placeholder="CP x 7"/></label>
+          <label>Powerplant <input name="system.mecha.costMultiplier.powerplant" type="text" value="{{system.mecha.costMultiplier.powerplant}}" placeholder="X5:"/></label>
+        </div>
+      </section>
+    </div>
 
-  <section class="mecha-sections">
-    <h3>Frame Sections</h3>
-    <div class="frame-section humanoid" data-frame="humanoid" {{#unless (eq system.mecha.frameType 'humanoid')}}style="display:none"{{/unless}}>
-      <h4>Arms & Legs</h4>
-      <p>Arms, legs, head, torso configuration.</p>
+    <!-- Main Tables Section -->
+    <div class="mecha-main-tables">
+      <!-- Servos & Armor -->
+      <section class="servos-armor">
+        <h3>SERVOS & ARMOR</h3>
+        <table class="servos-table">
+          <thead>
+            <tr>
+              <th>SP</th>
+              <th>Hits</th>
+              <th>Servo</th>
+              <th>Level</th>
+              <th>Space</th>
+              <th>Cost</th>
+              <th>Armor</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><input type="number" name="system.mecha.servos.0.sp" value="{{system.mecha.servos.0.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.0.hits" value="{{system.mecha.servos.0.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.0.servo" value="{{system.mecha.servos.0.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.0.level" value="{{system.mecha.servos.0.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.0.space" value="{{system.mecha.servos.0.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.0.cost" value="{{system.mecha.servos.0.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.0.armor" value="{{system.mecha.servos.0.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.0.armorCost" value="{{system.mecha.servos.0.armorCost}}"/></td></tr>
+            <tr><td><input type="number" name="system.mecha.servos.1.sp" value="{{system.mecha.servos.1.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.1.hits" value="{{system.mecha.servos.1.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.1.servo" value="{{system.mecha.servos.1.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.1.level" value="{{system.mecha.servos.1.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.1.space" value="{{system.mecha.servos.1.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.1.cost" value="{{system.mecha.servos.1.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.1.armor" value="{{system.mecha.servos.1.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.1.armorCost" value="{{system.mecha.servos.1.armorCost}}"/></td></tr>
+            <tr><td><input type="number" name="system.mecha.servos.2.sp" value="{{system.mecha.servos.2.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.2.hits" value="{{system.mecha.servos.2.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.2.servo" value="{{system.mecha.servos.2.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.2.level" value="{{system.mecha.servos.2.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.2.space" value="{{system.mecha.servos.2.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.2.cost" value="{{system.mecha.servos.2.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.2.armor" value="{{system.mecha.servos.2.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.2.armorCost" value="{{system.mecha.servos.2.armorCost}}"/></td></tr>
+            <tr><td><input type="number" name="system.mecha.servos.3.sp" value="{{system.mecha.servos.3.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.3.hits" value="{{system.mecha.servos.3.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.3.servo" value="{{system.mecha.servos.3.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.3.level" value="{{system.mecha.servos.3.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.3.space" value="{{system.mecha.servos.3.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.3.cost" value="{{system.mecha.servos.3.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.3.armor" value="{{system.mecha.servos.3.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.3.armorCost" value="{{system.mecha.servos.3.armorCost}}"/></td></tr>
+            <tr><td><input type="number" name="system.mecha.servos.4.sp" value="{{system.mecha.servos.4.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.4.hits" value="{{system.mecha.servos.4.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.4.servo" value="{{system.mecha.servos.4.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.4.level" value="{{system.mecha.servos.4.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.4.space" value="{{system.mecha.servos.4.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.4.cost" value="{{system.mecha.servos.4.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.4.armor" value="{{system.mecha.servos.4.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.4.armorCost" value="{{system.mecha.servos.4.armorCost}}"/></td></tr>
+            <tr><td><input type="number" name="system.mecha.servos.5.sp" value="{{system.mecha.servos.5.sp}}"/></td>
+                <td><input type="number" name="system.mecha.servos.5.hits" value="{{system.mecha.servos.5.hits}}"/></td>
+                <td><input type="text" name="system.mecha.servos.5.servo" value="{{system.mecha.servos.5.servo}}"/></td>
+                <td><input type="text" name="system.mecha.servos.5.level" value="{{system.mecha.servos.5.level}}"/></td>
+                <td><input type="number" name="system.mecha.servos.5.space" value="{{system.mecha.servos.5.space}}"/></td>
+                <td><input type="number" name="system.mecha.servos.5.cost" value="{{system.mecha.servos.5.cost}}"/></td>
+                <td><input type="number" name="system.mecha.servos.5.armor" value="{{system.mecha.servos.5.armor}}"/></td>
+                <td><input type="number" name="system.mecha.servos.5.armorCost" value="{{system.mecha.servos.5.armorCost}}"/></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Movement & Sensors Row -->
+      <div class="movement-sensors-row">
+        <section class="movement-systems">
+          <h3>MOVEMENT SYSTEMS</h3>
+          <table class="movement-table">
+            <thead>
+              <tr><th>Movement System</th><th>Loc</th><th>Spc</th><th>CP</th><th>H</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="text" name="system.mecha.movementSystems.0.system" value="{{system.mecha.movementSystems.0.system}}"/></td>
+                  <td><input type="text" name="system.mecha.movementSystems.0.loc" value="{{system.mecha.movementSystems.0.loc}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.0.spc" value="{{system.mecha.movementSystems.0.spc}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.0.cp" value="{{system.mecha.movementSystems.0.cp}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.0.h" value="{{system.mecha.movementSystems.0.h}}"/></td></tr>
+              <tr><td><input type="text" name="system.mecha.movementSystems.1.system" value="{{system.mecha.movementSystems.1.system}}"/></td>
+                  <td><input type="text" name="system.mecha.movementSystems.1.loc" value="{{system.mecha.movementSystems.1.loc}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.1.spc" value="{{system.mecha.movementSystems.1.spc}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.1.cp" value="{{system.mecha.movementSystems.1.cp}}"/></td>
+                  <td><input type="number" name="system.mecha.movementSystems.1.h" value="{{system.mecha.movementSystems.1.h}}"/></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="sensors">
+          <h3>SENSORS</h3>
+          <table class="sensors-table">
+            <thead>
+              <tr><th>Sensors</th><th>Loc</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Range</td><td><input type="number" name="system.mecha.sensors.range" value="{{system.mecha.sensors.range}}"/></td></tr>
+              <tr><td>Comm</td><td><input type="number" name="system.mecha.sensors.comm" value="{{system.mecha.sensors.comm}}"/></td></tr>
+              <tr><td>Hits</td><td><input type="number" name="system.mecha.sensors.hits" value="{{system.mecha.sensors.hits}}"/></td></tr>
+              <tr><td>Cost</td><td><input type="number" name="system.mecha.sensors.cost" value="{{system.mecha.sensors.cost}}"/></td></tr>
+              <tr><td>Space</td><td><input type="number" name="system.mecha.sensors.space" value="{{system.mecha.sensors.space}}"/></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- Subassemblies & Shields -->
+      <div class="sub-shields-row">
+        <section class="subassemblies">
+          <h3>SUBASSEMBLIES</h3>
+          <table class="sub-table">
+            <thead>
+              <tr><th>Cockpit</th><th># Crew</th><th>Options</th><th>Space</th><th>CP</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="text" name="system.mecha.subassemblies.cockpit.type" value="{{system.mecha.subassemblies.cockpit.type}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.cockpit.crew" value="{{system.mecha.subassemblies.cockpit.crew}}"/></td>
+                  <td><input type="text" name="system.mecha.subassemblies.cockpit.options" value="{{system.mecha.subassemblies.cockpit.options}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.cockpit.space" value="{{system.mecha.subassemblies.cockpit.space}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.cockpit.cp" value="{{system.mecha.subassemblies.cockpit.cp}}"/></td></tr>
+            </tbody>
+          </table>
+          <table class="sub-table-2">
+            <thead>
+              <tr><th>Subassemblies</th><th>Loc</th><th>Space</th><th>CP</th><th>H</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="text" name="system.mecha.subassemblies.items.0.name" value="{{system.mecha.subassemblies.items.0.name}}"/></td>
+                  <td><input type="text" name="system.mecha.subassemblies.items.0.loc" value="{{system.mecha.subassemblies.items.0.loc}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.items.0.space" value="{{system.mecha.subassemblies.items.0.space}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.items.0.cp" value="{{system.mecha.subassemblies.items.0.cp}}"/></td>
+                  <td><input type="number" name="system.mecha.subassemblies.items.0.h" value="{{system.mecha.subassemblies.items.0.h}}"/></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="shields">
+          <h3>SHIELDS</h3>
+          <table class="shields-table">
+            <thead>
+              <tr><th>Shield</th><th>DA</th><th>SP</th><th>Loc</th><th>Space</th><th>Cost</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><input type="text" name="system.mecha.shields.0.name" value="{{system.mecha.shields.0.name}}"/></td>
+                  <td><input type="number" name="system.mecha.shields.0.da" value="{{system.mecha.shields.0.da}}"/></td>
+                  <td><input type="number" name="system.mecha.shields.0.sp" value="{{system.mecha.shields.0.sp}}"/></td>
+                  <td><input type="text" name="system.mecha.shields.0.loc" value="{{system.mecha.shields.0.loc}}"/></td>
+                  <td><input type="number" name="system.mecha.shields.0.space" value="{{system.mecha.shields.0.space}}"/></td>
+                  <td><input type="number" name="system.mecha.shields.0.cost" value="{{system.mecha.shields.0.cost}}"/></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <!-- Armament -->
+      <section class="armament">
+        <h3>ARMAMENT</h3>
+        <table class="armament-table">
+          <thead>
+            <tr><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>Hits</th><th>Loc</th><th>Cost</th><th>Space</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><input type="text" name="system.mecha.weapons.0.name" value="{{system.mecha.weapons.0.name}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.0.wa" value="{{system.mecha.weapons.0.wa}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.0.range" value="{{system.mecha.weapons.0.range}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.0.damage" value="{{system.mecha.weapons.0.damage}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.0.shots" value="{{system.mecha.weapons.0.shots}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.0.hits" value="{{system.mecha.weapons.0.hits}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.0.loc" value="{{system.mecha.weapons.0.loc}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.0.cost" value="{{system.mecha.weapons.0.cost}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.0.space" value="{{system.mecha.weapons.0.space}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.0.notes" value="{{system.mecha.weapons.0.notes}}"/></td></tr>
+            <tr><td><input type="text" name="system.mecha.weapons.1.name" value="{{system.mecha.weapons.1.name}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.1.wa" value="{{system.mecha.weapons.1.wa}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.1.range" value="{{system.mecha.weapons.1.range}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.1.damage" value="{{system.mecha.weapons.1.damage}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.1.shots" value="{{system.mecha.weapons.1.shots}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.1.hits" value="{{system.mecha.weapons.1.hits}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.1.loc" value="{{system.mecha.weapons.1.loc}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.1.cost" value="{{system.mecha.weapons.1.cost}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.1.space" value="{{system.mecha.weapons.1.space}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.1.notes" value="{{system.mecha.weapons.1.notes}}"/></td></tr>
+            <tr><td><input type="text" name="system.mecha.weapons.2.name" value="{{system.mecha.weapons.2.name}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.2.wa" value="{{system.mecha.weapons.2.wa}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.2.range" value="{{system.mecha.weapons.2.range}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.2.damage" value="{{system.mecha.weapons.2.damage}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.2.shots" value="{{system.mecha.weapons.2.shots}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.2.hits" value="{{system.mecha.weapons.2.hits}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.2.loc" value="{{system.mecha.weapons.2.loc}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.2.cost" value="{{system.mecha.weapons.2.cost}}"/></td>
+                <td><input type="number" name="system.mecha.weapons.2.space" value="{{system.mecha.weapons.2.space}}"/></td>
+                <td><input type="text" name="system.mecha.weapons.2.notes" value="{{system.mecha.weapons.2.notes}}"/></td></tr>
+          </tbody>
+        </table>
+      </section>
     </div>
-    <div class="frame-section jet" data-frame="jet" {{#unless (eq system.mecha.frameType 'jet')}}style="display:none"{{/unless}}>
-      <h4>Wings</h4>
-      <p>Wings and hardpoints configuration.</p>
-    </div>
-    <div class="frame-section centaur" data-frame="centaur" {{#unless (eq system.mecha.frameType 'centaur')}}style="display:none"{{/unless}}>
-      <h4>Fore/Torso + Rear/Legs</h4>
-      <p>Centaur chassis configuration.</p>
-    </div>
-    <div class="frame-section tank" data-frame="tank" {{#unless (eq system.mecha.frameType 'tank')}}style="display:none"{{/unless}}>
-      <h4>Treads</h4>
-      <p>Turret and treads configuration.</p>
-    </div>
-    <div class="frame-section walker" data-frame="walker" {{#unless (eq system.mecha.frameType 'walker')}}style="display:none"{{/unless}}>
-      <h4>Walker Legs</h4>
-      <p>Multi-legged walker configuration.</p>
-    </div>
-    <div class="frame-section vtol" data-frame="vtol" {{#unless (eq system.mecha.frameType 'vtol')}}style="display:none"{{/unless}}>
-      <h4>VTOL</h4>
-      <p>VTOL nacelles and wings configuration.</p>
-    </div>
-  </section>
+  </div>
 </div>
