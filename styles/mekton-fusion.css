@@ -194,6 +194,10 @@
   margin-bottom: 0.35rem;
 }
 
+.mekton-fusion .tab.mecha .maneuver-pool-section h3:not(:first-child) {
+  margin-top: 0.75rem;
+}
+
 .mekton-fusion .tab.mecha .pool-input {
   width: 100%;
   padding: 0.25rem;
