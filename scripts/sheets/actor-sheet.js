@@ -479,12 +479,32 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.customSkills = customSkills || [];
     ctx.psiSkills = psiSkills;
     ctx.spells = spells;
-  ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential future use)
+  ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential use)
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;
     ctx.hasAnyPsiSkills = flatSkills.filter(sk => sk.category === 'PSI').length > 0; // Total psi skills (before filtering)
     ctx.hasSpells = spells.length > 0;
     ctx.hasAnySpells = spellItems.length > 0; // Total spells (before filtering)
+    
+    // Filter mecha combat skills for the mecha tab
+    const mechaSkillNames = {
+      piloting: 'Mecha Piloting (H)',
+      fighting: 'Mecha Fighting (H)',
+      melee: 'Mecha Melee (H)',
+      gunnery: 'Mecha Gunnery (H)',
+      missiles: 'Mecha Missiles (H)'
+    };
+    ctx.mechaSkills = {};
+    for (const [key, skillName] of Object.entries(mechaSkillNames)) {
+      const skill = flatSkills.find(sk => sk.name === skillName);
+      if (skill) {
+        ctx.mechaSkills[key] = skill;
+      } else {
+        // Provide defaults if skill doesn't exist
+        ctx.mechaSkills[key] = { name: skillName, rank: 0, total: 0 };
+      }
+    }
+    
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;

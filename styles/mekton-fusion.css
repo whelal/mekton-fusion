@@ -126,12 +126,14 @@
   font-size: 0.7rem;
 }
 
-.mekton-fusion .tab.mecha .combat-skills-table input {
+.mekton-fusion .tab.mecha .skill-total {
   width: 60px;
-  padding: 0.15rem;
   text-align: center;
-  border: 1px solid #888;
-  background: white;
+  font-weight: bold;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #ddd;
+  padding: 0.2rem;
 }
 
 /* Servos & Armor */
