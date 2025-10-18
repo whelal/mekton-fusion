@@ -15,8 +15,13 @@ Hooks.once("init", () => {
       return m > 0 ? Math.round((c / m) * 100) : 0;
     });
     console.log('mekton-fusion | Handlebars helper "percent" registered');
+    
+    Handlebars.registerHelper('eq', (a, b) => {
+      return a === b;
+    });
+    console.log('mekton-fusion | Handlebars helper "eq" registered');
   } catch (e) {
-    console.warn('mekton-fusion | Failed to register Handlebars helper percent', e);
+    console.warn('mekton-fusion | Failed to register Handlebars helpers', e);
   }
 
   // Preload actor tab partials for modular templates

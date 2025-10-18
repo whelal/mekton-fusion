@@ -641,6 +641,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         sdpInput.val('');
       }
     });
+
+    // Mecha configuration selection
+    html.on('click', '[data-action="select-config"]', async ev => {
+      ev.preventDefault();
+      const configNum = parseInt(ev.currentTarget.dataset.config);
+      if (configNum >= 1 && configNum <= 3) {
+        await this.actor.update({ 'system.mecha.activeConfig': configNum });
+        ui.notifications.info(`Configuration ${configNum} activated`);
+      }
+    });
+
     // Keep other actions (roll-hitloc, ablate, heal1, dmg1, unequip, show-item) as before
 
     // Drag armor item → slot

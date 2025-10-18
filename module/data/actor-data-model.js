@@ -63,11 +63,23 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 name: new fields.StringField({ initial: "" }),
                 weight: new fields.NumberField({ initial: 0, min: 0 }),
                 cost: new fields.NumberField({ initial: 0, min: 0 }),
+                activeConfig: new fields.NumberField({ initial: 1, min: 1, max: 3, integer: true }),
                 config: new fields.SchemaField({
+                    name: new fields.StringField({ initial: "" }),
                     mv: new fields.NumberField({ initial: 0, integer: true }),
                     mr: new fields.NumberField({ initial: 0, integer: true }),
                     landMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    flightMA: new fields.NumberField({ initial: 0, min: 0, integer: true })
+                    flightMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    name2: new fields.StringField({ initial: "" }),
+                    mv2: new fields.NumberField({ initial: 0, integer: true }),
+                    mr2: new fields.NumberField({ initial: 0, integer: true }),
+                    landMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    flightMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    name3: new fields.StringField({ initial: "" }),
+                    mv3: new fields.NumberField({ initial: 0, integer: true }),
+                    mr3: new fields.NumberField({ initial: 0, integer: true }),
+                    landMA3: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    flightMA3: new fields.NumberField({ initial: 0, min: 0, integer: true })
                 }),
                 skills: new fields.SchemaField({
                     piloting: new fields.NumberField({ initial: 0, integer: true }),

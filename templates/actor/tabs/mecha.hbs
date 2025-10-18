@@ -8,6 +8,7 @@
         <table class="mecha-stats-table">
           <thead>
             <tr>
+              <th>Active</th>
               <th>Configuration</th>
               <th>MV</th>
               <th>MR</th>
@@ -16,22 +17,37 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><input name="system.mecha.config.name" type="text" value="{{system.mecha.config.name}}" placeholder=""/></td>
+            <tr class="config-row {{#if (eq system.mecha.activeConfig 1)}}active-config{{/if}}" data-config="1">
+              <td class="config-select-cell">
+                <button type="button" class="config-select-btn {{#if (eq system.mecha.activeConfig 1)}}active{{/if}}" data-action="select-config" data-config="1" title="Set as active configuration">
+                  {{#if (eq system.mecha.activeConfig 1)}}●{{else}}○{{/if}}
+                </button>
+              </td>
+              <td><input name="system.mecha.config.name" type="text" value="{{system.mecha.config.name}}" placeholder="Config 1"/></td>
               <td><input name="system.mecha.config.mv" type="number" value="{{system.mecha.config.mv}}"/></td>
               <td><input name="system.mecha.config.mr" type="number" value="{{system.mecha.config.mr}}"/></td>
               <td><input name="system.mecha.config.landMA" type="number" value="{{system.mecha.config.landMA}}"/></td>
               <td><input name="system.mecha.config.flightMA" type="number" value="{{system.mecha.config.flightMA}}"/></td>
             </tr>
-            <tr>
-              <td><input name="system.mecha.config.name2" type="text" value="{{system.mecha.config.name2}}" placeholder=""/></td>
+            <tr class="config-row {{#if (eq system.mecha.activeConfig 2)}}active-config{{/if}}" data-config="2">
+              <td class="config-select-cell">
+                <button type="button" class="config-select-btn {{#if (eq system.mecha.activeConfig 2)}}active{{/if}}" data-action="select-config" data-config="2" title="Set as active configuration">
+                  {{#if (eq system.mecha.activeConfig 2)}}●{{else}}○{{/if}}
+                </button>
+              </td>
+              <td><input name="system.mecha.config.name2" type="text" value="{{system.mecha.config.name2}}" placeholder="Config 2"/></td>
               <td><input name="system.mecha.config.mv2" type="number" value="{{system.mecha.config.mv2}}"/></td>
               <td><input name="system.mecha.config.mr2" type="number" value="{{system.mecha.config.mr2}}"/></td>
               <td><input name="system.mecha.config.landMA2" type="number" value="{{system.mecha.config.landMA2}}"/></td>
               <td><input name="system.mecha.config.flightMA2" type="number" value="{{system.mecha.config.flightMA2}}"/></td>
             </tr>
-            <tr>
-              <td><input name="system.mecha.config.name3" type="text" value="{{system.mecha.config.name3}}" placeholder=""/></td>
+            <tr class="config-row {{#if (eq system.mecha.activeConfig 3)}}active-config{{/if}}" data-config="3">
+              <td class="config-select-cell">
+                <button type="button" class="config-select-btn {{#if (eq system.mecha.activeConfig 3)}}active{{/if}}" data-action="select-config" data-config="3" title="Set as active configuration">
+                  {{#if (eq system.mecha.activeConfig 3)}}●{{else}}○{{/if}}
+                </button>
+              </td>
+              <td><input name="system.mecha.config.name3" type="text" value="{{system.mecha.config.name3}}" placeholder="Config 3"/></td>
               <td><input name="system.mecha.config.mv3" type="number" value="{{system.mecha.config.mv3}}"/></td>
               <td><input name="system.mecha.config.mr3" type="number" value="{{system.mecha.config.mr3}}"/></td>
               <td><input name="system.mecha.config.landMA3" type="number" value="{{system.mecha.config.landMA3}}"/></td>

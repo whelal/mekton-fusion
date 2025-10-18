@@ -38,6 +38,78 @@
   gap: 0.35rem;
 }
 
+.mekton-fusion .tab.mecha .mecha-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+  font-size: 0.7rem;
+}
+
+.mekton-fusion .tab.mecha .mecha-stats-table th,
+.mekton-fusion .tab.mecha .mecha-stats-table td {
+  border: 1px solid #ccc;
+  padding: 0.2rem 0.3rem;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .mecha-stats-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+
+.mekton-fusion .tab.mecha .mecha-stats-table input {
+  width: 100%;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.75rem;
+  border: 1px solid #888;
+  background: white;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .config-row {
+  transition: background-color 0.2s;
+}
+
+.mekton-fusion .tab.mecha .config-row.active-config {
+  background-color: rgba(0, 123, 255, 0.08);
+}
+
+.mekton-fusion .tab.mecha .config-select-cell {
+  width: 50px;
+  text-align: center;
+}
+
+.mekton-fusion .tab.mecha .config-select-btn {
+  background: transparent;
+  border: 2px solid #888;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s;
+  color: #888;
+}
+
+.mekton-fusion .tab.mecha .config-select-btn:hover {
+  border-color: var(--mf-accent);
+  background: rgba(0, 123, 255, 0.05);
+  color: var(--mf-accent);
+}
+
+.mekton-fusion .tab.mecha .config-select-btn.active {
+  border-color: var(--mf-accent);
+  background: var(--mf-accent);
+  color: white;
+}
+
 .mekton-fusion .tab.mecha .config-row {
   display: grid;
   grid-template-columns: 100px 1fr 100px 60px;
