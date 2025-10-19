@@ -76,9 +76,10 @@
         <section class="maneuver-pool-section">
           <h3>MANEUVER POOL</h3>
           <input name="system.mecha.maneuverPool" type="number" value="{{system.mecha.maneuverPool}}" class="pool-input"/>
-          
-          <h3>INIT MOD</h3>
-          <input name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
+          <div class="initmod-row">
+            <label class="initmod-label">Init Mod</label>
+            <input name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input initmod-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
+          </div>
         </section>
 
         <section class="cost-multipliers-section">

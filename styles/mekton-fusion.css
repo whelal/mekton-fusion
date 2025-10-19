@@ -206,6 +206,23 @@
   background: white;
 }
 
+/* Compact Init Mod row under Maneuver Pool */
+.mekton-fusion .tab.mecha .initmod-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.mekton-fusion .tab.mecha .initmod-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #111;
+}
+.mekton-fusion .tab.mecha .initmod-input {
+  max-width: 5rem;
+}
+
 .mekton-fusion .tab.mecha .multiplier-row {
   display: flex;
   justify-content: space-between;
