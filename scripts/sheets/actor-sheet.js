@@ -1070,7 +1070,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const raw = input.value;
     if (raw === '' || raw === '-' || raw === '+') return;
     let val = this.constructor._num(raw, 0);
-    if (val < 0) val = 0;
+    
+    // Allow negative values for initiative modifier, but force non-negative for other substats
+    if (val < 0 && key !== 'initiative') val = 0;
 
     // Initialize batching structures
     this._pendingSubstat = this._pendingSubstat || {};
