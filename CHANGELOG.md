@@ -1,3 +1,10 @@
+# 0.0.8 - 2025-10-20
+### Fixed
+- Tab bar height causing large blank space above Equipment/Notes; force compact single-line tabs and horizontal overflow.
+
+### Changed
+- Consolidated tab CSS rules in styles/partials/_tabs.css and styles/mekton-fusion.css to avoid theme interference.
+
 # 0.0.5 - 2025-10-15
 ### Changed
 - Body tab: grouped SP/SDP input-button pairs on a single row for faster use.

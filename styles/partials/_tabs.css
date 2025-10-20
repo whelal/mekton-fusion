@@ -34,6 +34,14 @@
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
   margin: 0 !important;
   padding: 0 !important;
+  /* Ensure tab bar remains a single compact row */
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  flex: 0 0 32px !important;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 /* ---------- Tabs & Tables (DRY: grouped selectors) ---------- */
 .mekton-fusion .sheet-body .tab { padding: 0; margin: 0; } /* overrides Foundry padding safely */

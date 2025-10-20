@@ -707,6 +707,11 @@ html.theme-dark .mekton-fusion {
   white-space: nowrap;
   height: auto !important;
   min-height: 28px;
+  /* Prevent Foundry core or themes from giving the tab bar an oversized flex-basis */
+  flex: 0 0 32px !important;
+  /* If tabs overflow, allow horizontal scroll rather than wrapping/expanding height */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs .item {
   display: inline-flex;
@@ -1616,6 +1621,10 @@ html.theme-dark .mekton-fusion {
   white-space: nowrap !important;
   height: auto !important;
   min-height: 28px !important;
+  /* Prevent oversized flex-basis from external styles */
+  flex: 0 0 32px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
 }
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs .item {
   display: inline-flex !important;
