@@ -1,3 +1,21 @@
+.mekton-fusion.sheet.actor .tab.skills {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.mekton-fusion.sheet.actor .tab.skills .skill-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem !important;
+  padding: 0.25rem 0.5rem !important;
+  margin: 0 !important;
+}
+
+.mekton-fusion.sheet.actor .tab.skills .skills-table-wrapper {
+  margin: 0.25rem 0.5rem 0.5rem !important;
+  padding: 0 !important;
+}
 /* -------- Mecha Tab -------- */
 .mekton-fusion .tab.mecha { 
   padding: 0.5rem; 
@@ -678,6 +696,28 @@ html.theme-dark .mekton-fusion {
 /* ---------- Tabs & Tables (DRY: grouped selectors) ---------- */
 .mekton-fusion .sheet-body .tab { padding: 0; margin: 0; } /* overrides Foundry padding safely */
 
+/* Ensure the tab bar itself is compact and single-line */
+.mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  height: auto !important;
+  min-height: 28px;
+}
+.mekton-fusion.sheet.actor nav.sheet-tabs.tabs .item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  margin: 0;
+  line-height: 1.2;
+  flex: 0 0 auto;
+}
+
 .mekton-fusion .tab.skills .skill-controls,
 .mekton-fusion .tab.body .mf-actions {
   display: flex;
@@ -746,10 +786,55 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .tab.equipment .gear-label { 
   font-weight: bold; margin-bottom: var(--mf-gap-xs); 
 }
-.mekton-fusion .tab.equipment .gear-textarea {
-  width: 100%; min-height: 12em; resize: vertical; font: inherit;
-  padding: 0.5em; border-radius: 4px; border: 1px solid #888;
-  background: var(--mf-card); color: var(--mf-text); box-sizing: border-box;
+.mekton-fusion.sheet.actor .tab.equipment .gear-textarea {
+  width: 100%;
+  min-height: 10em !important;
+  height: 10em !important;
+  resize: vertical;
+  font: inherit;
+  padding: 0.5em;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background: var(--mf-card);
+  color: var(--mf-text);
+  box-sizing: border-box;
+}
+
+/* Equipment tab: compact container spacing */
+.mekton-fusion.sheet.actor .tab.equipment .equipment-container {
+  padding: var(--mf-pad-sm) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem !important;
+}
+.mekton-fusion.sheet.actor .tab.equipment .equipment-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Notes tab: compact container + textarea styling */
+.mekton-fusion.sheet.actor .tab.notes .notes-container {
+  padding: var(--mf-pad-sm) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem !important;
+}
+.mekton-fusion.sheet.actor .tab.notes .notes-label {
+  font-weight: bold;
+}
+.mekton-fusion.sheet.actor .tab.notes .notes-textarea {
+  width: 100%;
+  min-height: 10em !important;
+  height: 10em !important;
+  resize: vertical;
+  padding: 0.5rem !important;
+  border-radius: 4px;
+  border: 1px solid #888;
+  background: var(--mf-card);
+  color: var(--mf-text);
+  box-sizing: border-box;
 }
 
 /* ---------- Header (Cyberpunk 2020 vibe) ---------- */
@@ -1519,4 +1604,25 @@ html.theme-dark .mekton-fusion {
 
 .mekton-fusion .tab.body .mf-table-horizontal .bar.hp::before {
   background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
+}
+
+.mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  height: auto !important;
+  min-height: 28px !important;
+}
+.mekton-fusion.sheet.actor nav.sheet-tabs.tabs .item {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px 8px !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  flex: 0 0 auto !important;
 }
