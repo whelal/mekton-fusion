@@ -1,0 +1,12 @@
+{
+  "id": "mekton-fusion",
+  "title": "Mekton Fusion",
+  "version": "0.0.5",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "manifest": "https://raw.githubusercontent.com/whelal/mekton-fusion/main/system.json",
+  "download": "https://github.com/whelal/mekton-fusion/archive/refs/heads/main.zip",
+  "changelog": "https://raw.githubusercontent.com/whelal/mekton-fusion/main/CHANGELOG.md"
+}

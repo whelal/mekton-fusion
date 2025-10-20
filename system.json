@@ -27,10 +27,7 @@
   ],
 
   "documentTypes": {
-    "Actor": {
-      "types": ["character", "npc", "vehicle"],
-      "templates": ["baseActor"]
-    }
+    "Actor": ["character", "npc", "vehicle"]
   },
 
   "template": "templates", 
@@ -61,8 +58,8 @@
       "skills": {},
       "witcher": { "sp": 0 } 
     }
-  }
-  ,
+  },
+
   "manifest": "https://raw.githubusercontent.com/whelal/mekton-fusion/main/system.json",
   "download": "https://github.com/whelal/mekton-fusion/archive/refs/heads/main.zip"
 }

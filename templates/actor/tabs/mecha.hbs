@@ -101,28 +101,53 @@
           <tbody>
             <tr>
               <td class="skill-label">Mecha Piloting</td>
-              <td class="skill-mr">+ MR=</td>
-              <td class="skill-total">{{mechaSkills.piloting.total}}</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.piloting.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Piloting"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.piloting.rank}}</span>
+                </div>
+              </td>
             </tr>
             <tr>
               <td class="skill-label">Mecha Fighting</td>
-              <td class="skill-mr">+ MR=</td>
-              <td class="skill-total">{{mechaSkills.fighting.total}}</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.fighting.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Fighting"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.fighting.rank}}</span>
+                </div>
+              </td>
             </tr>
             <tr>
               <td class="skill-label">Mecha Melee</td>
-              <td class="skill-mr">+ MR=</td>
-              <td class="skill-total">{{mechaSkills.melee.total}}</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.melee.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Melee"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.melee.rank}}</span>
+                </div>
+              </td>
             </tr>
             <tr>
               <td class="skill-label">Mecha Gunnery</td>
-              <td class="skill-mr">+ MR=</td>
-              <td class="skill-total">{{mechaSkills.gunnery.total}}</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.gunnery.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Gunnery"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.gunnery.rank}}</span>
+                </div>
+              </td>
             </tr>
             <tr>
               <td class="skill-label">Mecha Missiles</td>
-              <td class="skill-mr">+ MR=</td>
-              <td class="skill-total">{{mechaSkills.missiles.total}}</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.missiles.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Missiles"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.missiles.rank}}</span>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>

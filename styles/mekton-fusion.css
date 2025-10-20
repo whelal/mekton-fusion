@@ -281,6 +281,26 @@
   padding: 0.2rem;
 }
 
+/* Keep mecha skill rows to a single line */
+.mekton-fusion .tab.mecha .skill-total .mecha-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+.mekton-fusion .tab.mecha .skill-total .skill-roll {
+  padding: 0.1rem 0.25rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+.mekton-fusion .tab.mecha .skill-total .skill-rank {
+  display: inline-block;
+  min-width: 0;
+}
+
 /* Servos & Armor */
 .mekton-fusion .tab.mecha .servos-section h3 {
   font-size: 0.85rem;

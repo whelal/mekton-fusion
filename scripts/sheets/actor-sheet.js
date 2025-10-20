@@ -143,6 +143,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     console.log("mekton-fusion | Is Token Actor:", this.actor.isToken);
     console.log("mekton-fusion | Actor Link:", this.actor.token?.actorLink);
     
+    // Normalize initiative (MV) in case there are duplicate inputs across tabs.
+    // Foundry form processing can yield an array when multiple fields have the same name.
+    try {
+      let mv = formData["system.substats.initiative"];
+      if (Array.isArray(mv)) {
+        // Prefer the last non-empty entry
+        const nonEmpty = mv.filter(v => v !== '' && v !== null && v !== undefined);
+        mv = nonEmpty.length ? nonEmpty[nonEmpty.length - 1] : mv[mv.length - 1];
+      }
+      if (mv === '' || mv === null || mv === undefined) {
+        mv = this.actor.system?.substats?.initiative ?? 0;
+      }
+      const mvNum = Number.isFinite(Number(mv)) ? parseInt(mv, 10) : 0;
+      formData["system.substats.initiative"] = mvNum;
+    } catch (e) {
+      console.warn('mekton-fusion | Failed to normalize initiative before update', e);
+    }
+    
     // Call the parent method to handle the update
     const result = await super._updateObject(event, formData);
     
@@ -504,6 +522,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         ctx.mechaSkills[key] = { name: skillName, rank: 0, total: 0 };
       }
     }
+    // Compute Mecha Maneuver Rating (MR): REF + Initiative Mod (MV)
+    const refVal = Number(ctx.system?.stats?.REF?.value ?? 0);
+    const mv = Number(ctx.system?.substats?.initiative ?? 0);
+    ctx.mechaMR = refVal + mv;
     
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
@@ -1682,12 +1704,21 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + statVal + rank + (mod||0);
+    // If this is a Mecha skill, add MV (initiative modifier) to REF as part of MR
+    const isMecha = String(skill.system?.category || '').toUpperCase() === 'REF:MECHA' || /MECHA\s+(PILOTING|FIGHTING|MELEE|GUNNERY|MISSILES)/i.test(skill.name || '');
+    const mv = Number(this.actor.system?.substats?.initiative ?? 0);
+    const mr = isMecha && stat === 'REF' ? (statVal + mv) : statVal;
+    const finalTotal = base + mr + rank + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     
     const plusStr = plusDice.join(' + ');
     const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const flavorParts = [`(${plusStr}${minusStr})`, `${statLabel} ${statVal}`];
+    const flavorParts = [`(${plusStr}${minusStr})`];
+    if (isMecha && stat === 'REF') {
+      flavorParts.push(`MR ${mr} (REF ${statVal} + MV ${mv})`);
+    } else {
+      flavorParts.push(`${statLabel} ${statVal}`);
+    }
     if (rank) flavorParts.push(`Rank ${rank}`);
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
     
