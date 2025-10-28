@@ -1,0 +1,340 @@
+<div class="tab mecha snaggletooth" data-tab="snaggletooth">
+  <style>
+    /* Inline override to force Snaggletooth stats layout (cache-bust / immediate) */
+    .tab.snaggletooth .mecha-stats-table { display: table !important; table-layout: fixed !important; width: 100% !important; border-collapse: collapse !important; font-size: 0.85rem !important; }
+    .tab.snaggletooth .mecha-stats-table tbody { display: table-row-group !important; }
+    .tab.snaggletooth .mecha-stats-table tr { display: table-row !important; }
+    .tab.snaggletooth .mecha-stats-table th,
+    .tab.snaggletooth .mecha-stats-table td { display: table-cell !important; white-space: nowrap !important; overflow: hidden !important; vertical-align: middle !important; }
+    .tab.snaggletooth .mecha-stats-table th { background: #000 !important; color: #fff !important; padding: 6px 8px !important; font-weight: 700 !important; font-size: 0.85rem !important; }
+    .tab.snaggletooth .mecha-stats-table td { padding: 4px 6px !important; border: 1px solid #bbb !important; }
+  .tab.snaggletooth .mecha-stats-table th:nth-child(1) { width: 28% !important; text-align: left !important; }
+  .tab.snaggletooth .mecha-stats-table th:nth-child(2),
+  .tab.snaggletooth .mecha-stats-table th:nth-child(3) { width: 16% !important; text-align: center !important; }
+  .tab.snaggletooth .mecha-stats-table th:nth-child(4) { width: 18% !important; text-align: center !important; }
+  .tab.snaggletooth .mecha-stats-table th:nth-child(5) { width: 22% !important; text-align: center !important; }
+  /* Configuration text input - constrained within cell */
+  .tab.snaggletooth .mecha-stats-table td input[type="text"] { box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; height: 28px !important; padding: 4px 6px !important; font-size: 0.85rem !important; }
+  /* Numeric inputs - wider to better fill cells */
+  .tab.snaggletooth .mecha-stats-table td input[type="number"] { box-sizing: border-box !important; display: block !important; margin: 0 auto !important; padding: 4px 6px !important; height: 28px !important; font-size: 0.85rem !important; text-align: center !important; }
+  .tab.snaggletooth .mecha-stats-table td:nth-child(2) input[type="number"] { width: 95% !important; max-width: 95% !important; }
+  .tab.snaggletooth .mecha-stats-table td:nth-child(3) input[type="number"] { width: 95% !important; max-width: 95% !important; }
+  .tab.snaggletooth .mecha-stats-table td:nth-child(4) input[type="number"] { width: 98% !important; max-width: 98% !important; }
+  .tab.snaggletooth .mecha-stats-table td:nth-child(5) input[type="number"] { width: 90% !important; max-width: 90% !important; }
+  </style>
+  {{!-- The rest of the markup is identical to mecha.hbs, except the root class and data-tab --}}
+  <div class="mecha-columns">
+    <!-- LEFT COLUMN -->
+    <div class="mecha-left-col">
+      <!-- Mekton Stats -->
+      <section class="mecha-stats-section">
+        <h3>MEKTON STATS</h3>
+        <table class="mecha-stats-table">
+          <colgroup>
+            <col style="width: 28%" />
+            <col style="width: 16%" />
+            <col style="width: 16%" />
+            <col style="width: 18%" />
+            <col style="width: 22%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Configuration</th>
+              <th>MV</th>
+              <th>MR</th>
+              <th>Land MA</th>
+              <th>Flight MA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="config-row" data-config="1">
+              <td><input name="system.snaggletooth.config.name" type="text" value="{{system.snaggletooth.config.name}}" placeholder="Config 1"/></td>
+              <td><input name="system.snaggletooth.config.mv" type="number" value="{{system.snaggletooth.config.mv}}"/></td>
+              <td><input name="system.snaggletooth.config.mr" type="number" value="{{system.snaggletooth.config.mr}}"/></td>
+              <td><input name="system.snaggletooth.config.landMA" type="number" value="{{system.snaggletooth.config.landMA}}"/></td>
+              <td><input name="system.snaggletooth.config.flightMA" type="number" value="{{system.snaggletooth.config.flightMA}}"/></td>
+            </tr>
+            <tr class="config-row" data-config="2">
+              <td><input name="system.snaggletooth.config.name2" type="text" value="{{system.snaggletooth.config.name2}}" placeholder="Config 2"/></td>
+              <td><input name="system.snaggletooth.config.mv2" type="number" value="{{system.snaggletooth.config.mv2}}"/></td>
+              <td><input name="system.snaggletooth.config.mr2" type="number" value="{{system.snaggletooth.config.mr2}}"/></td>
+              <td><input name="system.snaggletooth.config.landMA2" type="number" value="{{system.snaggletooth.config.landMA2}}"/></td>
+              <td><input name="system.snaggletooth.config.flightMA2" type="number" value="{{system.snaggletooth.config.flightMA2}}"/></td>
+            </tr>
+            <tr class="config-row" data-config="3">
+              <td><input name="system.snaggletooth.config.name3" type="text" value="{{system.snaggletooth.config.name3}}" placeholder="Config 3"/></td>
+              <td><input name="system.snaggletooth.config.mv3" type="number" value="{{system.snaggletooth.config.mv3}}"/></td>
+              <td><input name="system.snaggletooth.config.mr3" type="number" value="{{system.snaggletooth.config.mr3}}"/></td>
+              <td><input name="system.snaggletooth.config.landMA3" type="number" value="{{system.snaggletooth.config.landMA3}}"/></td>
+              <td><input name="system.snaggletooth.config.flightMA3" type="number" value="{{system.snaggletooth.config.flightMA3}}"/></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Maneuver Pool & Combat Skills Row -->
+      <div class="mecha-pool-skills-row">
+        <section class="maneuver-pool-section">
+          <h3>MANEUVER POOL</h3>
+          <input name="system.snaggletooth.maneuverPool" type="number" value="{{system.snaggletooth.maneuverPool}}" class="pool-input"/>
+          <div class="initmod-row">
+            <label class="initmod-label">{{localize 'MF.InitiativeMod'}}</label>
+            <input name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input initmod-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
+          </div>
+        </section>
+
+        <section class="cost-multipliers-section">
+          <h3>COST MULTIPLIERS</h3>
+          <div class="multiplier-row">
+            <label>Multiplier System</label>
+            <input name="system.snaggletooth.costMultiplier.system" type="text" value="{{system.snaggletooth.costMultiplier.system}}" placeholder="CP x ?"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Powerplant</label>
+            <input name="system.snaggletooth.costMultiplier.powerplant" type="text" value="{{system.snaggletooth.costMultiplier.powerplant}}" placeholder="X5:"/>
+          </div>
+        </section>
+      </div>
+
+      <section class="combat-skills-section">
+        <h3>MECHA COMBAT SKILLS</h3>
+        <table class="combat-skills-table">
+          <tbody>
+            <tr>
+              <td class="skill-label">Mecha Piloting</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.piloting.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Piloting"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.piloting.rank}}</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="skill-label">Mecha Fighting</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.fighting.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Fighting"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.fighting.rank}}</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="skill-label">Mecha Melee</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.melee.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Melee"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.melee.rank}}</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="skill-label">Mecha Gunnery</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.gunnery.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Gunnery"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.gunnery.rank}}</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="skill-label">Mecha Missiles</td>
+              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-total">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.missiles.id}}">
+                  <button type="button" class="skill-roll" title="Roll Mecha Missiles"><i class="fas fa-dice-d20"></i></button>
+                  <span class="skill-rank">{{mechaSkills.missiles.rank}}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Servos & Armor -->
+      <section class="servos-section">
+        <h3>SERVOS & ARMOR</h3>
+        <table class="servos-table">
+          <thead>
+            <tr>
+              <th>SP</th>
+              <th>Kills</th>
+              <th>Servo</th>
+              <th>Level</th>
+              <th>Space</th>
+              <th>Cost</th>
+              <th>Armor</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each system.snaggletooth.servos as |servo idx|}}
+            <tr>
+              <td><input type="number" name="system.snaggletooth.servos.{{idx}}.sp" value="{{servo.sp}}"/></td>
+              <td><input type="number" name="system.snaggletooth.servos.{{idx}}.hits" value="{{servo.hits}}"/></td>
+              <td><input type="text" name="system.snaggletooth.servos.{{idx}}.servo" value="{{servo.servo}}"/></td>
+              <td><input type="text" name="system.snaggletooth.servos.{{idx}}.level" value="{{servo.level}}"/></td>
+              <td><input type="text" name="system.snaggletooth.servos.{{idx}}.space" value="{{servo.space}}"/></td>
+              <td><input type="number" name="system.snaggletooth.servos.{{idx}}.cost" value="{{servo.cost}}"/></td>
+              <td><input type="text" name="system.snaggletooth.servos.{{idx}}.armor" value="{{servo.armor}}"/></td>
+              <td><input type="number" name="system.snaggletooth.servos.{{idx}}.armorCost" value="{{servo.armorCost}}"/></td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Movement Systems & Sensors Row -->
+      <div class="movement-sensors-row">
+        <section class="movement-section">
+          <h3>MOVEMENT SYSTEMS</h3>
+          <table class="movement-table">
+            <thead>
+              <tr><th>Movement System</th><th>Loc</th><th>Spc</th><th>CP</th><th>K</th></tr>
+            </thead>
+            <tbody>
+              {{#each system.snaggletooth.movementSystems as |ms idx|}}
+              <tr>
+                <td><input type="text" name="system.snaggletooth.movementSystems.{{idx}}.system" value="{{ms.system}}"/></td>
+                <td><input type="text" name="system.snaggletooth.movementSystems.{{idx}}.loc" value="{{ms.loc}}"/></td>
+                <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.spc" value="{{ms.spc}}"/></td>
+                <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.cp" value="{{ms.cp}}"/></td>
+                <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.h" value="{{ms.h}}"/></td>
+              </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        </section>
+
+        <section class="sensors-section">
+          <h3>SENSORS</h3>
+          <table class="sensors-table">
+            <tbody>
+              <tr><td class="sensor-label">Sensors Loc</td><td><input name="system.snaggletooth.sensors.loc" type="text" value="{{system.snaggletooth.sensors.loc}}"/></td></tr>
+              <tr><td class="sensor-label">Range</td><td><input name="system.snaggletooth.sensors.range" type="number" value="{{system.snaggletooth.sensors.range}}"/></td></tr>
+              <tr><td class="sensor-label">Comm</td><td><input name="system.snaggletooth.sensors.comm" type="number" value="{{system.snaggletooth.sensors.comm}}"/></td></tr>
+              <tr><td class="sensor-label">Kills</td><td><input name="system.snaggletooth.sensors.hits" type="number" value="{{system.snaggletooth.sensors.hits}}"/></td></tr>
+              <tr><td class="sensor-label">Cost</td><td><input name="system.snaggletooth.sensors.cost" type="number" value="{{system.snaggletooth.sensors.cost}}"/></td></tr>
+              <tr><td class="sensor-label">Space</td><td><input name="system.snaggletooth.sensors.space" type="number" value="{{system.snaggletooth.sensors.space}}"/></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="mecha-right-col">
+      <!-- Mecha Image Area -->
+      <section class="mecha-image-area">
+        <div class="mecha-image-placeholder" data-action="select-mecha-image" title="Click to select mecha image">
+          {{#if system.snaggletooth.imageUrl}}
+            <img src="{{system.snaggletooth.imageUrl}}" alt="Mecha"/>
+          {{else}}
+            <div class="placeholder-text">Click to Add Mecha Image</div>
+          {{/if}}
+        </div>
+      </section>
+
+      <!-- Mekton Profile -->
+      <section class="mekton-profile-section">
+        <h3>MEKTON PROFILE</h3>
+        <table class="profile-table">
+          <tr>
+            <td class="profile-label">Name</td>
+            <td colspan="2"><input name="system.snaggletooth.name" type="text" value="{{system.snaggletooth.name}}"/></td>
+            <td class="profile-label">Weight</td>
+            <td><input name="system.snaggletooth.weight" type="number" value="{{system.snaggletooth.weight}}"/></td>
+            <td class="profile-label">Cost</td>
+            <td><input name="system.snaggletooth.cost" type="number" value="{{system.snaggletooth.cost}}"/></td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- Subassemblies -->
+      <section class="subassemblies-section">
+        <h3>SUBASSEMBLIES</h3>
+        <table class="cockpit-table">
+          <thead>
+            <tr><th>Cockpit</th><th># Crew</th><th>Options</th><th>Space</th><th>CP</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input name="system.snaggletooth.subassemblies.cockpit.type" type="text" value="{{system.snaggletooth.subassemblies.cockpit.type}}"/></td>
+              <td><input name="system.snaggletooth.subassemblies.cockpit.crew" type="number" value="{{system.snaggletooth.subassemblies.cockpit.crew}}"/></td>
+              <td><input name="system.snaggletooth.subassemblies.cockpit.options" type="text" value="{{system.snaggletooth.subassemblies.cockpit.options}}"/></td>
+              <td><input name="system.snaggletooth.subassemblies.cockpit.space" type="number" value="{{system.snaggletooth.subassemblies.cockpit.space}}"/></td>
+              <td><input name="system.snaggletooth.subassemblies.cockpit.cp" type="number" value="{{system.snaggletooth.subassemblies.cockpit.cp}}"/></td>
+            </tr>
+          </tbody>
+        </table>
+        <table class="subassemblies-table">
+          <thead>
+            <tr><th>Subassemblies</th><th>Loc</th><th>Space</th><th>CP</th><th>K</th></tr>
+          </thead>
+          <tbody>
+            {{#each system.snaggletooth.subassemblies.items as |item idx|}}
+            <tr>
+              <td><input type="text" name="system.snaggletooth.subassemblies.items.{{idx}}.name" value="{{item.name}}"/></td>
+              <td><input type="text" name="system.snaggletooth.subassemblies.items.{{idx}}.loc" value="{{item.loc}}"/></td>
+              <td><input type="number" name="system.snaggletooth.subassemblies.items.{{idx}}.space" value="{{item.space}}"/></td>
+              <td><input type="number" name="system.snaggletooth.subassemblies.items.{{idx}}.cp" value="{{item.cp}}"/></td>
+              <td><input type="number" name="system.snaggletooth.subassemblies.items.{{idx}}.h" value="{{item.h}}"/></td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Shields -->
+      <section class="shields-section">
+        <h3>SHIELDS</h3>
+        <table class="shields-table">
+          <thead>
+            <tr><th>Shield</th><th>DA</th><th>SP</th><th>Loc</th><th>Space</th><th>Cost</th></tr>
+          </thead>
+          <tbody>
+            {{#each system.snaggletooth.shields as |shield idx|}}
+            <tr>
+              <td><input type="text" name="system.snaggletooth.shields.{{idx}}.name" value="{{shield.name}}"/></td>
+              <td><input type="number" name="system.snaggletooth.shields.{{idx}}.da" value="{{shield.da}}"/></td>
+              <td><input type="number" name="system.snaggletooth.shields.{{idx}}.sp" value="{{shield.sp}}"/></td>
+              <td><input type="text" name="system.snaggletooth.shields.{{idx}}.loc" value="{{shield.loc}}"/></td>
+              <td><input type="number" name="system.snaggletooth.shields.{{idx}}.space" value="{{shield.space}}"/></td>
+              <td><input type="number" name="system.snaggletooth.shields.{{idx}}.cost" value="{{shield.cost}}"/></td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+
+  <!-- Bottom Full-Width Armament -->
+  <section class="armament-section">
+    <h3>ARMAMENT</h3>
+    <table class="armament-table">
+      <thead>
+        <tr><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>K</th><th>Loc</th><th>Cost</th><th>Space</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        {{#each system.snaggletooth.weapons as |weapon idx|}}
+        <tr>
+          <td><input type="text" name="system.snaggletooth.weapons.{{idx}}.name" value="{{weapon.name}}"/></td>
+          <td><input type="number" name="system.snaggletooth.weapons.{{idx}}.wa" value="{{weapon.wa}}"/></td>
+          <td><input type="text" name="system.snaggletooth.weapons.{{idx}}.range" value="{{weapon.range}}"/></td>
+          <td><input type="text" name="system.snaggletooth.weapons.{{idx}}.damage" value="{{weapon.damage}}"/></td>
+          <td><input type="number" name="system.snaggletooth.weapons.{{idx}}.shots" value="{{weapon.shots}}"/></td>
+          <td><input type="number" name="system.snaggletooth.weapons.{{idx}}.hits" value="{{weapon.hits}}"/></td>
+          <td><input type="text" name="system.snaggletooth.weapons.{{idx}}.loc" value="{{weapon.loc}}"/></td>
+          <td><input type="number" name="system.snaggletooth.weapons.{{idx}}.cost" value="{{weapon.cost}}"/></td>
+          <td><input type="number" name="system.snaggletooth.weapons.{{idx}}.space" value="{{weapon.space}}"/></td>
+          <td><input type="text" name="system.snaggletooth.weapons.{{idx}}.notes" value="{{weapon.notes}}"/></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </section>
+</div>

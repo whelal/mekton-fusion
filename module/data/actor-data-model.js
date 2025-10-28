@@ -98,9 +98,107 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                     hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                     servo: new fields.StringField({ initial: "" }),
                     level: new fields.StringField({ initial: "" }),
-                    space: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    space: new fields.StringField({ initial: "" }),
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    armor: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    armor: new fields.StringField({ initial: "" }),
+                    armorCost: new fields.NumberField({ initial: 0, min: 0 })
+                }), { initial: [{},{},{},{},{},{}] }),
+                movementSystems: new fields.ArrayField(new fields.SchemaField({
+                    system: new fields.StringField({ initial: "" }),
+                    loc: new fields.StringField({ initial: "" }),
+                    spc: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    cp: new fields.NumberField({ initial: 0, min: 0 }),
+                    h: new fields.NumberField({ initial: 0, min: 0, integer: true })
+                }), { initial: [{},{}] }),
+                sensors: new fields.SchemaField({
+                    loc: new fields.StringField({ initial: "" }),
+                    range: new fields.NumberField({ initial: 0, min: 0 }),
+                    comm: new fields.NumberField({ initial: 0, min: 0 }),
+                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    cost: new fields.NumberField({ initial: 0, min: 0 }),
+                    space: new fields.NumberField({ initial: 0, min: 0 })
+                }),
+                subassemblies: new fields.SchemaField({
+                    cockpit: new fields.SchemaField({
+                        type: new fields.StringField({ initial: "" }),
+                        crew: new fields.NumberField({ initial: 1, min: 0, integer: true }),
+                        options: new fields.StringField({ initial: "" }),
+                        space: new fields.NumberField({ initial: 0, min: 0 }),
+                        cp: new fields.NumberField({ initial: 0, min: 0 })
+                    }),
+                    items: new fields.ArrayField(new fields.SchemaField({
+                        name: new fields.StringField({ initial: "" }),
+                        loc: new fields.StringField({ initial: "" }),
+                        space: new fields.NumberField({ initial: 0, min: 0 }),
+                        cp: new fields.NumberField({ initial: 0, min: 0 }),
+                        h: new fields.NumberField({ initial: 0, min: 0, integer: true })
+                    }), { initial: [{}] })
+                }),
+                shields: new fields.ArrayField(new fields.SchemaField({
+                    name: new fields.StringField({ initial: "" }),
+                    da: new fields.NumberField({ initial: 0, integer: true }),
+                    sp: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    loc: new fields.StringField({ initial: "" }),
+                    space: new fields.NumberField({ initial: 0, min: 0 }),
+                    cost: new fields.NumberField({ initial: 0, min: 0 })
+                }), { initial: [{}] }),
+                weapons: new fields.ArrayField(new fields.SchemaField({
+                    name: new fields.StringField({ initial: "" }),
+                    wa: new fields.NumberField({ initial: 0, integer: true }),
+                    range: new fields.StringField({ initial: "" }),
+                    damage: new fields.StringField({ initial: "" }),
+                    shots: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    loc: new fields.StringField({ initial: "" }),
+                    cost: new fields.NumberField({ initial: 0, min: 0 }),
+                    space: new fields.NumberField({ initial: 0, min: 0 }),
+                    notes: new fields.StringField({ initial: "" })
+                }), { initial: [{},{},{}] }),
+                imageUrl: new fields.StringField({ initial: "" })
+            }),
+            // Snaggletooth - separate duplicate of mecha data
+            snaggletooth: new fields.SchemaField({
+                name: new fields.StringField({ initial: "" }),
+                weight: new fields.NumberField({ initial: 0, min: 0 }),
+                cost: new fields.NumberField({ initial: 0, min: 0 }),
+                activeConfig: new fields.NumberField({ initial: 1, min: 1, max: 3, integer: true }),
+                config: new fields.SchemaField({
+                    name: new fields.StringField({ initial: "" }),
+                    mv: new fields.NumberField({ initial: 0, integer: true }),
+                    mr: new fields.NumberField({ initial: 0, integer: true }),
+                    landMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    flightMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    name2: new fields.StringField({ initial: "" }),
+                    mv2: new fields.NumberField({ initial: 0, integer: true }),
+                    mr2: new fields.NumberField({ initial: 0, integer: true }),
+                    landMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    flightMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    name3: new fields.StringField({ initial: "" }),
+                    mv3: new fields.NumberField({ initial: 0, integer: true }),
+                    mr3: new fields.NumberField({ initial: 0, integer: true }),
+                    landMA3: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    flightMA3: new fields.NumberField({ initial: 0, min: 0, integer: true })
+                }),
+                skills: new fields.SchemaField({
+                    piloting: new fields.NumberField({ initial: 0, integer: true }),
+                    fighting: new fields.NumberField({ initial: 0, integer: true }),
+                    melee: new fields.NumberField({ initial: 0, integer: true }),
+                    gunnery: new fields.NumberField({ initial: 0, integer: true }),
+                    missiles: new fields.NumberField({ initial: 0, integer: true })
+                }),
+                maneuverPool: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                costMultiplier: new fields.SchemaField({
+                    system: new fields.StringField({ initial: "" }),
+                    powerplant: new fields.StringField({ initial: "" })
+                }),
+                servos: new fields.ArrayField(new fields.SchemaField({
+                    sp: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    servo: new fields.StringField({ initial: "" }),
+                    level: new fields.StringField({ initial: "" }),
+                    space: new fields.StringField({ initial: "" }),
+                    cost: new fields.NumberField({ initial: 0, min: 0 }),
+                    armor: new fields.StringField({ initial: "" }),
                     armorCost: new fields.NumberField({ initial: 0, min: 0 })
                 }), { initial: [{},{},{},{},{},{}] }),
                 movementSystems: new fields.ArrayField(new fields.SchemaField({

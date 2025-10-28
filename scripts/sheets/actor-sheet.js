@@ -66,23 +66,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Exploding d10: roll at least once; while a die shows 10, roll again and accumulate.
   // Bidirectional exploding d10:
   //  - Roll initial d10.
-  //  - Each 10 triggers an additional +d10 (continue while 10s).
-  //  - Each 1 triggers an additional -d10 (continue while 1s) (opposite direction explosion).
+  //  - If initial roll is 10: keep rolling while you get 10s, include the final non-10.
+  //  - If initial roll is 1: Critical Failure - roll ONE additional d10 and subtract it (no chain).
   // Returns a consolidated Roll (for module parsing) plus breakdown arrays.
   static async _rollBidirectionalExplodingD10() {
     const plusDice = [];
     const minusDice = [];
-    // First roll decides branch(es); both chains can occur if new rolls also produce opposite triggers.
-    const pendingPlus = [];
-    const pendingMinus = [];
     const MAX_EXTRA = 10; // cap on additional dice beyond the first
     let extraCount = 0;
     let capped = false;
-
-    function queue(val) {
-      if (val === 10) pendingPlus.push(true);
-      if (val === 1) pendingMinus.push(true);
-    }
 
     // roll helper
     async function rollD10() {
@@ -91,28 +83,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       return r.total || 0;
     }
 
-    // Initial roll
+    // Initial roll determines the explosion direction
     const first = await rollD10();
-    plusDice.push(first); // treat first as part of plus sequence mathematically; we'll subtract minusDice later
-    queue(first);
-
-    // Process queues breadth-first to allow interleaving opposite explosions
-    while ((pendingPlus.length || pendingMinus.length) && !capped) {
-      if (pendingPlus.length) {
-        pendingPlus.pop();
-        const v = await rollD10();
-        plusDice.push(v);
-        queue(v);
+    
+    if (first === 10) {
+      // Upward explosion chain - keep rolling while we get 10s, include final non-10
+      plusDice.push(first);
+      while (extraCount < MAX_EXTRA) {
+        const current = await rollD10();
         extraCount++;
+        plusDice.push(current); // Always include the die in upward explosion
+        if (current !== 10) {
+          // Different value rolled - explosion stops, but this die is included
+          break;
+        }
+        if (extraCount >= MAX_EXTRA) {
+          capped = true;
+          break;
+        }
       }
-      if (pendingMinus.length) {
-        pendingMinus.pop();
-        const v = await rollD10();
-        minusDice.push(v); // values to subtract
-        queue(v);
-        extraCount++;
-      }
-      if (extraCount >= MAX_EXTRA) capped = true;
+    } else if (first === 1) {
+      // Critical Failure - roll ONE additional d10 and subtract it
+      plusDice.push(first); // The initial 1 goes in plus dice
+      const criticalFailureRoll = await rollD10();
+      minusDice.push(criticalFailureRoll); // Subtract the critical failure roll
+      extraCount = 1; // Only one extra roll for critical failure
+    } else {
+      // Normal roll - no explosion
+      plusDice.push(first);
     }
 
     const plusTotal = plusDice.reduce((a,b)=>a+b,0);
@@ -120,15 +118,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const net = plusTotal - minusTotal;
 
     // Build a synthetic Roll expression for compatibility: represent all individual dice.
-    // Example: (10+7+10) - (4+3)
-    const plusExpr = plusDice.map(d=>d).join('+') || '0';
-    const minusExpr = minusDice.length ? `-(${minusDice.map(d=>d).join('+')})` : '';
-    const formula = `${plusExpr}${minusExpr}`;
+    // Example: (10+10+4) for upward explosion, or (1)-(7) for critical failure
+    let formula;
+    if (minusDice.length > 0) {
+      const plusExpr = plusDice.map(d=>d).join('+') || '0';
+      const minusExpr = minusDice.map(d=>d).join('+');
+      formula = `${plusExpr}-(${minusExpr})`;
+    } else {
+      formula = plusDice.map(d=>d).join('+') || '0';
+    }
+    
     const total = net;
     // Create Roll object from formula (no dice terms, purely numeric) for compatibility
-  const roll = new Roll(formula);
-  await roll.evaluate();
-  // roll.total reflects evaluated numeric expression; should equal our computed total
+    const roll = new Roll(formula);
+    await roll.evaluate();
     // Attach raw arrays for external modules / debugging
     roll.flags ??= {};
     roll.flags['mekton-fusion'] = { plusDice: [...plusDice], minusDice: [...minusDice], capped };
@@ -538,6 +541,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
       ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
       ctx._tabMechaHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/mecha.hbs", ctx);
+      ctx._tabSnaggletoothHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/snaggletooth.hbs", ctx);
       ctx._tabWitcherHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/spells.hbs", ctx);
       ctx._tabEquipmentHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/equipment.hbs", ctx);
       ctx._tabNotesHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/notes.hbs", ctx);
@@ -555,6 +559,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
       ctx._tabPsiHtml = ctx._tabPsiHtml || '';
       ctx._tabMechaHtml = ctx._tabMechaHtml || '';
+      ctx._tabSnaggletoothHtml = ctx._tabSnaggletoothHtml || '';
       ctx._tabWitcherHtml = ctx._tabWitcherHtml || '';
       ctx._tabEquipmentHtml = ctx._tabEquipmentHtml || '';
       ctx._tabNotesHtml = ctx._tabNotesHtml || '';

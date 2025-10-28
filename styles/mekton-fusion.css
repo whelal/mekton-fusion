@@ -331,6 +331,7 @@
   border-collapse: collapse;
   border: 1px solid var(--mf-black);
   background: white;
+  table-layout: fixed;
 }
 
 .mekton-fusion .tab.mecha .servos-table th,
@@ -346,6 +347,24 @@
   font-weight: bold;
 }
 
+/* Column widths for Servos table */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(1),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(1) { width: 8%; }  /* SP */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(2),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(2) { width: 8%; }  /* Kills */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(3),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(3) { width: 25%; } /* Servo (wider) */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(4),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(4) { width: 10%; } /* Level */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(5),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(5) { width: 12%; } /* Space */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(6),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(6) { width: 10%; } /* Cost */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(7),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(7) { width: 17%; } /* Armor */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(8),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(8) { width: 10%; } /* Cost */
+
 .mekton-fusion .tab.mecha .servos-table input {
   width: 100%;
   padding: 0.1rem;
@@ -353,6 +372,7 @@
   font-size: 0.7rem;
   border: 1px solid #888;
   background: white;
+  box-sizing: border-box;
 }
 
 /* Movement & Sensors Row */
@@ -613,8 +633,8 @@
   text-align: left;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
+/* Responsive adjustments: stack to single column on narrower viewports */
+@media (max-width: 900px) {
   .mekton-fusion .tab.mecha .mecha-columns {
     grid-template-columns: 1fr;
   }
