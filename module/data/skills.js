@@ -10,8 +10,8 @@ export const CP2020_SKILLS = [
   { name: "Resist Torture/Drugs (H)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Streetwise", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
   { name: "Courage", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
-  { name: "Resist Magic", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
-  { name: "Spellcasting", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
+  { name: "Resist Magic (2)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
+  { name: "Spellcasting (2)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
 
   // EMP (Emotional / Interaction / Bio Mod)
   { name: "Acting", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },
@@ -21,7 +21,6 @@ export const CP2020_SKILLS = [
   { name: "Seduction", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },
   { name: "Social", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },
   { name: "Regeneration", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },
-  { name: "Stat Boost", type: "skill", system: { stat: "EMP", category: "EMP", rank: 0, favorite: false, ip: 0 } },
 
   // INT (Knowledge / Awareness)
   { name: "Awareness/Notice", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
@@ -38,7 +37,7 @@ export const CP2020_SKILLS = [
   { name: "Expert: Archeology", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Expert: Literature", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Expert: Chemistry", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
-  { name: "Military Intelligence", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
+  { name: "Expert: Military Intelligence", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Expert: Navigation", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Education/General", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Tactics", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },

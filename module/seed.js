@@ -5,6 +5,14 @@ import { WITCHER_SIGNS } from "./data/spells.js";
 const HARD_MECHA_GUNNERY = "Mecha Gunnery (H)";
 // Legacy variants we want to collapse into canonical HARD_MECHA_GUNNERY
 const LEGACY_MECHA_GUNNERY_NAMES = ["Mecha Gunnery", "Mecha Gunnery [H]"];
+// Legacy skill renames introduced in 0.0.10
+const LEGACY_SKILL_RENAMES = {
+  "Resist Magic": "Resist Magic (2)",
+  "Spellcasting": "Spellcasting (2)",
+  "Military Intelligence": "Expert: Military Intelligence"
+};
+// Deprecated skill names to purge (non-PSI duplicates)
+const DEPRECATED_SKILL_NAMES = ["Stat Boost"]; // keep only Stat Boost (phys) in PSI list
 
 async function ensureFolder(name, type) {
   let folder = game.folders.find(f => f.name === name && f.type === type);
@@ -62,9 +70,25 @@ async function ensureActorHasSkills(actor) {
     system: prepareSkillSystem(skill.system ?? skill.data ?? {})
   }));
 
-  const existingByName = new Map(
-    actor.items.filter(it => it.type === "skill").map(it => [it.name, it])
-  );
+  const existingSkills = actor.items.filter(it => it.type === "skill");
+  // Perform legacy rename pass BEFORE building name map so new names don't conflict
+  for (const it of existingSkills) {
+    const newName = LEGACY_SKILL_RENAMES[it.name];
+    if (newName && newName !== it.name) {
+      // Only rename if target name does not already exist to avoid duplicates
+      const already = existingSkills.some(other => other !== it && other.name === newName);
+      if (!already) {
+        try { await it.update({ name: newName }); } catch (e) { console.warn('mekton-fusion | Failed legacy skill rename', it.name, '->', newName, e); }
+      }
+    }
+  }
+  // Purge deprecated non-PSI duplicates
+  const toRemove = existingSkills.filter(it => DEPRECATED_SKILL_NAMES.includes(it.name) && String(it.system?.category).toUpperCase() !== 'PSI');
+  if (toRemove.length) {
+    try { await actor.deleteEmbeddedDocuments('Item', toRemove.map(i=>i.id)); }
+    catch (e) { console.warn('mekton-fusion | Failed deleting deprecated skills', e); }
+  }
+  const existingByName = new Map(existingSkills.map(it => [it.name, it]));
   const hardSkill = existingByName.get(HARD_MECHA_GUNNERY);
   const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
   const toDelete = [];
@@ -166,6 +190,17 @@ export async function seedWorldData() {
     const spellFolder = await ensureFolder("Witcher Signs", "Item");
 
     const existing = new Map(game.items.map(item => [item.name, item]));
+    // World-level legacy renames (Items in compendium/world item directory)
+    for (const [oldName, newName] of Object.entries(LEGACY_SKILL_RENAMES)) {
+      const current = existing.get(oldName);
+      if (current && !existing.has(newName)) {
+        try {
+          await current.update({ name: newName });
+          existing.delete(oldName);
+          existing.set(newName, current);
+        } catch (e) { console.warn('mekton-fusion | Failed world skill legacy rename', oldName, '->', newName, e); }
+      }
+    }
     const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
     const hardSkill = existing.get(HARD_MECHA_GUNNERY);
     let canonicalSkill = hardSkill ?? null;

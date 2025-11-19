@@ -403,8 +403,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Build spell Items listing
     const spellItems = this.actor.items.filter(i => i.type === "spell");
-    // Determine global Spellcasting skill (COOL) if present
-    const spellcastingSkill = flatSkills.find(sk => sk.name.toLowerCase() === 'spellcasting');
+    // Determine global Spellcasting skill (COOL) if present (support legacy and suffixed name)
+    const spellcastingSkill = flatSkills.find(sk => {
+      const n = sk.name.toLowerCase();
+      return n === 'spellcasting' || n === 'spellcasting (2)';
+    });
     const spellcastingRank = spellcastingSkill ? this.constructor._num(spellcastingSkill.rank, 0) : 0;
     const spellcastingStat = 'COOL';
     const spellcastingStatVal = ctx.system.stats?.[spellcastingStat]?.value ?? 0;
@@ -1815,7 +1818,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const school = spell.system?.school || 'Unknown';
     const flavorParts = [`1d10: ${diceResult}`, `COOL ${spellcastingStatVal}`];
-    if (spellcastingRank) flavorParts.push(`Spellcasting ${spellcastingRank}`);
+    if (spellcastingRank) flavorParts.push(`${spellcastingSkill ? spellcastingSkill.name : 'Spellcasting (2)'} ${spellcastingRank}`);
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);    let resultText = '';
     if (difficulty !== null) {
       const success = finalTotal >= difficulty;
