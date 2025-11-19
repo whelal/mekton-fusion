@@ -146,12 +146,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     console.log("mekton-fusion | Is Token Actor:", this.actor.isToken);
     console.log("mekton-fusion | Actor Link:", this.actor.token?.actorLink);
     
-    // Normalize initiative (MV) in case there are duplicate inputs across tabs.
-    // Foundry form processing can yield an array when multiple fields have the same name.
+    // Normalize substats to preserve decimal values for run/leap/swim
     try {
+      const decimalFields = ['run', 'leap', 'swim'];
+      for (const field of decimalFields) {
+        const key = `system.substats.${field}`;
+        if (formData[key] !== undefined && formData[key] !== '') {
+          formData[key] = parseFloat(formData[key]) || 0;
+        }
+      }
+      
+      // Normalize initiative (MV) - integer only
       let mv = formData["system.substats.initiative"];
       if (Array.isArray(mv)) {
-        // Prefer the last non-empty entry
         const nonEmpty = mv.filter(v => v !== '' && v !== null && v !== undefined);
         mv = nonEmpty.length ? nonEmpty[nonEmpty.length - 1] : mv[mv.length - 1];
       }
@@ -161,7 +168,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const mvNum = Number.isFinite(Number(mv)) ? parseInt(mv, 10) : 0;
       formData["system.substats.initiative"] = mvNum;
     } catch (e) {
-      console.warn('mekton-fusion | Failed to normalize initiative before update', e);
+      console.warn('mekton-fusion | Failed to normalize substats before update', e);
     }
     
     // Call the parent method to handle the update
@@ -832,7 +839,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Substat controls: +/- buttons and direct input changes
     html.on('click', '.substat-incr', ev => this._onAdjustSubstat(ev, +1));
     html.on('click', '.substat-decr', ev => this._onAdjustSubstat(ev, -1));
-    html.on('change input', '.substat-input', ev => this._queueSubstatChange(ev));
+    // Note: substat inputs rely on Foundry's submitOnChange for persistence
+    // Resource bars need custom handling for visual preview
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
 
     // (Category collapse feature removed)
@@ -1103,6 +1111,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     
     // Allow negative values for initiative modifier, but force non-negative for other substats
     if (val < 0 && key !== 'initiative') val = 0;
+    
+    // Allow decimal values for run, leap, swim
+    // For other fields, round to integer if not a resource pair max/current
+    const allowDecimals = ['run', 'leap', 'swim', 'hp', 'hp_current', 'sta', 'sta_current', 'rec', 'rec_current', 'psi', 'psi_current', 'psihybrid', 'psihybrid_current'];
+    if (!allowDecimals.includes(key)) {
+      val = Math.round(val);
+    }
 
     // Initialize batching structures
     this._pendingSubstat = this._pendingSubstat || {};
@@ -1170,6 +1185,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     this._flushSubstatsDebounced();
   }
 
+  /** Immediately flush pending substat changes (called on blur) */
+  async _flushSubstats() {
+    if (!this._pendingSubstat || Object.keys(this._pendingSubstat).length === 0) return;
+    const payload = this._pendingSubstat;
+    this._pendingSubstat = {};
+    const updateData = {};
+    for (const [k,v] of Object.entries(payload)) {
+      updateData[`system.substats.${k}`] = v;
+    }
+    if (Object.keys(updateData).length) {
+      try { await this.actor.update(updateData); } catch (e) { console.warn('mekton-fusion | Flush substat update failed', e); }
+    }
+  }
   /** Handle stat input changes */
   async _onChangeStatInput(ev) {
     const input = ev.currentTarget;
