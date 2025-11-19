@@ -1,11 +1,34 @@
-# 0.0.8 - 2025-10-20
+## [0.1.0] - 2025-11-19
+### Added
+- Decimal support for movement substats (`run`, `leap`, `swim`) allowing fractional values.
+
+### Changed
+- Skill renames: `Military Intelligence` -> `Expert: Military Intelligence`; `Spellcasting` -> `Spellcasting (2)`; `Resist Magic` -> `Resist Magic (2)`.
+- Expanded input width for large numeric substats (`--mf-input-w-lg` 56px→70px).
+
+### Removed
+- Duplicate non-PSI `Stat Boost` skill (legacy item purged).
+
+### Migration
+- Automatic rename of legacy skill items to new names during seed/migration pass.
+- Purge of deprecated skill items at load (non-PSI Stat Boost).
+
+### Fixed
+- Movement decimal values now persist (previously coerced to integers by schema).
+- Initiative remains integer-only (schema confirms enforcement).
+
+### Internal
+- DataModel schema updated: `run`, `leap`, `swim` now `integer:false`.
+- Version bumped to `0.1.0` marking minor feature milestone.
+
+## 0.0.8 - 2025-10-20
 ### Fixed
 - Tab bar height causing large blank space above Equipment/Notes; force compact single-line tabs and horizontal overflow.
 
 ### Changed
 - Consolidated tab CSS rules in styles/partials/_tabs.css and styles/mekton-fusion.css to avoid theme interference.
 
-# 0.0.5 - 2025-10-15
+## 0.0.5 - 2025-10-15
 ### Changed
 - Body tab: grouped SP/SDP input-button pairs on a single row for faster use.
 - Allow SDP to exceed MaxSDP (no clamping) to support over-repair/buffer scenarios.
@@ -13,12 +36,13 @@
 - Compact CSS tweaks for inline actions and spacing.
 - Horizontal layout refinements for paperdoll + table.
 
-# 0.0.4
-- Added formal DataModel schema for `system.substats` (stun, death, lift, carry, run, leap, swim, hp, hp_current, sta, sta_current, rec, rec_current, psi, psi_current, psihybrid, psihybrid_current, initiative, dodge, enc, punch, kick, humanity).
+## 0.0.4 - 2025-10-10
+### Added
+- Formal DataModel schema for `system.substats` (stun, death, lift, carry, run, leap, swim, hp, hp_current, sta, sta_current, rec, rec_current, psi, psi_current, psihybrid, psihybrid_current, initiative, dodge, enc, punch, kick, humanity).
 - Removed runtime seeding logic from actor sheet; defaults now handled by schema.
 - Atomic seeding flag update replaced by schema approach (legacy actors without `system.substats` get an empty object created once).
 
-# Changelog
+## Changelog
 All notable changes to this project will be documented in this file.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and uses Semantic Versioning while still in 0.0.x (breaking changes may still occur).
