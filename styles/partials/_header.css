@@ -33,6 +33,11 @@
   align-self: flex-start; /* anchor to left within header-fields */
 }
 .mekton-fusion.sheet.actor .header-profile-box .profile-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mekton-fusion.sheet.actor .header-profile-box .profile-field-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
@@ -52,12 +57,10 @@
   resize: vertical;
 }
 .mekton-fusion.sheet.actor .header-profile-box .profile-field textarea { min-height: 2.6rem; }
-.mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 3; }
+.mekton-fusion.sheet.actor .header-profile-box .profile-field.span-full { grid-column: span 1; }
 @media (max-width: 900px) {
-  .mekton-fusion.sheet.actor .header-profile-box .profile-grid { grid-template-columns: repeat(2, 1fr); }
-  .mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 2; }
+  .mekton-fusion.sheet.actor .header-profile-box .profile-field-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
-  .mekton-fusion.sheet.actor .header-profile-box .profile-grid { grid-template-columns: 1fr; }
-  .mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 1; }
+  .mekton-fusion.sheet.actor .header-profile-box .profile-field-row { grid-template-columns: 1fr; }
 }

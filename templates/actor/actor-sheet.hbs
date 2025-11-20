@@ -20,19 +20,21 @@
       </div>
       <div class="header-profile-box">
         <div class="profile-grid">
-          <div class="profile-field">
-            <label>Hair Color</label>
-            <input type="text" name="system.profile.hairColor" value="{{system.profile.hairColor}}" placeholder="Black" />
+          <div class="profile-field-row appearance-row">
+            <div class="profile-field">
+              <label>Hair Color</label>
+              <input type="text" name="system.profile.hairColor" value="{{system.profile.hairColor}}" placeholder="Black" />
+            </div>
+            <div class="profile-field">
+              <label>Hair Style</label>
+              <input type="text" name="system.profile.hairStyle" value="{{system.profile.hairStyle}}" placeholder="Short" />
+            </div>
+            <div class="profile-field">
+              <label>Eye Color</label>
+              <input type="text" name="system.profile.eyeColor" value="{{system.profile.eyeColor}}" placeholder="Green" />
+            </div>
           </div>
-          <div class="profile-field">
-            <label>Hair Style</label>
-            <input type="text" name="system.profile.hairStyle" value="{{system.profile.hairStyle}}" placeholder="Short" />
-          </div>
-          <div class="profile-field">
-            <label>Eye Color</label>
-            <input type="text" name="system.profile.eyeColor" value="{{system.profile.eyeColor}}" placeholder="Green" />
-          </div>
-          <div class="profile-field span-2">
+          <div class="profile-field span-full">
             <label>Personality Traits</label>
             <textarea name="system.profile.personalityTraits" rows="2" placeholder="Brooding, Loyal">{{system.profile.personalityTraits}}</textarea>
           </div>
