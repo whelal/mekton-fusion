@@ -787,8 +787,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Tab helpers
     const getTabFromEvent = ev => {
       const tabEl = ev.currentTarget.closest('.tab');
-      if (tabEl?.dataset.tab === 'psi') return 'psi';
-      if (tabEl?.dataset.tab === 'spells') return 'spells';
+      const tab = tabEl?.dataset.tab;
+      if (tab === 'psi') return 'psi';
+      if (tab === 'witcher') return 'witcher';
       return 'skills';
     };
     // Favorites toggle

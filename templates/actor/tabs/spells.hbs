@@ -39,8 +39,8 @@
 
   {{#if hasAnySpells}}
     <div class="skill-controls flexrow spell-controls">
-      <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateSpells.favOnly}}">
-        {{#if _skillViewStateSpells.favOnly}}
+      <button type="button" class="skill-filter-fav-toggle" data-active="{{_skillViewStateWitcher.favOnly}}">
+        {{#if _skillViewStateWitcher.favOnly}}
           {{localize 'MF.ShowAllSkills'}}
         {{else}}
           {{localize 'MF.ShowFavOnly'}}
@@ -48,13 +48,13 @@
       </button>
       <label>{{localize 'MF.SortBy'}}:
         <select class="skill-sort-by">
-          <option value="name" {{#if (eq _skillViewStateSpells.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
-          <option value="stat" {{#if (eq _skillViewStateSpells.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
-          <option value="rank" {{#if (eq _skillViewStateSpells.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
-          <option value="total" {{#if (eq _skillViewStateSpells.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
+          <option value="name" {{#if (eq _skillViewStateWitcher.sortBy 'name')}}selected{{/if}}>{{localize 'MF.SortName'}}</option>
+          <option value="stat" {{#if (eq _skillViewStateWitcher.sortBy 'stat')}}selected{{/if}}>{{localize 'MF.SortStat'}}</option>
+          <option value="rank" {{#if (eq _skillViewStateWitcher.sortBy 'rank')}}selected{{/if}}>{{localize 'MF.SortRank'}}</option>
+          <option value="total" {{#if (eq _skillViewStateWitcher.sortBy 'total')}}selected{{/if}}>{{localize 'MF.SortTotal'}}</option>
         </select>
       </label>
-      <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateSpells.dir}}" title="Toggle direction">{{#if (eq _skillViewStateSpells.dir 'asc')}}▲{{else}}▼{{/if}}</button>
+      <button type="button" class="skill-sort-dir" data-dir="{{_skillViewStateWitcher.dir}}" title="Toggle direction">{{#if (eq _skillViewStateWitcher.dir 'asc')}}▲{{else}}▼{{/if}}</button>
       <button type="button" class="spell-add-power" title="{{localize 'MF.AddSpell'}}">+</button>
     </div>
     {{#if hasSpells}}
@@ -99,7 +99,7 @@
           <tr><td colspan="8" class="mf-warning">{{localize 'MF.SpellcastingMissing'}}</td></tr>
         {{/unless}}
       {{else}}
-        <p class="mf-empty">{{#if _skillViewStateSpells.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
+        <p class="mf-empty">{{#if _skillViewStateWitcher.favOnly}}{{localize 'MF.NoFavoriteSpells'}}{{else}}{{localize 'MF.NoSpells'}}{{/if}}</p>
       {{/if}}
     {{/if}}
   {{else}}
