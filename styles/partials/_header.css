@@ -29,10 +29,12 @@
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--mf-white);
   border-radius: 4px;
+  max-width: 520px; /* prevent spanning entire header width */
+  align-self: flex-start; /* anchor to left within header-fields */
 }
 .mekton-fusion.sheet.actor .header-profile-box .profile-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
 }
 .mekton-fusion.sheet.actor .header-profile-box .profile-field { display: flex; flex-direction: column; gap: 0.2rem; }
