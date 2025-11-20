@@ -38,11 +38,11 @@
   gap: 0.4rem;
 }
 .mekton-fusion.sheet.actor .header-profile-box .profile-field-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.4rem !important;
 }
-.mekton-fusion.sheet.actor .header-profile-box .profile-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.mekton-fusion.sheet.actor .header-profile-box .profile-field { display: flex !important; flex-direction: column !important; gap: 0.2rem !important; }
 .mekton-fusion.sheet.actor .header-profile-box .profile-field label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 .mekton-fusion.sheet.actor .header-profile-box .profile-field input,
 .mekton-fusion.sheet.actor .header-profile-box .profile-field textarea {
