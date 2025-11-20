@@ -7,6 +7,16 @@ export class ActorDataModel extends foundry.abstract.DataModel {
                 age: new fields.NumberField({initial: 25, min: 0, integer: true}),
                 points: new fields.NumberField({initial: 0, min: 0, integer: true})
             }),
+            // Player profile / appearance & personal hooks
+            profile: new fields.SchemaField({
+                hairColor: new fields.StringField({ initial: "" }),
+                hairStyle: new fields.StringField({ initial: "" }),
+                eyeColor: new fields.StringField({ initial: "" }),
+                personalityTraits: new fields.StringField({ initial: "" }),
+                valueMost: new fields.StringField({ initial: "" }),
+                valuedPossession: new fields.StringField({ initial: "" }),
+                personValueMost: new fields.StringField({ initial: "" })
+            }),
             stats: new fields.SchemaField({
                 INT: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),
                 REF: new fields.SchemaField({ value: new fields.NumberField({initial: 5, min: 0, integer: true}) }),

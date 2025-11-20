@@ -2,6 +2,9 @@
 .mekton-fusion.sheet.actor .sheet-header {
   background: var(--mf-black); color: var(--mf-white);
   padding: 0.5rem; border: 2px solid var(--mf-white); margin-bottom: 1rem;
+  min-height: calc(300px + 1rem + 4px); /* match stats tab (portrait + padding + border) */
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 .mekton-fusion.sheet.actor .sheet-header h1 { margin: 0; }
 .mekton-fusion.sheet.actor .sheet-header h1 input {
@@ -19,4 +22,40 @@
 .mekton-fusion.sheet.actor .header-field label { font-size: 0.7rem; font-weight: bold; margin: 0; }
 .mekton-fusion.sheet.actor .header-field input {
   background: transparent; border: none; text-align: center; font-weight: bold; font-size: 0.9rem; width: 100%;
+}
+.mekton-fusion.sheet.actor .header-profile-box {
+  margin-top: 0.5rem;
+  background: rgba(255,255,255,0.08);
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--mf-white);
+  border-radius: 4px;
+}
+.mekton-fusion.sheet.actor .header-profile-box .profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+.mekton-fusion.sheet.actor .header-profile-box .profile-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.mekton-fusion.sheet.actor .header-profile-box .profile-field label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.mekton-fusion.sheet.actor .header-profile-box .profile-field input,
+.mekton-fusion.sheet.actor .header-profile-box .profile-field textarea {
+  width: 100%;
+  font-size: 0.7rem;
+  background: var(--mf-white);
+  color: var(--mf-text);
+  border: 1px solid var(--mf-black);
+  padding: 0.25rem 0.3rem;
+  border-radius: 3px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+.mekton-fusion.sheet.actor .header-profile-box .profile-field textarea { min-height: 2.6rem; }
+.mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 3; }
+@media (max-width: 900px) {
+  .mekton-fusion.sheet.actor .header-profile-box .profile-grid { grid-template-columns: repeat(2, 1fr); }
+  .mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 2; }
+}
+@media (max-width: 600px) {
+  .mekton-fusion.sheet.actor .header-profile-box .profile-grid { grid-template-columns: 1fr; }
+  .mekton-fusion.sheet.actor .header-profile-box .profile-field.span-2 { grid-column: span 1; }
 }
