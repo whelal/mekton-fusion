@@ -596,6 +596,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       console.debug?.('mekton-fusion | substats relocation failed', e);
     }
 
+    // Anchor the header height to the initial (Stats tab) render so it stays consistent across tabs.
+    try {
+      const headerEl = html[0]?.querySelector('.sheet-header');
+      if (headerEl) {
+        requestAnimationFrame(() => {
+          const baseline = headerEl.getBoundingClientRect().height;
+          if (baseline > 0) headerEl.style.minHeight = `${baseline}px`;
+        });
+      }
+    } catch (e) {
+      console.debug?.('mekton-fusion | header height lock failed', e);
+    }
+
     html.on("click", ".item-control.item-edit", ev => {
       const id = ev.currentTarget.closest("[data-item-id]")?.dataset.itemId;
       this.actor.items.get(id)?.sheet?.render(true);
