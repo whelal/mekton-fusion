@@ -1,4 +1,14 @@
 ## [0.1.0] - 2025-11-19
+## [0.1.3] - 2025-11-30
+### Fixed
+- Header height anchored to initial Stats render to prevent layout jumps across tabs.
+
+### Changed
+- Profile header layout: grouped Hair Color, Hair Style, Eye Color into a single row; constrained profile box width for cleaner header.
+
+### Added
+- Actor `system.profile` fields exposed in header (hair color/style, eye color, personality traits, valued most, valued possession, person valued most).
+
 ### Added
 - Decimal support for movement substats (`run`, `leap`, `swim`) allowing fractional values.
 
