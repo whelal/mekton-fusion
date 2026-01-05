@@ -857,6 +857,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Resource bars need custom handling for visual preview
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
 
+    // Keep duplicate Initiative (MV) inputs across tabs in sync and persist via queued substat handler
+    html.on('change input', 'input[name="system.substats.initiative"]', ev => {
+      const val = ev.currentTarget.value;
+      html.find('input[name="system.substats.initiative"]').each((_, el) => {
+        if (el !== ev.currentTarget) el.value = val;
+      });
+      this._queueSubstatChange?.(ev);
+    });
+
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
     try { this._refreshBodyItemIcons(); } catch (e) { /* ignore */ }

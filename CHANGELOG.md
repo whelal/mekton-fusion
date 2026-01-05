@@ -1,4 +1,8 @@
 ## [0.1.0] - 2025-11-19
+## [0.1.4] - 2026-01-05
+### Fixed
+- Initiative (MV) now persists: duplicate MV inputs across tabs stay in sync and submit the edited value instead of reverting.
+
 ## [0.1.3] - 2025-11-30
 ### Fixed
 - Header height anchored to initial Stats render to prevent layout jumps across tabs.
