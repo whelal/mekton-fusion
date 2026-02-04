@@ -1804,7 +1804,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollWithDifficulty', { name: skill.name, difficulty }) :
       game.i18n.format('MF.RollSimple', { name: skill.name });
     
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}`;
     await roll.toMessage({ speaker, flavor });
   }
 
@@ -2038,25 +2038,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const { roll, total: baseTotal, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
 
     const rollTotal = baseTotal + total;
-    const content = `
-      <div style="font-size: 0.9rem;">
-        <p><strong>${weapon.name} Attack Roll</strong></p>
-        <p>Skill: ${skillTotal} + WA: ${wa} = <strong>${total}</strong></p>
-        <p>d10: ${baseTotal} <strong>Total: ${rollTotal}</strong></p>
-        ${plusDice.length > 0 ? `<p><small>Exploded: ${plusDice.join(', ')}</small></p>` : ''}
-        ${minusDice.length > 0 ? `<p><small>Subtracted: ${minusDice.join(', ')}</small></p>` : ''}
-        ${capped ? `<p><small>⚠ Explosion capped at +${maxExtra} dice</small></p>` : ''}
-      </div>
-    `;
-
-    const messageData = {
-      user: game.user.id,
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      content: content,
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL,
-      roll: roll
-    };
-
-    await ChatMessage.create(messageData);
+    
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
+    
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${weapon.name}${tag}${capTag} = (${plusStr}${minusStr}) + Skill ${skillTotal} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${rollTotal}</strong>`;
+    
+    await roll.toMessage({ speaker, flavor });
   }
 }
