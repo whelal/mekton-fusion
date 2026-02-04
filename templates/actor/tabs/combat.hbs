@@ -1,0 +1,148 @@
+{{!-- Combat tab partial --}}
+<div class="tab combat" data-tab="combat">
+  <style>
+    .tab.combat .combat-section { margin-bottom: 8px; }
+    .tab.combat .combat-section-header { background: #000; color: #fff; padding: 4px 8px; font-weight: 700; font-size: 0.85rem; margin-bottom: 0; text-transform: uppercase; }
+    .tab.combat .combat-skills-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #bbb; border-top: none; }
+    .tab.combat .combat-skill-row { display: flex; align-items: center; padding: 4px 8px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; gap: 6px; }
+    .tab.combat .combat-skill-row:nth-child(odd) { border-right: 1px solid #ddd; }
+    .tab.combat .combat-skill-row:nth-child(even) { border-right: none; }
+    .tab.combat .combat-skill-row:nth-last-child(-n+2) { border-bottom: none; }
+    .tab.combat .skill-label { flex: 1; font-weight: 500; font-size: 0.8rem; }
+    .tab.combat .skill-total-display { min-width: 55px; text-align: center; font-size: 0.75rem; color: #333; font-weight: 500; }
+    .tab.combat .skill-roll-cell { width: 28px; text-align: center; }
+    .tab.combat .skill-roll-cell button { padding: 1px 4px; font-size: 0.8rem; }
+    .tab.combat .weapons-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 2px; }
+    .tab.combat .weapons-table tbody tr { border-bottom: 1px solid #ddd; }
+    .tab.combat .weapons-table td { padding: 3px 8px; vertical-align: middle; }
+    .tab.combat .weapons-table td:last-child { width: 28px; text-align: center; }
+  </style>
+
+  <div class="combat-container">
+    <div class="combat-section human-combat">
+      <div class="combat-section-header">HUMAN COMBAT SKILLS</div>
+      {{#if hasSkillItems}}
+        <div class="combat-skills-list">
+          {{#each skillGroups as |group|}}
+            {{#if (eq group.category 'REF:COMBAT')}}
+              {{#each group.skills as |sk|}}
+                <div class="combat-skill-row" data-skill-id="{{sk.id}}">
+                  <span class="skill-label">{{sk.name}} {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}</span>
+                  <span class="skill-total-display">+ {{sk.total}}</span>
+                  <div class="skill-roll-cell">
+                    <button type="button" class="skill-roll" title="Roll {{sk.name}}"><i class="fas fa-dice-d20"></i></button>
+                  </div>
+                </div>
+              {{/each}}
+            {{/if}}
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="combat-skills-list" style="padding: 6px 12px;">
+          <p class="mf-empty" style="margin: 0;">No combat skills yet.</p>
+        </div>
+      {{/if}}
+
+      <div class="combat-section-header" style="margin-top: 12px;">WEAPONS</div>
+      <table class="weapons-table" style="font-size: 0.75rem;">
+        <thead>
+          <tr style="background: #f0f0f0; font-weight: 600; border-bottom: 1px solid #999;">
+            <th style="padding: 2px 4px; text-align: left; width: 20%;">Name</th>
+            <th style="padding: 2px 4px; text-align: center; width: 8%;">WA</th>
+            <th style="padding: 2px 4px; text-align: left; width: 12%;">Range</th>
+            <th style="padding: 2px 4px; text-align: left; width: 15%;">Damage</th>
+            <th style="padding: 2px 4px; text-align: center; width: 8%;">Shots</th>
+            <th style="padding: 2px 4px; text-align: center; width: 8%;">BV</th>
+            <th style="padding: 2px 4px; text-align: left; width: 12%;">Skill</th>
+            <th style="padding: 2px 4px; text-align: center; width: 17%;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items as |item|}}
+            {{#if (eq item.type 'weapon')}}
+              <tr data-item-id="{{item.id}}" style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 2px 4px;">
+                  <input type="text" name="system.weapons.{{@index}}.name" class="weapon-field" value="{{item.system.name}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="name"/>
+                </td>
+                <td style="padding: 2px 4px; text-align: center;">
+                  <input type="number" name="system.weapons.{{@index}}.wa" class="weapon-field" value="{{item.system.wa}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="wa"/>
+                </td>
+                <td style="padding: 2px 4px;">
+                  <input type="text" name="system.weapons.{{@index}}.range" class="weapon-field" value="{{item.system.range}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="range"/>
+                </td>
+                <td style="padding: 2px 4px;">
+                  <input type="text" name="system.weapons.{{@index}}.damage" class="weapon-field" value="{{item.system.damage}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="damage"/>
+                </td>
+                <td style="padding: 2px 4px; text-align: center;">
+                  <input type="number" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots"/>
+                </td>
+                <td style="padding: 2px 4px; text-align: center;">
+                  <input type="text" name="system.weapons.{{@index}}.bv" class="weapon-field" value="{{item.system.bv}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="bv" placeholder="—"/>
+                </td>
+                <td style="padding: 2px 4px;">
+                  <select name="system.weapons.{{@index}}.skill" class="weapon-field" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="skill">
+                    <option value="" {{#unless item.system.skill}}selected{{/unless}}>—</option>
+                    <option value="automatic-weapon" {{#if (eq item.system.skill 'automatic-weapon')}}selected{{/if}}>Auto Weapon</option>
+                    <option value="blade" {{#if (eq item.system.skill 'blade')}}selected{{/if}}>Blade</option>
+                    <option value="handgun" {{#if (eq item.system.skill 'handgun')}}selected{{/if}}>Handgun</option>
+                    <option value="hand-to-hand" {{#if (eq item.system.skill 'hand-to-hand')}}selected{{/if}}>Hand to Hand</option>
+                    <option value="rifle" {{#if (eq item.system.skill 'rifle')}}selected{{/if}}>Rifle</option>
+                    <option value="whip" {{#if (eq item.system.skill 'whip')}}selected{{/if}}>Whip</option>
+                  </select>
+                </td>
+                <td style="padding: 2px 4px; text-align: center;">
+                  <button type="button" class="weapon-roll" title="Roll {{item.name}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-dice-d20"></i></button>
+                  <button type="button" class="item-delete" title="Delete Weapon" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; width: 18px;"><i class="fas fa-trash"></i></button>
+                </td>
+              </tr>
+            {{/if}}
+          {{/each}}
+        </tbody>
+      </table>
+      <div style="padding: 4px 8px; border: 1px solid #bbb; border-top: none; text-align: center; background: #f5f5f5;">
+        <button type="button" class="create-weapon-item" style="font-size: 0.75rem; padding: 2px 8px;"><i class="fas fa-plus"></i> Add Weapon</button>
+      </div>
+    </div>
+
+    <div class="combat-section mecha-combat">
+      <div class="combat-section-header">MECHA COMBAT SKILLS</div>
+      <div class="combat-skills-list">
+        <div class="combat-skill-row" data-skill-id="{{mechaSkills.piloting.id}}">
+          <span class="skill-label">Mecha Piloting</span>
+          <span class="skill-total-display" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</span>
+          <div class="skill-roll-cell">
+            <button type="button" class="skill-roll" title="Roll Mecha Piloting"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="combat-skill-row" data-skill-id="{{mechaSkills.fighting.id}}">
+          <span class="skill-label">Mecha Fighting</span>
+          <span class="skill-total-display" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</span>
+          <div class="skill-roll-cell">
+            <button type="button" class="skill-roll" title="Roll Mecha Fighting"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="combat-skill-row" data-skill-id="{{mechaSkills.melee.id}}">
+          <span class="skill-label">Mecha Melee</span>
+          <span class="skill-total-display" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</span>
+          <div class="skill-roll-cell">
+            <button type="button" class="skill-roll" title="Roll Mecha Melee"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="combat-skill-row" data-skill-id="{{mechaSkills.gunnery.id}}">
+          <span class="skill-label">Mecha Gunnery</span>
+          <span class="skill-total-display" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</span>
+          <div class="skill-roll-cell">
+            <button type="button" class="skill-roll" title="Roll Mecha Gunnery"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+        <div class="combat-skill-row" data-skill-id="{{mechaSkills.missiles.id}}">
+          <span class="skill-label">Mecha Missiles</span>
+          <span class="skill-total-display" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</span>
+          <div class="skill-roll-cell">
+            <button type="button" class="skill-roll" title="Roll Mecha Missiles"><i class="fas fa-dice-d20"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

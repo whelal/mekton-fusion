@@ -75,7 +75,7 @@ Hooks.once("init", () => {
 
   // Register our item sheet
   DSC.registerSheet(Item, "mekton-fusion", MektonFusionItemSheet, {
-    types: ["skill", "spell"], // handle skills and spells
+    types: ["skill", "spell", "weapon", "armor"], // handle skills, spells, weapons, and armor
     makeDefault: true,
     label: "Mekton Item Sheet"
   });

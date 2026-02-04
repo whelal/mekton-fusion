@@ -85,14 +85,23 @@
     "npc": { "templates": ["base"] }
   },
   "Item": {
-    "types": ["skill", "spell"],
+    "types": ["skill", "spell", "weapon", "armor"],
     "templates": {
       "base": {
         "description": "",
         "weight": 0
       }
     },
-    "weapon": { "templates": ["base"] },
+    "weapon": {
+      "templates": ["base"],
+      "name": "",
+      "wa": 0,
+      "range": "",
+      "damage": "",
+      "shots": 0,
+      "bv": "",
+      "skill": ""
+    },
     "armor": { "templates": ["base"] },
     "spell": {
       "templates": ["base"],

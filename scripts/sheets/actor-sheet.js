@@ -50,7 +50,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       submitOnChange: true,
       submitOnClose: true,
       closeOnSubmit: false,
-      scrollY: [".tab.stats", ".tab.skills", ".tab.psi", ".tab.witcher", ".tab.equipment", ".tab.notes"]
+      scrollY: [".tab.stats", ".tab.combat", ".tab.skills", ".tab.psi", ".tab.witcher", ".tab.equipment", ".tab.notes"]
     });
   }
 
@@ -548,6 +548,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Pre-render tab templates to avoid partial-registration timing issues.
     try {
   ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
+      ctx._tabCombatHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/combat.hbs", ctx);
       ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
       ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
       ctx._tabMechaHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/mecha.hbs", ctx);
@@ -566,6 +567,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       console.error('mekton-fusion | Failed to pre-render actor tab templates', err);
       // Fall back to empty strings so template rendering doesn't throw further
   ctx._tabStatsHtml = ctx._tabStatsHtml || '';
+      ctx._tabCombatHtml = ctx._tabCombatHtml || '';
       ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
       ctx._tabPsiHtml = ctx._tabPsiHtml || '';
       ctx._tabMechaHtml = ctx._tabMechaHtml || '';
@@ -865,6 +867,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
       this._queueSubstatChange?.(ev);
     });
+
+    // Weapon handlers
+    html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
+    html.on('click', '.weapon-roll', ev => this._onRollWeapon(ev));
+    html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
+    html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
 
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
@@ -1909,5 +1917,146 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (updates.length > 0) {
       await this.actor.updateEmbeddedDocuments('Item', updates);
     }
+  }
+
+  /** Create a new weapon item */
+  async _onCreateWeapon(ev) {
+    ev.preventDefault();
+    try {
+      await this.actor.createEmbeddedDocuments('Item', [{
+        name: "New Weapon",
+        type: "weapon",
+        system: {
+          name: "New Weapon",
+          wa: 0,
+          range: "",
+          damage: "",
+          shots: 0,
+          bv: "",
+          skill: ""
+        }
+      }]);
+      this.render(false);
+    } catch (err) {
+      console.error('mekton-fusion | Failed to create weapon', err);
+      ui.notifications.error("Failed to create weapon");
+    }
+  }
+
+  /** Delete a weapon item */
+  async _onDeleteWeapon(ev) {
+    ev.preventDefault();
+    const itemId = ev.currentTarget.dataset.itemId;
+    if (!itemId) return;
+    
+    const item = this.actor.items.get(itemId);
+    if (!item) return;
+
+    const confirmed = await Dialog.confirm({
+      title: "Delete Weapon",
+      content: `Delete weapon "${item.name}"?`,
+      yes: () => true,
+      no: () => false
+    });
+
+    if (confirmed) {
+      try {
+        await item.delete();
+        ui.notifications.info(`Deleted weapon: ${item.name}`);
+        this.render(false);
+      } catch (err) {
+        console.error('mekton-fusion | Failed to delete weapon', err);
+        ui.notifications.error("Failed to delete weapon");
+      }
+    }
+  }
+
+  /** Change weapon field */
+  async _onChangeWeaponField(ev) {
+    const input = ev.currentTarget;
+    const tr = input.closest('tr[data-item-id]');
+    if (!tr) return;
+    
+    const itemId = tr.dataset.itemId;
+    const field = input.dataset.field;
+    if (!itemId || !field) return;
+
+    const item = this.actor.items.get(itemId);
+    if (!item) return;
+
+    let val = input.value;
+    
+    // Parse numbers for numeric fields
+    if (['wa', 'shots'].includes(field)) {
+      val = MektonActorSheet._num(val, 0);
+    }
+
+    try {
+      await item.update({ [`system.${field}`]: val });
+    } catch (err) {
+      console.error(`mekton-fusion | Failed to update weapon field ${field}`, err);
+      ui.notifications.error(`Failed to update weapon ${field}`);
+    }
+  }
+
+  /** Roll a weapon attack */
+  async _onRollWeapon(ev) {
+    ev.preventDefault();
+    const button = ev.currentTarget;
+    const itemId = button.dataset.itemId;
+    if (!itemId) return;
+
+    const weapon = this.actor.items.get(itemId);
+    if (!weapon) return;
+
+    const skillName = weapon.system?.skill;
+    const wa = MektonActorSheet._num(weapon.system?.wa, 0);
+
+    // Find the corresponding skill in the actor's items
+    let skillTotal = 0;
+    if (skillName) {
+      const skillMap = {
+        'automatic-weapon': 'Automatic Weapon',
+        'blade': 'Blade',
+        'handgun': 'Handgun',
+        'hand-to-hand': 'Hand to Hand',
+        'rifle': 'Rifle',
+        'whip': 'Whip'
+      };
+      
+      const skillDisplayName = skillMap[skillName];
+      const skill = this.actor.items.find(i => i.type === 'skill' && i.name === skillDisplayName);
+      
+      if (skill) {
+        const statVal = this.actor.system?.stats?.[skill.system?.stat?.toUpperCase()]?.value ?? 0;
+        const rank = MektonActorSheet._num(skill.system?.rank, 0);
+        skillTotal = statVal + rank;
+      }
+    }
+
+    const total = skillTotal + wa;
+    const { roll, total: baseTotal, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+
+    const rollTotal = baseTotal + total;
+    const content = `
+      <div style="font-size: 0.9rem;">
+        <p><strong>${weapon.name} Attack Roll</strong></p>
+        <p>Skill: ${skillTotal} + WA: ${wa} = <strong>${total}</strong></p>
+        <p>d10: ${baseTotal} <strong>Total: ${rollTotal}</strong></p>
+        ${plusDice.length > 0 ? `<p><small>Exploded: ${plusDice.join(', ')}</small></p>` : ''}
+        ${minusDice.length > 0 ? `<p><small>Subtracted: ${minusDice.join(', ')}</small></p>` : ''}
+        ${capped ? `<p><small>⚠ Explosion capped at +${maxExtra} dice</small></p>` : ''}
+      </div>
+    `;
+
+    const messageData = {
+      user: game.user.id,
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: content,
+      type: CONST.CHAT_MESSAGE_TYPES.ROLL,
+      roll: roll
+    };
+
+    await ChatMessage.create(messageData);
   }
 }
