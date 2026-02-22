@@ -1,3 +1,9 @@
+## [0.1.7] - 2026-02-22
+### Added
+- Combat tab: Mecha combat section now has a MECHA WEAPONS table matching the human combat weapons layout.
+- Weapons separated by `isMecha` flag — human and mecha weapons are fully independent.
+- Note field added after Skill column in both human and mecha weapons tables.
+
 ## [0.1.0] - 2025-11-19
 ## [0.1.4] - 2026-01-05
 ### Fixed

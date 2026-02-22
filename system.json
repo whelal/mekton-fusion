@@ -2,7 +2,7 @@
   "id": "mekton-fusion",
   "title": "Mekton Fusion",
   "description": "Fusion of Mekton with Cyberpunk 2020 stats/skills and Witcher TRPG magic.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "compatibility": { "minimum": "13", "verified": "13" },
   "authors": [{ "name": "Wael Helal (whelal)" }],
   "url": "https://github.com/whelal/mekton-fusion",
@@ -21,6 +21,9 @@
   "languages": [
     { "lang": "en", "name": "English", "path": "lang/en.json" }
   ],
+  "Item": {
+    "types": ["skill", "spell", "weapon", "mecha-weapon", "armor"]
+  },
   "initiative": "1d10 + @system.stats.REF.value + @system.substats.initiative",
   "manifest": "https://raw.githubusercontent.com/whelal/mekton-fusion/main/system.json",
   "download": "https://github.com/whelal/mekton-fusion/archive/refs/heads/main.zip"

@@ -100,7 +100,9 @@
       "damage": "",
       "shots": 0,
       "bv": "",
-      "skill": ""
+      "skill": "",
+      "note": "",
+      "isMecha": false
     },
     "armor": { "templates": ["base"] },
     "spell": {

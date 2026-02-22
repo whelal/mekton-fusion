@@ -1922,6 +1922,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** Create a new weapon item */
   async _onCreateWeapon(ev) {
     ev.preventDefault();
+    // Determine if weapon is for mecha based on which section the button was clicked from
+    const section = ev.currentTarget.closest('.combat-section');
+    const isMecha = section?.classList.contains('mecha-combat');
+    
     try {
       await this.actor.createEmbeddedDocuments('Item', [{
         name: "New Weapon",
@@ -1933,7 +1937,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           damage: "",
           shots: 0,
           bv: "",
-          skill: ""
+          skill: "",
+          isMecha: !!isMecha
         }
       }]);
       this.render(false);
