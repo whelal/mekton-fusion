@@ -47,14 +47,14 @@
       <table class="weapons-table" style="font-size: 0.75rem;">
         <thead>
           <tr style="background: #f0f0f0; font-weight: 600; border-bottom: 1px solid #999;">
-            <th style="padding: 2px 4px; text-align: left; width: 16%;">Name</th>
+            <th style="padding: 2px 4px; text-align: left; width: 18%;">Name</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">WA</th>
-            <th style="padding: 2px 4px; text-align: left; width: 9%;">Range</th>
-            <th style="padding: 2px 4px; text-align: left; width: 12%;">Damage</th>
+            <th style="padding: 2px 4px; text-align: left; width: 10%;">Range</th>
+            <th style="padding: 2px 4px; text-align: left; width: 16%;">Damage</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">Shots</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">BV</th>
             <th style="padding: 2px 4px; text-align: left; width: 10%;">Skill</th>
-            <th style="padding: 2px 4px; text-align: left; width: 20%;">Note</th>
+            <th style="padding: 2px 4px; text-align: left; width: 13%;">Note</th>
             <th style="padding: 2px 4px; text-align: center; width: 15%;">Action</th>
           </tr>
         </thead>
@@ -70,10 +70,13 @@
                   <input type="number" name="system.weapons.{{@index}}.wa" class="weapon-field" value="{{item.system.wa}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="wa"/>
                 </td>
                 <td style="padding: 2px 4px;">
-                  <input type="text" name="system.weapons.{{@index}}.range" class="weapon-field" value="{{item.system.range}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="range"/>
+                  <input type="text" name="system.weapons.{{@index}}.range" class="weapon-field" value="{{item.system.range}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="range"/>
                 </td>
                 <td style="padding: 2px 4px;">
-                  <input type="text" name="system.weapons.{{@index}}.damage" class="weapon-field" value="{{item.system.damage}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="damage"/>
+                  <div style="display: flex; align-items: center; gap: 2px;">
+                    <input type="text" name="system.weapons.{{@index}}.damage" class="weapon-field" value="{{item.system.damage}}" style="flex: 1; font-size: 0.75rem; padding: 1px 2px;" data-field="damage" placeholder="e.g. 2d6+3"/>
+                    <button type="button" class="weapon-damage-roll" title="Roll damage: {{item.system.damage}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; width: 18px; flex-shrink: 0;"><i class="fas fa-dice"></i></button>
+                  </div>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
                   <input type="number" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots"/>
@@ -154,14 +157,14 @@
       <table class="weapons-table" style="font-size: 0.75rem;">
         <thead>
           <tr style="background: #f0f0f0; font-weight: 600; border-bottom: 1px solid #999;">
-            <th style="padding: 2px 4px; text-align: left; width: 16%;">Name</th>
+            <th style="padding: 2px 4px; text-align: left; width: 18%;">Name</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">WA</th>
-            <th style="padding: 2px 4px; text-align: left; width: 9%;">Range</th>
-            <th style="padding: 2px 4px; text-align: left; width: 12%;">Damage</th>
+            <th style="padding: 2px 4px; text-align: left; width: 10%;">Range</th>
+            <th style="padding: 2px 4px; text-align: left; width: 16%;">Damage</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">Shots</th>
             <th style="padding: 2px 4px; text-align: center; width: 6%;">BV</th>
             <th style="padding: 2px 4px; text-align: left; width: 10%;">Skill</th>
-            <th style="padding: 2px 4px; text-align: left; width: 20%;">Note</th>
+            <th style="padding: 2px 4px; text-align: left; width: 13%;">Note</th>
             <th style="padding: 2px 4px; text-align: center; width: 15%;">Action</th>
           </tr>
         </thead>
@@ -177,7 +180,7 @@
                   <input type="number" name="system.weapons.{{@index}}.wa" class="weapon-field" value="{{item.system.wa}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="wa"/>
                 </td>
                 <td style="padding: 2px 4px;">
-                  <input type="text" name="system.weapons.{{@index}}.range" class="weapon-field" value="{{item.system.range}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="range"/>
+                  <input type="text" name="system.weapons.{{@index}}.range" class="weapon-field" value="{{item.system.range}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="range"/>
                 </td>
                 <td style="padding: 2px 4px;">
                   <input type="text" name="system.weapons.{{@index}}.damage" class="weapon-field" value="{{item.system.damage}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="damage"/>

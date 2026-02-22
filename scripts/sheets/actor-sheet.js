@@ -871,6 +871,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Weapon handlers
     html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
     html.on('click', '.weapon-roll', ev => this._onRollWeapon(ev));
+    html.on('click', '.weapon-damage-roll', ev => this._onRollWeaponDamage(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
 
@@ -2004,9 +2005,39 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
   }
 
-  /** Roll a weapon attack */
-  async _onRollWeapon(ev) {
+  /** Roll weapon damage from the formula stored in item.system.damage */
+  async _onRollWeaponDamage(ev) {
     ev.preventDefault();
+    const button = ev.currentTarget;
+    const itemId = button.dataset.itemId;
+    if (!itemId) return;
+
+    const weapon = this.actor.items.get(itemId);
+    if (!weapon) return;
+
+    const formula = (weapon.system?.damage ?? '').trim();
+    if (!formula) {
+      ui.notifications.warn(`${weapon.name} has no damage formula set.`);
+      return;
+    }
+
+    // Validate formula before rolling
+    let roll;
+    try {
+      roll = new Roll(formula);
+      await roll.evaluate();
+    } catch (err) {
+      ui.notifications.error(`Invalid damage formula "${formula}" for ${weapon.name}.`);
+      return;
+    }
+
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weapon.name}</strong>: <em>${formula}</em> = <strong style="font-size: 1.2em; color: #c0392b;">${roll.total}</strong>`;
+    await roll.toMessage({ speaker, flavor });
+  }
+
+  /** Roll a weapon attack */
+  async _onRollWeapon(ev) {    ev.preventDefault();
     const button = ev.currentTarget;
     const itemId = button.dataset.itemId;
     if (!itemId) return;

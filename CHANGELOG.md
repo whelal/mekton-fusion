@@ -1,3 +1,8 @@
+## [0.1.8] - 2026-02-22
+### Changed
+- Combat tab: Range column widened to 10% to accommodate values like `300-1800`.
+- Combat tab: Damage column widened to 16% to accommodate formulas like `2d6+1d10+5`.
+
 ## [0.1.7] - 2026-02-22
 ### Added
 - Combat tab: Mecha combat section now has a MECHA WEAPONS table matching the human combat weapons layout.
