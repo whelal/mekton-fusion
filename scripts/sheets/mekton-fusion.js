@@ -2,6 +2,7 @@
 import { MektonActorSheet } from "./actor-sheet.js";
 import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
+import { WeaponDataModel, SkillDataModel, SpellDataModel, ArmorDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
 
 Hooks.once("init", () => {
@@ -59,6 +60,14 @@ Hooks.once("init", () => {
   for (const t of ["character", "npc", "vehicle"]) {
     CONFIG.Actor.dataModels[t] = ActorDataModel;
   }
+
+  // Register DataModel for all item types
+  CONFIG.Item.dataModels ||= {};
+  CONFIG.Item.dataModels.skill = SkillDataModel;
+  CONFIG.Item.dataModels.spell = SpellDataModel;
+  CONFIG.Item.dataModels.weapon = WeaponDataModel;
+  CONFIG.Item.dataModels["mecha-weapon"] = WeaponDataModel;
+  CONFIG.Item.dataModels.armor = ArmorDataModel;
 
   // Use namespaced DocumentSheetConfig (no deprecation warning)
   const DSC = foundry.applications.apps.DocumentSheetConfig;

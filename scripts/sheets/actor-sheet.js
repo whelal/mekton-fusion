@@ -872,6 +872,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
     html.on('click', '.weapon-roll', ev => this._onRollWeapon(ev));
     html.on('click', '.weapon-damage-roll', ev => this._onRollWeaponDamage(ev));
+    html.on('click', '.weapon-hitloc-roll', ev => this._onRollHitLocation(ev));
+    html.on('click', '.mf-roll-hitloc', ev => this._onRollHitLocation(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
 
@@ -2031,8 +2033,38 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       return;
     }
 
+    const weaponName = weapon.system?.name || weapon.name;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weapon.name}</strong>: <em>${formula}</em> = <strong style="font-size: 1.2em; color: #c0392b;">${roll.total}</strong>`;
+    const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weaponName}</strong>: <em>${formula}</em> = <strong style="font-size: 1.2em; color: #c0392b;">${roll.total}</strong>`;
+    await roll.toMessage({ speaker, flavor });
+  }
+
+  /** Roll human hit location (1d10 vs the Human Random Hit Chart) */
+  async _onRollHitLocation(ev) {
+    ev.preventDefault();
+    const button = ev.currentTarget;
+    const itemId = button.dataset.itemId;
+
+    // Resolve weapon name if called from a weapon button, otherwise generic label
+    let weaponLabel = "";
+    if (itemId) {
+      const weapon = this.actor.items.get(itemId);
+      if (weapon) weaponLabel = ` (${weapon.system?.name || weapon.name})`;
+    }
+
+    const roll = await new Roll("1d10").evaluate();
+    const result = roll.total;
+
+    let location;
+    if (result === 1)           location = "Head";
+    else if (result <= 4)       location = "Torso";
+    else if (result === 5)      location = "Right Arm";
+    else if (result === 6)      location = "Left Arm";
+    else if (result <= 8)       location = "Right Leg";
+    else                        location = "Left Leg";
+
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const flavor = `<strong>${this.actor.name}</strong> hit location${weaponLabel}: rolled <strong>${result}</strong> → <strong style="font-size: 1.1em;">${location}</strong>`;
     await roll.toMessage({ speaker, flavor });
   }
 
@@ -2083,7 +2115,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
     
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${weapon.name}${tag}${capTag} = (${plusStr}${minusStr}) + Skill ${skillTotal} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${rollTotal}</strong>`;
+    const weaponName = weapon.system?.name || weapon.name;
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName}${tag}${capTag} = (${plusStr}${minusStr}) + Skill ${skillTotal} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${rollTotal}</strong>`;
     
     await roll.toMessage({ speaker, flavor });
   }
