@@ -616,6 +616,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this.actor.items.get(id)?.sheet?.render(true);
     });
     html.on("click", ".ability-roll, .stat-roll", ev => this._onRollStat(ev));
+    html.on("click", ".stun-save-roll", ev => this._onRollStunSave(ev));
     html.on("click", ".skill-roll", ev => this._onRollSkill(ev));
     html.on("click", ".skill-fav", ev => this._onToggleFavorite(ev));
     html.on("change", ".skill-rank", ev => this._onChangeSkillRank(ev));
@@ -1726,6 +1727,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: stat });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    await roll.toMessage({ speaker, flavor });
+  }
+
+  /** Roll 1d10 for Stun Save */
+  async _onRollStunSave(ev) {
+    ev.preventDefault();
+    const stunVal = Number(this.actor.system?.substats?.stun) || 0;
+    const roll = new Roll('1d10');
+    await roll.evaluate();
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const flavor = `<strong>${this.actor.name}</strong> rolls Stun Save (${stunVal}) — 1d10 = <strong>${roll.total}</strong> — ${roll.total <= stunVal ? '<span style="color:green">SUCCESS</span>' : '<span style="color:red">FAILURE</span>'}`;
     await roll.toMessage({ speaker, flavor });
   }
 

@@ -37,6 +37,7 @@ export class ActorDataModel extends foundry.abstract.DataModel {
             substats: new fields.SchemaField({
                 stun: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 death: new fields.NumberField({initial: 0, min: 0, integer: true}),
+                bodyTypeMod: new fields.NumberField({initial: 0, integer: true}),
                 lift: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 carry: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 run: new fields.NumberField({initial: 0, min: 0, integer: false}),

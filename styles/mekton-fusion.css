@@ -1123,7 +1123,8 @@ html.theme-dark .mekton-fusion {
 }
 .mekton-fusion.sheet.actor .panel { background: var(--mf-card); border: 2px solid var(--mf-border); padding: var(--mf-pad-sm); }
 .mekton-fusion.sheet.actor .panel h4 { margin: 0 0 var(--mf-gap-sm) 0; font-size: 0.95rem; }
-.mekton-fusion.sheet.actor .panel-list label { display: block; margin: 0.25rem 0; }
+.mekton-fusion.sheet.actor .panel-list label { display: flex; align-items: center; gap: 0.25rem; margin: 0.25rem 0; }
+.mekton-fusion.sheet.actor .panel-list label .stun-save-roll { margin-left: 0.15rem; padding: 0; width: 1.4rem; height: 1.4rem; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; cursor: pointer; flex-shrink: 0; }
 
 /* Paperdoll / Body tab */
 .mekton-fusion .tab.body .body-container { padding: var(--mf-pad); }
