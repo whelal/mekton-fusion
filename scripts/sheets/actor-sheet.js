@@ -43,7 +43,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["mekton-fusion", "sheet", "actor"],
       template: "systems/mekton-fusion/templates/actor/actor-sheet.hbs",
-      width: 740,
+      width: 940,
       height: 700,
       tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "stats" }],
       submitOnChange: true,
@@ -546,19 +546,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (e) {
       // Non-fatal; best-effort UI fix
       console.debug?.('mekton-fusion | substats relocation failed', e);
-    }
-
-    // Anchor the header height to the initial (Stats tab) render so it stays consistent across tabs.
-    try {
-      const headerEl = html[0]?.querySelector('.sheet-header');
-      if (headerEl) {
-        requestAnimationFrame(() => {
-          const baseline = headerEl.getBoundingClientRect().height;
-          if (baseline > 0) headerEl.style.minHeight = `${baseline}px`;
-        });
-      }
-    } catch (e) {
-      console.debug?.('mekton-fusion | header height lock failed', e);
     }
 
     html.on("click", ".item-control.item-edit", ev => {

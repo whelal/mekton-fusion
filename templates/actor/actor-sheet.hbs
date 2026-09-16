@@ -1,107 +1,129 @@
-<form class="{{cssClass}} flexcol" autocomplete="off">
-  <header class="sheet-header flexrow">
-    <img class="profile" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
-    <div class="header-fields">
-      <h1><input name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/></h1>
-      <div class="header-actions">
-        <button type="button" class="link-token-button" title="Link this Actor to the selected Token">Link Token</button>
-        <button type="button" class="unlink-token-button" title="Unlink this Actor from the selected Token">Unlink Token</button>
+<form class="{{cssClass}} flexcol mf-shell" autocomplete="off">
+  <aside class="mf-sidebar">
+    <div class="mf-portrait-wrap">
+      <img class="profile mf-portrait" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" alt="{{actor.name}}" />
+    </div>
+
+    <div class="mf-name-card">
+      <input class="mf-name-input" name="name" type="text" value="{{actor.name}}" placeholder="{{localize 'MF.Name'}}"/>
+      <input class="mf-role-input" name="system.meta.role" type="text" value="{{system.meta.role}}" placeholder="Role"/>
+    </div>
+
+    <div class="mf-vitals-grid">
+      <div class="mf-vital">
+        <span class="label">Hit Points</span>
+        <span class="value">
+          <input class="value-input" name="system.substats.hp_current" type="number" min="0" value="{{system.substats.hp_current}}"/>
+          / <input class="value-input" name="system.substats.hp" type="number" min="0" value="{{system.substats.hp}}"/>
+        </span>
       </div>
-      
-      <div class="header-stats flexrow">
-        <div class="header-field">
-          <label>AGE</label>
-          <input name="system.meta.age" type="number" value="{{system.meta.age}}" placeholder="35"/>
-        </div>
-        <div class="header-field">
-          <label>POINTS</label>
-          <input name="system.meta.points" type="number" value="{{system.meta.points}}" placeholder="75"/>
-        </div>
+      <div class="mf-vital">
+        <span class="label">Humanity</span>
+        <span class="value">
+          <input class="value-input" name="system.substats.humanity" type="number" min="0" value="{{system.substats.humanity}}"/>
+        </span>
       </div>
-      <div class="header-profile-box">
-        <div class="profile-grid">
-          <div class="profile-field-row appearance-row">
-            <div class="profile-field">
-              <label>Hair Color</label>
-              <input type="text" name="system.profile.hairColor" value="{{system.profile.hairColor}}" placeholder="Black" />
-            </div>
-            <div class="profile-field">
-              <label>Hair Style</label>
-              <input type="text" name="system.profile.hairStyle" value="{{system.profile.hairStyle}}" placeholder="Short" />
-            </div>
-            <div class="profile-field">
-              <label>Eye Color</label>
-              <input type="text" name="system.profile.eyeColor" value="{{system.profile.eyeColor}}" placeholder="Green" />
-            </div>
+    </div>
+
+    <div class="header-stats flexrow">
+      <div class="header-field">
+        <label>AGE</label>
+        <input name="system.meta.age" type="number" value="{{system.meta.age}}" placeholder="35"/>
+      </div>
+      <div class="header-field">
+        <label>POINTS</label>
+        <input name="system.meta.points" type="number" value="{{system.meta.points}}" placeholder="75"/>
+      </div>
+    </div>
+
+    <div class="header-profile-box">
+      <div class="profile-grid">
+        <div class="profile-field-row appearance-row">
+          <div class="profile-field">
+            <label>Hair Color</label>
+            <input type="text" name="system.profile.hairColor" value="{{system.profile.hairColor}}" placeholder="Black" />
           </div>
-          <div class="profile-field-row physical-row">
-            <div class="profile-field">
-              <label>Height</label>
-              <input type="text" name="system.profile.height" value="{{system.profile.height}}" placeholder="6'2\"" />
-            </div>
-            <div class="profile-field">
-              <label>Weight</label>
-              <input type="text" name="system.profile.weight" value="{{system.profile.weight}}" placeholder="180 lbs" />
-            </div>
-            <div class="profile-field">
-              <label>Sex</label>
-              <input type="text" name="system.profile.sex" value="{{system.profile.sex}}" placeholder="M/F/NB" />
-            </div>
+          <div class="profile-field">
+            <label>Hair Style</label>
+            <input type="text" name="system.profile.hairStyle" value="{{system.profile.hairStyle}}" placeholder="Short" />
           </div>
-          <div class="profile-field span-full">
-            <label>Personality Traits</label>
-            <input type="text" name="system.profile.personalityTraits" value="{{system.profile.personalityTraits}}" placeholder="Brooding, Loyal" />
+          <div class="profile-field">
+            <label>Eye Color</label>
+            <input type="text" name="system.profile.eyeColor" value="{{system.profile.eyeColor}}" placeholder="Green" />
           </div>
-          <div class="profile-field-row values-row">
-            <div class="profile-field">
-              <label>Thing You Value Most</label>
-              <input type="text" name="system.profile.valueMost" value="{{system.profile.valueMost}}" placeholder="Honor" />
-            </div>
-            <div class="profile-field">
-              <label>Valued Possession</label>
-              <input type="text" name="system.profile.valuedPossession" value="{{system.profile.valuedPossession}}" placeholder="Family Blade" />
-            </div>
-            <div class="profile-field">
-              <label>Person You Value Most</label>
-              <input type="text" name="system.profile.personValueMost" value="{{system.profile.personValueMost}}" placeholder="Sibling" />
-            </div>
+        </div>
+        <div class="profile-field-row physical-row">
+          <div class="profile-field">
+            <label>Height</label>
+            <input type="text" name="system.profile.height" value="{{system.profile.height}}" placeholder="6'2\"" />
+          </div>
+          <div class="profile-field">
+            <label>Weight</label>
+            <input type="text" name="system.profile.weight" value="{{system.profile.weight}}" placeholder="180 lbs" />
+          </div>
+          <div class="profile-field">
+            <label>Sex</label>
+            <input type="text" name="system.profile.sex" value="{{system.profile.sex}}" placeholder="M/F/NB" />
+          </div>
+        </div>
+        <div class="profile-field span-full">
+          <label>Personality Traits</label>
+          <input type="text" name="system.profile.personalityTraits" value="{{system.profile.personalityTraits}}" placeholder="Brooding, Loyal" />
+        </div>
+        <div class="profile-field-row values-row">
+          <div class="profile-field">
+            <label>Thing You Value Most</label>
+            <input type="text" name="system.profile.valueMost" value="{{system.profile.valueMost}}" placeholder="Honor" />
+          </div>
+          <div class="profile-field">
+            <label>Valued Possession</label>
+            <input type="text" name="system.profile.valuedPossession" value="{{system.profile.valuedPossession}}" placeholder="Family Blade" />
+          </div>
+          <div class="profile-field">
+            <label>Person You Value Most</label>
+            <input type="text" name="system.profile.personValueMost" value="{{system.profile.personValueMost}}" placeholder="Sibling" />
           </div>
         </div>
       </div>
     </div>
-    <!-- header content only (substats moved into Stats tab) -->
-    <!-- Homebrew notice removed from header; see HOMEBREW_NOTICE.md in system folder -->
-  </header>
 
-  <nav class="sheet-tabs tabs">
-    <a class="item" data-tab="stats">{{localize 'MF.TabStats'}}</a>
-    <a class="item" data-tab="combat">{{localize 'MF.TabCombat'}}</a>
-    <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
-    <a class="item" data-tab="body">{{localize 'MF.TabMekton'}}</a>
-    <a class="item" data-tab="mecha">{{localize 'MF.TabMecha' 'Mecha'}}</a>
-    <a class="item" data-tab="snaggletooth">Snaggletooth</a>
-    <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
-    <a class="item" data-tab="equipment">{{localize 'MF.TabEquipment' 'Equipment'}}</a>
-    <a class="item" data-tab="notes">{{localize 'MF.TabNotes' 'Notes'}}</a>
-  </nav>
+    <div class="mf-sidebar-actions">
+      <button type="button" class="link-token-button" title="Link this Actor to the selected Token">Link Token</button>
+      <button type="button" class="unlink-token-button" title="Unlink this Actor from the selected Token">Unlink Token</button>
+    </div>
+  </aside>
 
-  <section class="sheet-body">
-  {{{_tabStatsHtml}}}
+  <section class="mf-main">
+    <nav class="sheet-tabs tabs">
+      <a class="item" data-tab="stats">{{localize 'MF.TabStats'}}</a>
+      <a class="item" data-tab="combat">{{localize 'MF.TabCombat'}}</a>
+      <a class="item" data-tab="skills">{{localize 'MF.TabSkills'}}</a>
+      <a class="item" data-tab="body">{{localize 'MF.TabMekton'}}</a>
+      <a class="item" data-tab="mecha">{{localize 'MF.TabMecha' 'Mecha'}}</a>
+      <a class="item" data-tab="snaggletooth">Snaggletooth</a>
+      <a class="item" data-tab="psi">{{localize 'MF.TabPsi'}}</a>
+      <a class="item" data-tab="equipment">{{localize 'MF.TabEquipment' 'Equipment'}}</a>
+      <a class="item" data-tab="notes">{{localize 'MF.TabNotes' 'Notes'}}</a>
+    </nav>
 
-  {{{_tabCombatHtml}}}
+    <section class="sheet-body">
+    {{{_tabStatsHtml}}}
 
-  {{{_tabSkillsHtml}}}
+    {{{_tabCombatHtml}}}
 
-  {{{_tabBodyHtml}}}
+    {{{_tabSkillsHtml}}}
 
-  {{{_tabMechaHtml}}}
+    {{{_tabBodyHtml}}}
 
-  {{{_tabSnaggletoothHtml}}}
+    {{{_tabMechaHtml}}}
 
-  {{{_tabPsiHtml}}}
+    {{{_tabSnaggletoothHtml}}}
 
-  {{{_tabEquipmentHtml}}}
+    {{{_tabPsiHtml}}}
 
-  {{{_tabNotesHtml}}}
+    {{{_tabEquipmentHtml}}}
+
+    {{{_tabNotesHtml}}}
+    </section>
   </section>
 </form>

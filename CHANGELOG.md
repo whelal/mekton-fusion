@@ -1,3 +1,10 @@
+## [0.1.12] - 2026-09-16
+### Changed
+- Actor sheet header reworked into a left sidebar with portrait, name/role card, and a Hit Points/Humanity vitals grid.
+- Sheet width increased from 740 to 940 to accommodate the new sidebar layout.
+- Humanity moved out of the Stats tab EMP panel and into the sidebar vitals grid.
+- Removed the JS header-height-lock workaround, no longer needed with the new stable layout.
+
 ## [0.1.11] - 2026-09-16
 ### Removed
 - Witcher tab (Signs/spellcasting) removed entirely from the actor sheet.
