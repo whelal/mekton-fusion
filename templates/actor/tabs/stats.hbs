@@ -93,26 +93,37 @@
       <div class="panel panel-left">
         <h4>BODY</h4>
         <div class="panel-list">
-          <label>• Stun Save: <input class="substat-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}"/><button type="button" class="stun-save-roll" title="Roll 1d10 Stun Save" aria-label="Roll 1d10 Stun Save"><i class="fas fa-dice-d10"></i></button></label>
+          <label>• Stun Save: <input class="substat-input derived-input" name="system.substats.stun" type="number" min="0" value="{{system.substats.stun}}" readonly title="Derived from BODY"/><button type="button" class="stun-save-roll" title="Roll 1d10 Stun Save" aria-label="Roll 1d10 Stun Save"><i class="fas fa-dice-d10"></i></button></label>
           <label>• Death Save: <input class="substat-input" name="system.substats.death" type="number" min="0" value="{{system.substats.death}}"/></label>
           <label>• Body Type Mod: <input class="substat-input" name="system.substats.bodyTypeMod" type="number" value="{{system.substats.bodyTypeMod}}"/></label>
-          <label>• Lift: <input class="substat-input" name="system.substats.lift" type="number" min="0" value="{{system.substats.lift}}"/></label>
+          <label>• Lift: <input class="substat-input derived-input" name="system.substats.lift" type="number" min="0" value="{{system.substats.lift}}" readonly title="Derived from BODY"/></label>
           <label>• Carry: <input class="substat-input" name="system.substats.carry" type="number" min="0" value="{{system.substats.carry}}"/></label>
+          <label>• Throw: <input class="substat-input derived-input" type="number" value="{{system.derived.throwM}}" readonly title="Derived from BODY"/></label>
+          <label>• Dmg: <input class="substat-input derived-input" type="text" value="{{formatDmg system.derived.dmg}}" readonly title="Derived from BODY"/></label>
+          <label>• EV: <input class="substat-input derived-input" type="number" value="{{system.derived.ev}}" readonly title="Derived from BODY"/></label>
         </div>
       </div>
 
       <div class="panel panel-right">
         <h4>MA</h4>
         <div class="panel-list">
-          <label>• Run: <input class="substat-input" name="system.substats.run" type="number" min="0" step="0.01" value="{{system.substats.run}}"/></label>
-          <label>• Leap: <input class="substat-input" name="system.substats.leap" type="number" min="0" step="0.01" value="{{system.substats.leap}}"/></label>
-          <label>• Swim: <input class="substat-input" name="system.substats.swim" type="number" min="0" step="0.01" value="{{system.substats.swim}}"/></label>
+          <label>• Run: <input class="substat-input derived-input" name="system.substats.run" type="number" min="0" step="0.01" value="{{system.substats.run}}" readonly title="Derived from MA"/></label>
+          <label>• Walk: <input class="substat-input derived-input" type="number" step="0.01" value="{{system.derived.movementAllowance.walk}}" readonly title="Run / 3"/></label>
+          <label>• Leap: <input class="substat-input derived-input" name="system.substats.leap" type="number" min="0" step="0.01" value="{{system.substats.leap}}" readonly title="Derived from MA"/></label>
+          <label>• Running Jump: <input class="substat-input derived-input" type="number" step="0.01" value="{{system.derived.movementAllowance.runningJump}}" readonly title="Run / 4"/></label>
+          <label>• Anime Leap: <input class="substat-input derived-input" type="number" step="0.01" value="{{system.derived.movementAllowance.animeLeap}}" readonly title="MA x 2, or the >10 table value"/></label>
+          <label>• Swim: <input class="substat-input derived-input" name="system.substats.swim" type="number" min="0" step="0.01" value="{{system.substats.swim}}" readonly title="Derived from MA"/></label>
+          <label>• Encumbered MA: <input class="substat-input derived-input" type="number" step="0.01" value="{{system.derived.encumberedMA}}" readonly title="Run MA minus equipment weight / EV"/></label>
         </div>
         <div class="panel-initiative">
           <h5>REF</h5>
           <label>• {{localize 'MF.InitiativeMod'}}: <input class="substat-input" name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" title="{{localize 'MF.InitiativeModTooltip'}}" step="1"/></label>
         </div>
       </div>
+    </div>
+
+    <div class="stats-derived-row">
+      <label>• Skill Point Multiplier (INT+EDU): <input class="substat-input derived-input" type="number" step="0.01" value="{{system.derived.skillPointMultiplier}}" readonly title="Derived from INT + EDU"/></label>
     </div>
   </div>
 </div>

@@ -21,6 +21,14 @@ Hooks.once("init", () => {
       return a === b;
     });
     console.log('mekton-fusion | Handlebars helper "eq" registered');
+
+    Handlebars.registerHelper('formatDmg', (dmg) => {
+      if (!dmg) return '';
+      if (dmg.type === 'dice') return `+${dmg.value}`;
+      const v = Number(dmg.value) || 0;
+      return v > 0 ? `+${v}` : `${v}`;
+    });
+    console.log('mekton-fusion | Handlebars helper "formatDmg" registered');
   } catch (e) {
     console.warn('mekton-fusion | Failed to register Handlebars helpers', e);
   }

@@ -1,4 +1,10 @@
-export class ActorDataModel extends foundry.abstract.DataModel {
+import { getBodyValues, getMovementAllowance, getStandardMovement, getSkillPointMultiplier, encumberedMA } from "./body-values.js";
+
+// Body-location keys mapped onto the BOD hit-value groups body-values.js provides
+// (head/torso get their own column; all limbs share the "limbs" column).
+const BODY_LOCATION_GROUPS = { head: "head", torso: "torso", rArm: "limbs", lArm: "limbs", rLeg: "limbs", lLeg: "limbs" };
+
+export class ActorDataModel extends foundry.abstract.TypeDataModel {
     static defineSchema() {
         const fields = foundry.data.fields;
     return {
@@ -346,6 +352,62 @@ export class ActorDataModel extends foundry.abstract.DataModel {
             }),
             // Player notes field
             notes: new fields.StringField({ initial: "" })
+        };
+    }
+
+    /**
+     * BOD/INT/EDU-derived read-only stats (Mekton Z body-type tables).
+     * Overwrites the substats/body fields the table governs so they can never
+     * drift from BODY; everything else the table provides lives under
+     * `system.derived` since it has no dedicated schema field.
+     */
+    prepareDerivedData() {
+        const bod = this.stats?.BODY?.value ?? 5;
+        const ma = this.stats?.MA?.value ?? 5;
+        const intVal = this.stats?.INT?.value ?? 5;
+        const edu = this.stats?.EDU?.value ?? 5;
+
+        const body = getBodyValues(bod);
+        // MA is keyed entirely off the MA stat -- BOD has no effect on movement.
+        // Above MA 10, the fixed ">10" table applies (Run/Jump/Anime Leap). At or
+        // below MA 10, it's the standard formula: Run = MA x3, Jump = MA/4
+        // (Mekton Zeta core movement rules).
+        const highMaMovement = getMovementAllowance(ma);
+        const standardMovement = getStandardMovement(ma);
+        const run = highMaMovement?.run ?? standardMovement.run;
+        const jump = highMaMovement?.jump ?? standardMovement.jump;
+
+        // Stun Save and Lift are plain NumberFields on substats -> overwrite directly.
+        this.substats.stun = body.stun;
+        this.substats.lift = body.lift;
+        this.substats.run = run;
+        this.substats.leap = jump;
+        this.substats.swim = Math.round((ma / 3) * 100) / 100;
+
+        // Per-location hit points (labeled SDP on the Body tab) follow the same BOD table.
+        for (const [loc, group] of Object.entries(BODY_LOCATION_GROUPS)) {
+            const locData = this.body?.locations?.[loc];
+            if (locData) locData.mektonHpMax = body.hits[group].hits;
+        }
+
+        // Values with no dedicated schema field (Throw, Dmg, EV, Walk, Running Jump,
+        // Anime Leap, skill points, encumbrance-adjusted MA) are exposed read-only via
+        // `system.derived`.
+        this.derived = {
+            throwM: body.throwM,
+            dmg: body.dmg,
+            ev: body.ev,
+            hits: body.hits,
+            movementAllowance: {
+                run,
+                jump,
+                walk: run / 3,
+                runningJump: run / 4,
+                animeLeap: highMaMovement?.animeLeap ?? standardMovement.animeLeap,
+                source: highMaMovement ? "ma-table" : "ma-formula"
+            },
+            skillPointMultiplier: getSkillPointMultiplier(intVal, edu),
+            encumberedMA: encumberedMA(this.equipment?.totalWeight ?? 0, bod, run)
         };
     }
 }
