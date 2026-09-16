@@ -1,1 +1,1 @@
-Remember to include upstream licenses from CP2020 and Witcher Foundry systems.
+Remember to include upstream licenses from CP2020 Foundry system.

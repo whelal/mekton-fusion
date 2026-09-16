@@ -2,7 +2,7 @@
 import { MektonActorSheet } from "./actor-sheet.js";
 import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
-import { WeaponDataModel, SkillDataModel, SpellDataModel, ArmorDataModel } from "../../module/data/item-data-model.js";
+import { WeaponDataModel, SkillDataModel, ArmorDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
 
 Hooks.once("init", () => {
@@ -31,7 +31,6 @@ Hooks.once("init", () => {
     "systems/mekton-fusion/templates/actor/tabs/skills.hbs",
     "systems/mekton-fusion/templates/actor/tabs/psi.hbs",
     "systems/mekton-fusion/templates/actor/tabs/mecha.hbs",
-    "systems/mekton-fusion/templates/actor/tabs/spells.hbs",
     "systems/mekton-fusion/templates/actor/tabs/equipment.hbs",
     "systems/mekton-fusion/templates/actor/tabs/notes.hbs"
   ]).then(() => console.log('mekton-fusion | Actor tab partials preloaded'));
@@ -64,7 +63,6 @@ Hooks.once("init", () => {
   // Register DataModel for all item types
   CONFIG.Item.dataModels ||= {};
   CONFIG.Item.dataModels.skill = SkillDataModel;
-  CONFIG.Item.dataModels.spell = SpellDataModel;
   CONFIG.Item.dataModels.weapon = WeaponDataModel;
   CONFIG.Item.dataModels["mecha-weapon"] = WeaponDataModel;
   CONFIG.Item.dataModels.armor = ArmorDataModel;
@@ -84,7 +82,7 @@ Hooks.once("init", () => {
 
   // Register our item sheet
   DSC.registerSheet(Item, "mekton-fusion", MektonFusionItemSheet, {
-    types: ["skill", "spell", "weapon", "armor"], // handle skills, spells, weapons, and armor
+    types: ["skill", "weapon", "armor"], // handle skills, weapons, and armor
     makeDefault: true,
     label: "Mekton Item Sheet"
   });
@@ -96,14 +94,14 @@ Hooks.once("init", () => {
   };
 });
 
-// Auto-seed skills and spells when actors are created
+// Auto-seed skills when actors are created
 Hooks.on("createActor", async (actor) => {
   if (["character", "npc"].includes(actor.type)) {
     console.log("mekton-fusion | Auto-seeding new actor:", actor.name);
     try {
       const result = await syncActorCoreItems(actor);
       if (result.created > 0) {
-        ui.notifications.info(`Added ${result.created} default skills/spells to ${actor.name}`);
+        ui.notifications.info(`Added ${result.created} default skills to ${actor.name}`);
       }
     } catch (err) {
       console.error("mekton-fusion | Auto-seeding failed for", actor.name, err);
@@ -217,7 +215,7 @@ Hooks.on("updateToken", (tokenDocument, changes, options, userId) => {
 Hooks.on("createItem", (item, options, userId) => {
   console.log("mekton-fusion | Item created hook fired:", item.name, "type:", item.type, "on actor:", item.parent?.name);
   
-  if (item.parent && (item.type === "skill" || item.type === "spell")) {
+  if (item.parent && item.type === "skill") {
     const sourceActor = item.parent;
     console.log("mekton-fusion | Processing item sync for:", item.name, "from actor:", sourceActor.name, "ID:", sourceActor.id);
     
@@ -244,7 +242,7 @@ Hooks.on("createItem", (item, options, userId) => {
 Hooks.on("updateItem", (item, changes, options, userId) => {
   console.log("mekton-fusion | Item updated hook fired:", item.name, "type:", item.type, "changes:", changes, "on actor:", item.parent?.name);
   
-  if (item.parent && (item.type === "skill" || item.type === "spell")) {
+  if (item.parent && item.type === "skill") {
     const sourceActor = item.parent;
     console.log("mekton-fusion | Processing item update sync for:", item.name, "from actor:", sourceActor.name);
     
@@ -268,7 +266,7 @@ Hooks.on("updateItem", (item, changes, options, userId) => {
 Hooks.on("deleteItem", (item, options, userId) => {
   console.log("mekton-fusion | Item deleted hook fired:", item.name, "type:", item.type, "from actor:", item.parent?.name);
   
-  if (item.parent && (item.type === "skill" || item.type === "spell")) {
+  if (item.parent && item.type === "skill") {
     const sourceActor = item.parent;
     console.log("mekton-fusion | Processing item deletion sync for:", item.name, "from actor:", sourceActor.name);
     

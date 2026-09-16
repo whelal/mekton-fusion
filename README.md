@@ -1,21 +1,20 @@
 # Mekton Fusion FoundryVTT System
 
-A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta**, **Cyberpunk 2020**, and **The Witcher TRPG** into a unified ruleset.
+A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills plus Witcher TRPG inspired magic (Signs + Psionics scaffold). This system is **early stage (v0.0.x)** and APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills plus a Psionics scaffold. This system is **early stage (v0.0.x)** and APIs / data schema may still change.
 
 ---
 ## 📖 Overview
 Built on inspirations from:
 - **Cyberpunk 2020 Foundry system** (stats & skills model)
-- **The Witcher TRPG Foundry system** (spell / sign structure & magical flavor)
 - **Mekton Zeta** (mecha combat + future planned construction features)
 
-The goal: Provide a **complete character sheet and rules support** for campaigns mixing **mecha, cyberpunk, and fantasy elements**.
+The goal: Provide a **complete character sheet and rules support** for campaigns mixing **mecha and cyberpunk elements**.
 
 Core areas:
 - Character stats & skill checks (CP2020 style)
-- Spell / Sign & future Psionics framework (Witcher inspired)
+- Psionics framework
 - Planned: Mecha design, vehicle frames, loadouts
 
 ---
@@ -24,7 +23,7 @@ Core areas:
 - Cyberpunk-style header & compact stat boxes with inline roll buttons
 - Bidirectional exploding d10 rolls (10 chains up, 1 chains down, capped extras, flags include raw dice)
 - Initiative: `1d10 + REF`
-- Skill & Spell (Sign) seeding (auto on new actor + manual Add Skills button + world seeding macro)
+- Skill seeding (auto on new actor + manual Add Skills button + world seeding macro)
 - Categorized skill display with favorites filter & sorting (name/stat/rank/total)
 - Hard skill markers `(H)` with localization support
 - DataModel-backed stats schema (Foundry VTT v13+)
@@ -38,7 +37,7 @@ Core areas:
 ## 🗺️ Roadmap
 | Phase | Goal | Status |
 |-------|------|--------|
-| 0.0.x | Core stats + skills + signs seeding | In progress |
+| 0.0.x | Core stats + skills seeding | In progress |
 | 0.1.0 | Derived values (HP calc, encumbrance stub) | Planned |
 | 0.2.0 | Vehicle & Mecha item types / sheets | Planned |
 | 0.3.0 | Psionics / advanced powers | Planned |
@@ -67,7 +66,7 @@ system: {
     LUCK:{value}, MA:{value}, BODY:{value}, EMP:{value}, EDU:{value}
   },
   skills: { /* legacy inline map (deprecated) */ },
-  // Skills & spells preferred as embedded Item documents
+  // Skills preferred as embedded Item documents
 }
 ```
 Legacy `system.abilities` (lowercase) auto-migrates when opening actor sheets; WILL → COOL, MOVE → MA.
@@ -75,8 +74,8 @@ Legacy `system.abilities` (lowercase) auto-migrates when opening actor sheets; W
 ---
 ## 🔄 Migration & Seeding
 - Opening actors triggers stat shape normalization `{ value }`.
-- World seeding macro populates global Items (skills/spells) & updates actors.
-- New actors auto-seed default skills & signs (character & npc types).
+- World seeding macro populates global Items (skills) & updates actors.
+- New actors auto-seed default skills (character & npc types).
 - Manual per-actor Add Skills button appears when no skills are present.
 
 ### Re-run seeding world-wide (console)
@@ -95,7 +94,7 @@ Legacy `system.abilities` (lowercase) auto-migrates when opening actor sheets; W
 ## 🛠️ Development Layout
 ```
 module/
-  data/ (defaults, skills, spells, actor-data-model)
+  data/ (defaults, skills, actor-data-model)
   seed.js (world + actor core item seeding)
   settings.js (future system settings)
   sheets/item-sheet.js
@@ -131,7 +130,7 @@ Issues & PRs welcome (once repository stabilizes). Priority contributions:
 
 ---
 ## 📜 License & Disclaimer
-MIT License (see `LICENSE` / `NOTICE`). Mekton, Cyberpunk, and Witcher trademarks belong to their respective owners. This is a **non-commercial fan project** for tabletop use only.
+MIT License (see `LICENSE` / `NOTICE`). Mekton and Cyberpunk trademarks belong to their respective owners. This is a **non-commercial fan project** for tabletop use only.
 
 ---
 _Enjoy rolling & blasting mecha!_  

@@ -15,7 +15,6 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
     
     // Add helper data to context
     context.isSkill = this.object.type === "skill";
-    context.isSpell = this.object.type === "spell";
     context.isCustom = this.object.system?.custom;
     
     // Debug logging

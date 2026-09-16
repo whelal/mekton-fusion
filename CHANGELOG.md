@@ -1,3 +1,11 @@
+## [0.1.11] - 2026-09-16
+### Removed
+- Witcher tab (Signs/spellcasting) removed entirely from the actor sheet.
+- `spell` Item type, data model, and item sheet fields removed.
+- Spell seeding (`WITCHER_SIGNS`), world-seed spell folder, and `purge-spell-rank` macro removed.
+- HP/Stamina/Vigor resource bars removed (they only existed on the Witcher tab).
+- Associated CSS, localization strings, and dead legacy sheet templates removed.
+
 ## [0.1.8] - 2026-02-22
 ### Changed
 - Combat tab: Range column widened to 10% to accommodate values like `300-1800`.

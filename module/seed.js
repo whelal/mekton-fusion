@@ -1,5 +1,4 @@
 import { CP2020_SKILLS } from "./data/skills.js";
-import { WITCHER_SIGNS } from "./data/spells.js";
 
 
 const HARD_MECHA_GUNNERY = "Mecha Gunnery (H)";
@@ -31,26 +30,13 @@ function prepareSkillSystem(source = {}) {
   return sys;
 }
 
-function prepareSpellSystem(source = {}) {
-  const sys = foundry.utils.deepClone(source);
-  if (sys.school === undefined || sys.school === null) sys.school = "Sign";
-  if (sys.cost === undefined || sys.cost === null) sys.cost = 0;
-  if (sys.effect === undefined || sys.effect === null) sys.effect = "";
-  if (sys.test) sys.test = String(sys.test).toUpperCase();
-  else sys.test = "INT";
-  if (sys.favorite === undefined || sys.favorite === null) sys.favorite = false;
-  return sys;
-}
-
 function normaliseSeedData(entry, folderId) {
   const { data, system, ...rest } = entry;
   const type = rest.type ?? entry.type;
   const baseSystem = foundry.utils.deepClone(system ?? data ?? {});
   const sys = type === "skill"
     ? prepareSkillSystem(baseSystem)
-    : type === "spell"
-      ? prepareSpellSystem(baseSystem)
-      : baseSystem;
+    : baseSystem;
 
   return {
     ...rest,
@@ -137,47 +123,8 @@ async function ensureActorHasSkills(actor) {
   return { created: toCreate.length, updated: toUpdate.length };
 }
 
-async function ensureActorHasSpells(actor) {
-  if (!actor) return { created: 0, updated: 0 };
-  const allowedTypes = new Set(["character", "npc"]);
-  if (!allowedTypes.has(actor.type)) return { created: 0, updated: 0 };
-
-  const defaultSpells = WITCHER_SIGNS.map(spell => ({
-    name: spell.name,
-    type: "spell",
-    system: prepareSpellSystem(spell.system ?? spell.data ?? {})
-  }));
-
-  const existingByName = new Map(
-    actor.items.filter(it => it.type === "spell").map(it => [it.name, it])
-  );
-  const toCreate = [];
-  const toUpdate = [];
-
-  for (const spell of defaultSpells) {
-    const current = existingByName.get(spell.name);
-    if (!current) {
-      toCreate.push(spell);
-      continue;
-    }
-
-    const needsUpdate = !foundry.utils.objectsEqual(current.system ?? {}, spell.system);
-    if (needsUpdate) toUpdate.push({ _id: current.id, system: spell.system });
-  }
-
-  if (toCreate.length) await actor.createEmbeddedDocuments("Item", toCreate);
-  if (toUpdate.length) await actor.updateEmbeddedDocuments("Item", toUpdate);
-
-  return { created: toCreate.length, updated: toUpdate.length };
-}
-
 async function ensureActorHasCoreItems(actor) {
-  const skillResult = await ensureActorHasSkills(actor);
-  const spellResult = await ensureActorHasSpells(actor);
-  return {
-    created: skillResult.created + spellResult.created,
-    updated: skillResult.updated + spellResult.updated
-  };
+  return ensureActorHasSkills(actor);
 }
 
 export async function syncActorCoreItems(actor) {
@@ -187,7 +134,6 @@ export async function syncActorCoreItems(actor) {
 export async function seedWorldData() {
   try {
     const skillFolder = await ensureFolder("CP2020 Skills", "Item");
-    const spellFolder = await ensureFolder("Witcher Signs", "Item");
 
     const existing = new Map(game.items.map(item => [item.name, item]));
     // World-level legacy renames (Items in compendium/world item directory)
@@ -235,11 +181,10 @@ export async function seedWorldData() {
     };
 
     for (const s of CP2020_SKILLS) processEntry(s, skillFolder.id);
-    for (const sp of WITCHER_SIGNS) processEntry(sp, spellFolder.id);
 
     if (toCreate.length) {
       await Item.createDocuments(toCreate);
-      ui.notifications.info(`Seeded ${toCreate.length} Items (skills/spells).`);
+      ui.notifications.info(`Seeded ${toCreate.length} Items (skills).`);
     }
 
     if (updates.length) {

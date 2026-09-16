@@ -6,12 +6,11 @@
 @import url("partials/_header.css");
 @import url("partials/_stats.css");
 @import url("partials/_filters.css");
-@import url("partials/_spells.css");
 @import url("partials/_substats.css");
 @import url("partials/_topstats.css");
 @import url("partials/_resourcebars.css");
 @import url("partials/_responsive.css");
 @import url("partials/_twocol.css");
 
-/* TEMP: Debug outlines for Spells and Notes tabs */
+/* TEMP: Debug outlines for Notes tab */
 @import url("_debug.css");

@@ -42,21 +42,6 @@ export class SkillDataModel extends ItemDataModel {
   }
 }
 
-// Schema for spell items
-export class SpellDataModel extends ItemDataModel {
-  static defineSchema() {
-    const fields = foundry.data.fields;
-    const parentSchema = super.defineSchema();
-    return foundry.utils.mergeObject(parentSchema, {
-      school: new fields.StringField({ initial: "Sign" }),
-      cost: new fields.NumberField({ initial: 0, integer: true }),
-      effect: new fields.StringField({ initial: "" }),
-      test: new fields.StringField({ initial: "INT" }),
-      favorite: new fields.BooleanField({ initial: false })
-    });
-  }
-}
-
 // Schema for armor items
 export class ArmorDataModel extends ItemDataModel {
   static defineSchema() {

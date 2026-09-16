@@ -3,16 +3,11 @@
   "MF.TabStats": "Stats",
   "MF.TabCombat": "Combat",
   "MF.TabSkills": "Skills",
-  "MF.TabWitcher": "Witcher",
     "MF.TabMekton": "Mekton",
   "MF.TabMecha": "Mecha",
   "MF.TabPsi": "Psionics",
   "MF.NoSkills": "No skills yet.",
   "MF.NoPsiSkills": "No psionic skills yet.",
-  "MF.NoSpells": "No spells yet.",
-  "MF.School": "School",
-  "MF.Role": "Role",
-  "MF.Level": "Level",
   "MF.Roll": "Roll",
   "MF.Edit": "Edit",
   "MF.StatRollTooltip": "Roll this stat",
@@ -21,8 +16,6 @@
   "MF.ColStat": "Stat",
   "MF.ColRank": "Rank",
   "MF.ColTotal": "Total",
-  "MF.ColSpellcasting": "Spellcasting",
-  "MF.Spellcasting": "Spellcasting",
   "MF.SkillCat.ATTR": "Attractiveness",
   "MF.SkillCat.COOL": "Cool",
   "MF.SkillCat.EMP": "Empathy",
@@ -51,21 +44,7 @@
   ,"MF.DeletePsiPower": "Delete Psionic Power"
   ,"MF.DeletePsiPowerConfirm": "Delete psionic power '{name}'?"
   ,"MF.DeletedPsiPower": "Deleted psionic power: {name}"
-  ,"MF.AddSpell": "Add Spell"
-  ,"MF.NewSpell": "New Spell"
-  ,"MF.CreatedSpell": "Created spell: {name}"
-  ,"MF.ErrorCreateSpell": "Failed to create spell"
-  ,"MF.SpellNamePrompt": "Enter name for the new spell:"
-  ,"MF.DuplicateSpellName": "A spell named '{name}' already exists."
-  ,"MF.DeleteSpell": "Delete Spell"
-  ,"MF.DeleteSpellConfirm": "Delete spell '{name}'?"
-  ,"MF.DeletedSpell": "Deleted spell: {name}"
-  ,  "MF.Cost": "Cost",
-  "MF.Range": "Range",
-  "MF.Duration": "Duration",
-  "MF.Defense": "Defense",
-  "MF.NoFavoriteSpells": "No favorite spells",
-  "MF.NoFavoritePsiSkills": "No favorite psionic powers",
+  ,"MF.NoFavoritePsiSkills": "No favorite psionic powers",
   "MF.ColIP": "IP",
   "MF.IPTooltip": "Improvement Points (IP)",
   "MF.TabNotes": "Notes",
@@ -76,8 +55,7 @@
   "MF.NoPsiCategory": "No psionics category available",
   "MF.RollDifficultyPrompt": "Enter difficulty (optional):",
   "MF.RollWithDifficulty": "Roll {name} vs Difficulty {difficulty}",
-  "MF.RollSimple": "Roll {name}",
-  "MF.SpellcastingMissing": "No global Spellcasting skill found. Add it to your skills to enable spellcasting."
+  "MF.RollSimple": "Roll {name}"
   , "MF.AddCustomSkill": "Add Custom Skill"
   , "MF.NewCustomSkill": "New Custom Skill"
   , "MF.CustomSkillsCategory": "Custom Skills"
