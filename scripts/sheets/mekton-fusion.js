@@ -4,6 +4,21 @@ import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
 import { WeaponDataModel, SkillDataModel, ArmorDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
+import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT } from "../../module/data/mecha-construction.js";
+import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
+
+// Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function buildOptions(entries, current) {
+  let html = '<option value="">—</option>';
+  for (const { value, label } of entries) {
+    const sel = value === current ? ' selected' : '';
+    html += `<option value="${value}"${sel}>${escapeHtml(label)}</option>`;
+  }
+  return html;
+}
 
 Hooks.once("init", () => {
   console.log("mekton-fusion | init");
@@ -22,6 +37,12 @@ Hooks.once("init", () => {
     });
     console.log('mekton-fusion | Handlebars helper "eq" registered');
 
+    Handlebars.registerHelper('concat', (...args) => {
+      args.pop(); // drop the Handlebars options object
+      return args.join('');
+    });
+    console.log('mekton-fusion | Handlebars helper "concat" registered');
+
     Handlebars.registerHelper('formatDmg', (dmg) => {
       if (!dmg) return '';
       if (dmg.type === 'dice') return `+${dmg.value}`;
@@ -29,6 +50,73 @@ Hooks.once("init", () => {
       return v > 0 ? `+${v}` : `${v}`;
     });
     console.log('mekton-fusion | Handlebars helper "formatDmg" registered');
+
+    // Mecha-tab picker <select>s: build the full element so the option lists
+    // (servo classes, extremities, weapon categories, shields) live in one place.
+    // Class/extremity/armor columns are narrow, so these use the short `abbr` label
+    // (e.g. "LH" for Light Heavy) instead of the full name.
+    Handlebars.registerHelper('servoClassSelect', (name, current) => {
+      const entries = SERVO_CLASS_META.map(c => ({ value: c.key, label: c.abbr }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker" title="Servo class">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('servoExtremitySelect', (name, current, kind) => {
+      const table = kind === 'leg' ? LEG_EXTREMITIES : ARM_EXTREMITIES;
+      const entries = Object.entries(table).map(([key, v]) => ({ value: key, label: v.abbr }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker" title="Extremity">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('armorClassSelect', (name, current) => {
+      const entries = Object.values(ARMOR).map(a => ({ value: a.key, label: a.abbr }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker" title="Armor class">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('sensorTypeSelect', (name, current) => {
+      const entries = Object.entries(SENSORS).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('cockpitTypeSelect', (name, current) => {
+      const entries = Object.entries(COCKPIT).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Weapons are a two-level pick: Category first, then Weapon-within-category.
+    // The second select only lists that category's items; picking a new category
+    // resubmits the form (submitOnChange) and the sheet re-renders with the second
+    // select rebuilt for the new category -- no cascading JS needed.
+    Handlebars.registerHelper('weaponCategorySelect', (name, current) => {
+      const entries = Object.entries(WEAPON_CATEGORIES).map(([key, cat]) => ({ value: key, label: cat.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('weaponKeySelect', (name, current, categoryKey) => {
+      const cat = WEAPON_CATEGORIES[categoryKey];
+      const entries = cat ? Object.entries(cat.items).map(([key, w]) => ({ value: key, label: w.label })) : [];
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    Handlebars.registerHelper('shieldSelect', (name, current) => {
+      const entries = Object.entries(SHIELDS).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Mecha-tab location <select> (the 6 fixed servo/body locations), for weapon/shield Loc.
+    Handlebars.registerHelper('mechaLocationSelect', (name, current) => {
+      const entries = [
+        { value: 'head', label: 'Head' }, { value: 'torso', label: 'Torso' },
+        { value: 'rArm', label: 'R Arm' }, { value: 'lArm', label: 'L Arm' },
+        { value: 'rLeg', label: 'R Leg' }, { value: 'lLeg', label: 'L Leg' }
+      ];
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Propulsion type picker for Movement Systems rows (thruster/GES); drives spc/cp.
+    Handlebars.registerHelper('movementTypeSelect', (name, current) => {
+      const entries = [{ value: 'thruster', label: 'Thruster' }, { value: 'ges', label: 'GES' }];
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+    console.log('mekton-fusion | Mecha picker Handlebars helpers registered');
   } catch (e) {
     console.warn('mekton-fusion | Failed to register Handlebars helpers', e);
   }

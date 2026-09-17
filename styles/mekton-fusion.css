@@ -349,23 +349,52 @@
 
 /* Column widths for Servos table */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(1),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(1) { width: 8%; }  /* SP */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(1) { width: 7%; }  /* SP */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(2),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(2) { width: 8%; }  /* Kills */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(2) { width: 7%; }  /* Kills */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(3),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(3) { width: 25%; } /* Servo (wider) */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(3) { width: 20%; } /* Servo (wider) */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(4),
 .mekton-fusion .tab.mecha .servos-table td:nth-child(4) { width: 10%; } /* Level */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(5),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(5) { width: 12%; } /* Space */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(5) { width: 10%; } /* Extremity */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(6),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(6) { width: 10%; } /* Cost */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(6) { width: 11%; } /* Space */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(7),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(7) { width: 17%; } /* Armor */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(7) { width: 9%; }  /* Cost */
 .mekton-fusion .tab.mecha .servos-table th:nth-child(8),
-.mekton-fusion .tab.mecha .servos-table td:nth-child(8) { width: 10%; } /* Cost */
+.mekton-fusion .tab.mecha .servos-table td:nth-child(8) { width: 17%; } /* Armor */
+.mekton-fusion .tab.mecha .servos-table th:nth-child(9),
+.mekton-fusion .tab.mecha .servos-table td:nth-child(9) { width: 9%; }  /* Cost */
 
-.mekton-fusion .tab.mecha .servos-table input {
+.mekton-fusion .tab.mecha .space-summary-table {
+  width: 100%;
+  font-size: 0.7rem;
+  border-collapse: collapse;
+  border: 1px solid var(--mf-black);
+  background: white;
+  margin-top: 0.35rem;
+}
+.mekton-fusion .tab.mecha .space-summary-table th,
+.mekton-fusion .tab.mecha .space-summary-table td {
+  border: 1px solid #ccc;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+  width: 16.6%;
+}
+.mekton-fusion .tab.mecha .space-summary-table th {
+  background: var(--mf-black);
+  color: var(--mf-white);
+  font-weight: bold;
+}
+.mekton-fusion .tab.mecha .space-summary-table input {
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+.mekton-fusion .tab.mecha .servos-table input,
+.mekton-fusion .tab.mecha .servos-table select {
   width: 100%;
   padding: 0.1rem;
   text-align: center;
@@ -409,7 +438,8 @@
   font-weight: bold;
 }
 
-.mekton-fusion .tab.mecha .movement-table input {
+.mekton-fusion .tab.mecha .movement-table input,
+.mekton-fusion .tab.mecha .movement-table select {
   width: 100%;
   padding: 0.1rem;
   text-align: center;
@@ -578,7 +608,8 @@
   font-weight: bold;
 }
 
-.mekton-fusion .tab.mecha .shields-table input {
+.mekton-fusion .tab.mecha .shields-table input,
+.mekton-fusion .tab.mecha .shields-table select {
   width: 100%;
   padding: 0.1rem;
   text-align: center;
@@ -619,7 +650,8 @@
   font-weight: bold;
 }
 
-.mekton-fusion .tab.mecha .armament-table input {
+.mekton-fusion .tab.mecha .armament-table input,
+.mekton-fusion .tab.mecha .armament-table select {
   width: 100%;
   padding: 0.1rem;
   text-align: center;
@@ -628,9 +660,22 @@
   background: white;
 }
 
+.mekton-fusion .tab.mecha .armament-table .mecha-weapon-roll {
+  background: var(--mf-black); color: var(--mf-white); border: 1px solid var(--mf-white);
+  width: 1.4rem; height: 1.4rem; padding: 0; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 0.7rem; cursor: pointer; border-radius: 3px;
+}
+.mekton-fusion .tab.mecha .armament-table .mecha-weapon-roll:hover { background: #222; }
+
 .mekton-fusion .tab.mecha .armament-table td:first-child {
   min-width: 100px;
   text-align: left;
+}
+
+.mekton-fusion .tab.mecha .weapon-damage-note {
+  display: inline-block; font-weight: 700; font-size: 0.65rem; color: #a33;
+  background: #fdeaea; border: 1px solid #e3b3b3; border-radius: 3px;
+  padding: 0 0.25rem; margin-bottom: 0.15rem;
 }
 
 /* Responsive adjustments: stack to single column on narrower viewports */
@@ -1112,6 +1157,9 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion.sheet.actor .derived-input,
 .mekton-fusion.sheet.actor .substat-input.derived-input {
   background: #e8e8e8; color: #555; cursor: not-allowed;
+}
+.mekton-fusion.sheet.actor .derived-picker {
+  border: 1px solid #4a7ab5; background: #eef4fb;
 }
 .mekton-fusion.sheet.actor .substat-incr,
 .mekton-fusion.sheet.actor .substat-decr {

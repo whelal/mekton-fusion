@@ -488,11 +488,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         ctx.mechaSkills[key] = { name: skillName, rank: 0, total: 0 };
       }
     }
-    // Compute Mecha Maneuver Rating (MR): REF + Initiative Mod (MV)
-    const refVal = Number(ctx.system?.stats?.REF?.value ?? 0);
-    const mv = Number(ctx.system?.substats?.initiative ?? 0);
-    ctx.mechaMR = refVal + mv;
-    
+    // Mecha Reflex (MR) is derived per-mech (system.mecha.config.mr /
+    // system.snaggletooth.config.mr) in ActorDataModel.prepareDerivedData -- templates
+    // read it directly rather than through a shared context value, since MR differs
+    // per mech (weight-dependent) and there are two mechs on this actor.
+
+
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;
@@ -784,6 +785,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.mf-roll-hitloc', ev => this._onRollHitLocation(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
+    html.on('click', '.mecha-weapon-roll', ev => this._onRollMechaWeapon(ev));
 
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
@@ -1545,18 +1547,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    // If this is a Mecha skill, add MV (initiative modifier) to REF as part of MR
+    // If this is a Mecha skill, use the piloted mech's derived Mecha Reflex (REF +
+    // Maneuver Value) instead of the raw REF stat. Which mech depends on which tab
+    // the roll button lives on (data-mech="mecha"|"snaggletooth" on the skill row).
     const isMecha = String(skill.system?.category || '').toUpperCase() === 'REF:MECHA' || /MECHA\s+(PILOTING|FIGHTING|MELEE|GUNNERY|MISSILES)/i.test(skill.name || '');
-    const mv = Number(this.actor.system?.substats?.initiative ?? 0);
-    const mr = isMecha && stat === 'REF' ? (statVal + mv) : statVal;
+    const mechKey = li.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
+    const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.[mechKey]?.config?.mr ?? 0) : statVal;
     const finalTotal = base + mr + rank + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    
+
     const plusStr = plusDice.join(' + ');
     const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
     const flavorParts = [`(${plusStr}${minusStr})`];
     if (isMecha && stat === 'REF') {
-      flavorParts.push(`MR ${mr} (REF ${statVal} + MV ${mv})`);
+      flavorParts.push(`MR ${mr}`);
     } else {
       flavorParts.push(`${statLabel} ${statVal}`);
     }
@@ -1777,7 +1781,56 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const weaponName = weapon.system?.name || weapon.name;
     const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName}${tag}${capTag} = (${plusStr}${minusStr}) + Skill ${skillTotal} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${rollTotal}</strong>`;
-    
+
+    await roll.toMessage({ speaker, flavor });
+  }
+
+  /**
+   * Roll a Mecha tab Armament row: 1d10 + MR + Mecha skill (by weapon category) + WA.
+   * Reads the row's derived data directly (system.mecha.weapons[idx] or
+   * system.snaggletooth.weapons[idx]) rather than an Item, since these rows are
+   * actor-embedded and derived from mecha-weapons.js, not Item documents.
+   */
+  async _onRollMechaWeapon(ev) {
+    ev.preventDefault();
+    const button = ev.currentTarget;
+    const mechKey = button.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
+    const idx = Number(button.dataset.idx);
+    const row = this.actor.system?.[mechKey]?.weapons?.[idx];
+    if (!row || !row.category || !row.weaponKey) {
+      ui.notifications.warn('Pick a weapon before rolling.');
+      return;
+    }
+
+    // Weapon category -> the Mecha Combat Skill that attack rolls with it.
+    const CATEGORY_SKILL = {
+      beam: 'Mecha Gunnery (H)',
+      projectile: 'Mecha Gunnery (H)',
+      missile: 'Mecha Missiles (H)',
+      melee: 'Mecha Melee (H)',
+      energyMelee: 'Mecha Melee (H)'
+    };
+    const skillName = CATEGORY_SKILL[row.category] ?? null;
+    const skill = skillName ? this.actor.items.find(i => i.type === 'skill' && i.name === skillName) : null;
+    const rank = MektonActorSheet._num(skill?.system?.rank, 0);
+    const mr = Number(this.actor.system?.[mechKey]?.config?.mr ?? 0);
+    const wa = MektonActorSheet._num(row.wa, 0);
+
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const finalTotal = base + mr + rank + wa;
+
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
+
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    const weaponName = row.name || 'Weapon';
+    const skillLabel = skillName ? skillName.replace(' (H)', '') : 'Skill';
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>`;
+
     await roll.toMessage({ speaker, flavor });
   }
 }

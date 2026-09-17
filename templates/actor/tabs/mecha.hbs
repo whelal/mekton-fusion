@@ -48,23 +48,23 @@
           <tbody>
             <tr class="config-row" data-config="1">
               <td><input name="system.mecha.config.name" type="text" value="{{system.mecha.config.name}}" placeholder="Config 1"/></td>
-              <td><input name="system.mecha.config.mv" type="number" value="{{system.mecha.config.mv}}"/></td>
-              <td><input name="system.mecha.config.mr" type="number" value="{{system.mecha.config.mr}}"/></td>
-              <td><input name="system.mecha.config.landMA" type="number" value="{{system.mecha.config.landMA}}"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mv}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mr}}" readonly title="Derived from REF + Maneuver Value"/></td>
+              <td><input name="system.mecha.config.landMA" type="number" value="{{system.mecha.config.landMA}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
               <td><input name="system.mecha.config.flightMA" type="number" value="{{system.mecha.config.flightMA}}"/></td>
             </tr>
             <tr class="config-row" data-config="2">
               <td><input name="system.mecha.config.name2" type="text" value="{{system.mecha.config.name2}}" placeholder="Config 2"/></td>
-              <td><input name="system.mecha.config.mv2" type="number" value="{{system.mecha.config.mv2}}"/></td>
-              <td><input name="system.mecha.config.mr2" type="number" value="{{system.mecha.config.mr2}}"/></td>
-              <td><input name="system.mecha.config.landMA2" type="number" value="{{system.mecha.config.landMA2}}"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mv2}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mr2}}" readonly title="Derived from REF + Maneuver Value"/></td>
+              <td><input name="system.mecha.config.landMA2" type="number" value="{{system.mecha.config.landMA2}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
               <td><input name="system.mecha.config.flightMA2" type="number" value="{{system.mecha.config.flightMA2}}"/></td>
             </tr>
             <tr class="config-row" data-config="3">
               <td><input name="system.mecha.config.name3" type="text" value="{{system.mecha.config.name3}}" placeholder="Config 3"/></td>
-              <td><input name="system.mecha.config.mv3" type="number" value="{{system.mecha.config.mv3}}"/></td>
-              <td><input name="system.mecha.config.mr3" type="number" value="{{system.mecha.config.mr3}}"/></td>
-              <td><input name="system.mecha.config.landMA3" type="number" value="{{system.mecha.config.landMA3}}"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mv3}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.config.mr3}}" readonly title="Derived from REF + Maneuver Value"/></td>
+              <td><input name="system.mecha.config.landMA3" type="number" value="{{system.mecha.config.landMA3}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
               <td><input name="system.mecha.config.flightMA3" type="number" value="{{system.mecha.config.flightMA3}}"/></td>
             </tr>
           </tbody>
@@ -75,7 +75,7 @@
       <div class="mecha-pool-skills-row">
         <section class="maneuver-pool-section">
           <h3>MANEUVER POOL</h3>
-          <input name="system.mecha.maneuverPool" type="number" value="{{system.mecha.maneuverPool}}" class="pool-input"/>
+          <input class="pool-input derived-input" type="number" value="{{system.mecha.maneuverPool}}" readonly title="Derived from Mecha Piloting (H) total"/>
           <div class="initmod-row">
             <label class="initmod-label">{{localize 'MF.InitiativeMod'}}</label>
             <input name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input initmod-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
@@ -101,9 +101,9 @@
           <tbody>
             <tr>
               <td class="skill-label">Mecha Piloting</td>
-              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-mr" title="MR = REF + Maneuver Value (derived)">+ MR= {{system.mecha.config.mr}}</td>
               <td class="skill-total">
-                <div class="mecha-skill" data-skill-id="{{mechaSkills.piloting.id}}">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.piloting.id}}" data-mech="mecha">
                   <button type="button" class="skill-roll" title="Roll Mecha Piloting"><i class="fas fa-dice-d20"></i></button>
                   <span class="skill-rank">{{mechaSkills.piloting.rank}}</span>
                 </div>
@@ -111,9 +111,9 @@
             </tr>
             <tr>
               <td class="skill-label">Mecha Fighting</td>
-              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-mr" title="MR = REF + Maneuver Value (derived)">+ MR= {{system.mecha.config.mr}}</td>
               <td class="skill-total">
-                <div class="mecha-skill" data-skill-id="{{mechaSkills.fighting.id}}">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.fighting.id}}" data-mech="mecha">
                   <button type="button" class="skill-roll" title="Roll Mecha Fighting"><i class="fas fa-dice-d20"></i></button>
                   <span class="skill-rank">{{mechaSkills.fighting.rank}}</span>
                 </div>
@@ -121,9 +121,9 @@
             </tr>
             <tr>
               <td class="skill-label">Mecha Melee</td>
-              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-mr" title="MR = REF + Maneuver Value (derived)">+ MR= {{system.mecha.config.mr}}</td>
               <td class="skill-total">
-                <div class="mecha-skill" data-skill-id="{{mechaSkills.melee.id}}">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.melee.id}}" data-mech="mecha">
                   <button type="button" class="skill-roll" title="Roll Mecha Melee"><i class="fas fa-dice-d20"></i></button>
                   <span class="skill-rank">{{mechaSkills.melee.rank}}</span>
                 </div>
@@ -131,9 +131,9 @@
             </tr>
             <tr>
               <td class="skill-label">Mecha Gunnery</td>
-              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-mr" title="MR = REF + Maneuver Value (derived)">+ MR= {{system.mecha.config.mr}}</td>
               <td class="skill-total">
-                <div class="mecha-skill" data-skill-id="{{mechaSkills.gunnery.id}}">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.gunnery.id}}" data-mech="mecha">
                   <button type="button" class="skill-roll" title="Roll Mecha Gunnery"><i class="fas fa-dice-d20"></i></button>
                   <span class="skill-rank">{{mechaSkills.gunnery.rank}}</span>
                 </div>
@@ -141,47 +141,14 @@
             </tr>
             <tr>
               <td class="skill-label">Mecha Missiles</td>
-              <td class="skill-mr" title="MR = REF + Initiative Mod (MV)">+ MR= {{mechaMR}}</td>
+              <td class="skill-mr" title="MR = REF + Maneuver Value (derived)">+ MR= {{system.mecha.config.mr}}</td>
               <td class="skill-total">
-                <div class="mecha-skill" data-skill-id="{{mechaSkills.missiles.id}}">
+                <div class="mecha-skill" data-skill-id="{{mechaSkills.missiles.id}}" data-mech="mecha">
                   <button type="button" class="skill-roll" title="Roll Mecha Missiles"><i class="fas fa-dice-d20"></i></button>
                   <span class="skill-rank">{{mechaSkills.missiles.rank}}</span>
                 </div>
               </td>
             </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Servos & Armor -->
-      <section class="servos-section">
-        <h3>SERVOS & ARMOR</h3>
-        <table class="servos-table">
-          <thead>
-            <tr>
-              <th>SP</th>
-              <th>Kills</th>
-              <th>Servo</th>
-              <th>Level</th>
-              <th>Space</th>
-              <th>Cost</th>
-              <th>Armor</th>
-              <th>Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each system.mecha.servos as |servo idx|}}
-            <tr>
-              <td><input type="number" name="system.mecha.servos.{{idx}}.sp" value="{{servo.sp}}"/></td>
-              <td><input type="number" name="system.mecha.servos.{{idx}}.hits" value="{{servo.hits}}"/></td>
-              <td><input type="text" name="system.mecha.servos.{{idx}}.servo" value="{{servo.servo}}"/></td>
-              <td><input type="text" name="system.mecha.servos.{{idx}}.level" value="{{servo.level}}"/></td>
-              <td><input type="text" name="system.mecha.servos.{{idx}}.space" value="{{servo.space}}"/></td>
-              <td><input type="number" name="system.mecha.servos.{{idx}}.cost" value="{{servo.cost}}"/></td>
-              <td><input type="text" name="system.mecha.servos.{{idx}}.armor" value="{{servo.armor}}"/></td>
-              <td><input type="number" name="system.mecha.servos.{{idx}}.armorCost" value="{{servo.armorCost}}"/></td>
-            </tr>
-            {{/each}}
           </tbody>
         </table>
       </section>
@@ -192,15 +159,17 @@
           <h3>MOVEMENT SYSTEMS</h3>
           <table class="movement-table">
             <thead>
-              <tr><th>Movement System</th><th>Loc</th><th>Spc</th><th>CP</th><th>K</th></tr>
+              <tr><th>Label</th><th>Type</th><th>Target MA</th><th>Loc</th><th>Spc</th><th>CP</th><th>K</th></tr>
             </thead>
             <tbody>
               {{#each system.mecha.movementSystems as |ms idx|}}
               <tr>
-                <td><input type="text" name="system.mecha.movementSystems.{{idx}}.system" value="{{ms.system}}"/></td>
-                <td><input type="text" name="system.mecha.movementSystems.{{idx}}.loc" value="{{ms.loc}}"/></td>
-                <td><input type="number" name="system.mecha.movementSystems.{{idx}}.spc" value="{{ms.spc}}"/></td>
-                <td><input type="number" name="system.mecha.movementSystems.{{idx}}.cp" value="{{ms.cp}}"/></td>
+                <td><input type="text" name="system.mecha.movementSystems.{{idx}}.system" value="{{ms.system}}" placeholder="e.g. Leg Thruster"/></td>
+                <td>{{movementTypeSelect (concat "system.mecha.movementSystems." idx ".type") ms.type}}</td>
+                <td><input type="number" name="system.mecha.movementSystems.{{idx}}.targetMA" value="{{ms.targetMA}}" min="0"/></td>
+                <td>{{mechaLocationSelect (concat "system.mecha.movementSystems." idx ".loc") ms.loc}}</td>
+                <td><input class="derived-input" type="number" value="{{ms.spc}}" readonly title="Derived from final weight + target MA"/></td>
+                <td><input class="derived-input" type="number" value="{{ms.cp}}" readonly title="Derived from final weight + target MA (equal to Spc)"/></td>
                 <td><input type="number" name="system.mecha.movementSystems.{{idx}}.h" value="{{ms.h}}"/></td>
               </tr>
               {{/each}}
@@ -212,12 +181,14 @@
           <h3>SENSORS</h3>
           <table class="sensors-table">
             <tbody>
+              <tr><td class="sensor-label">Type</td><td>{{sensorTypeSelect "system.mecha.sensors.type" system.mecha.sensors.type}}</td></tr>
               <tr><td class="sensor-label">Sensors Loc</td><td><input name="system.mecha.sensors.loc" type="text" value="{{system.mecha.sensors.loc}}"/></td></tr>
               <tr><td class="sensor-label">Range</td><td><input name="system.mecha.sensors.range" type="number" value="{{system.mecha.sensors.range}}"/></td></tr>
               <tr><td class="sensor-label">Comm</td><td><input name="system.mecha.sensors.comm" type="number" value="{{system.mecha.sensors.comm}}"/></td></tr>
-              <tr><td class="sensor-label">Kills</td><td><input name="system.mecha.sensors.hits" type="number" value="{{system.mecha.sensors.hits}}"/></td></tr>
-              <tr><td class="sensor-label">Cost</td><td><input name="system.mecha.sensors.cost" type="number" value="{{system.mecha.sensors.cost}}"/></td></tr>
-              <tr><td class="sensor-label">Space</td><td><input name="system.mecha.sensors.space" type="number" value="{{system.mecha.sensors.space}}"/></td></tr>
+              <tr><td class="sensor-label">Kills</td><td><input class="derived-input" type="number" value="{{system.mecha.sensors.hits}}" readonly title="Derived from sensor type"/></td></tr>
+              <tr><td class="sensor-label">Cost</td><td><input class="derived-input" type="number" value="{{system.mecha.sensors.cost}}" readonly title="Derived from sensor type"/></td></tr>
+              <tr><td class="sensor-label">Space</td><td><input class="derived-input" type="number" value="{{system.mecha.sensors.space}}" readonly title="Derived from sensor type"/></td></tr>
+              <tr><td class="sensor-label">Weight</td><td><input class="derived-input" type="number" value="{{system.mecha.sensors.weightTons}}" readonly title="Derived from sensor type"/></td></tr>
             </tbody>
           </table>
         </section>
@@ -245,9 +216,11 @@
             <td class="profile-label">Name</td>
             <td colspan="2"><input name="system.mecha.name" type="text" value="{{system.mecha.name}}"/></td>
             <td class="profile-label">Weight</td>
-            <td><input name="system.mecha.weight" type="number" value="{{system.mecha.weight}}"/></td>
+            <td><input class="derived-input" type="number" value="{{system.mecha.weight}}" readonly title="Total Kills / 2{{#if system.mecha.fuel}} x 1.1 fuel{{/if}}"/></td>
+            <td class="profile-label">Fuel</td>
+            <td><input type="checkbox" name="system.mecha.fuel" {{#if system.mecha.fuel}}checked{{/if}} title="Book's 10% fuel rule; applied to Weight before MA/flight calc"/></td>
             <td class="profile-label">Cost</td>
-            <td><input name="system.mecha.cost" type="number" value="{{system.mecha.cost}}"/></td>
+            <td><input class="derived-input" type="number" value="{{system.mecha.cost}}" readonly title="Sum of servo/weapon/shield/sensor/subassembly/movement cost"/></td>
           </tr>
         </table>
       </section>
@@ -261,11 +234,11 @@
           </thead>
           <tbody>
             <tr>
-              <td><input name="system.mecha.subassemblies.cockpit.type" type="text" value="{{system.mecha.subassemblies.cockpit.type}}"/></td>
-              <td><input name="system.mecha.subassemblies.cockpit.crew" type="number" value="{{system.mecha.subassemblies.cockpit.crew}}"/></td>
+              <td>{{cockpitTypeSelect "system.mecha.subassemblies.cockpit.type" system.mecha.subassemblies.cockpit.type}}</td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.crew}}" readonly title="Derived from cockpit type"/></td>
               <td><input name="system.mecha.subassemblies.cockpit.options" type="text" value="{{system.mecha.subassemblies.cockpit.options}}"/></td>
-              <td><input name="system.mecha.subassemblies.cockpit.space" type="number" value="{{system.mecha.subassemblies.cockpit.space}}"/></td>
-              <td><input name="system.mecha.subassemblies.cockpit.cp" type="number" value="{{system.mecha.subassemblies.cockpit.cp}}"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.space}}" readonly title="Derived from cockpit type"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.cp}}" readonly title="Derived from cockpit type"/></td>
             </tr>
           </tbody>
         </table>
@@ -292,45 +265,159 @@
         <h3>SHIELDS</h3>
         <table class="shields-table">
           <thead>
-            <tr><th>Shield</th><th>DA</th><th>SP</th><th>Loc</th><th>Space</th><th>Cost</th></tr>
+            <tr><th>Shield</th><th>DA</th><th>SP</th><th>Loc</th><th>Space</th><th>Cost</th><th>Weight</th></tr>
           </thead>
           <tbody>
-            {{#each system.mecha.shields as |shield idx|}}
             <tr>
-              <td><input type="text" name="system.mecha.shields.{{idx}}.name" value="{{shield.name}}"/></td>
-              <td><input type="number" name="system.mecha.shields.{{idx}}.da" value="{{shield.da}}"/></td>
-              <td><input type="number" name="system.mecha.shields.{{idx}}.sp" value="{{shield.sp}}"/></td>
-              <td><input type="text" name="system.mecha.shields.{{idx}}.loc" value="{{shield.loc}}"/></td>
-              <td><input type="number" name="system.mecha.shields.{{idx}}.space" value="{{shield.space}}"/></td>
-              <td><input type="number" name="system.mecha.shields.{{idx}}.cost" value="{{shield.cost}}"/></td>
+              <td>{{shieldSelect "system.mecha.shields.0.key" system.mecha.shields.[0].key}}</td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].da}}" readonly title="Derived from shield"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].sp}}" readonly title="Derived from shield"/></td>
+              <td>{{mechaLocationSelect "system.mecha.shields.0.loc" system.mecha.shields.[0].loc}}</td>
+              <td><input type="number" name="system.mecha.shields.0.space" value="{{system.mecha.shields.[0].space}}"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].cost}}" readonly title="Derived from shield"/></td>
+              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].weightTons}}" readonly title="Derived from shield"/></td>
             </tr>
-            {{/each}}
           </tbody>
         </table>
       </section>
     </div>
   </div>
 
+  <!-- Bottom Full-Width Servos & Armor -->
+  <section class="servos-section">
+    <h3>SERVOS & ARMOR</h3>
+    <table class="servos-table">
+      <thead>
+        <tr>
+          <th>SP</th>
+          <th>Kills</th>
+          <th>Servo</th>
+          <th>Level</th>
+          <th>Extremity</th>
+          <th>Space</th>
+          <th>Cost</th>
+          <th>Armor</th>
+          <th>Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{!-- Servo rows are a fixed 6-slot array: Head, Torso, R/L Arm, R/L Leg.
+             Unrolled (not {{#each}}) because only arm/leg rows get an Extremity picker. --}}
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[0].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[0].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[0].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.0.level" system.mecha.servos.[0].level}}</td>
+          <td></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[0].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[0].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.0.armor" system.mecha.servos.[0].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[0].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[1].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[1].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[1].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.1.level" system.mecha.servos.[1].level}}</td>
+          <td></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[1].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[1].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.1.armor" system.mecha.servos.[1].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[1].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[2].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[2].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[2].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.2.level" system.mecha.servos.[2].level}}</td>
+          <td>{{servoExtremitySelect "system.mecha.servos.2.extremityKey" system.mecha.servos.[2].extremityKey "arm"}}</td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[2].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[2].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.2.armor" system.mecha.servos.[2].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[2].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[3].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[3].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[3].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.3.level" system.mecha.servos.[3].level}}</td>
+          <td>{{servoExtremitySelect "system.mecha.servos.3.extremityKey" system.mecha.servos.[3].extremityKey "arm"}}</td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[3].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[3].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.3.armor" system.mecha.servos.[3].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[3].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[4].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[4].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[4].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.4.level" system.mecha.servos.[4].level}}</td>
+          <td>{{servoExtremitySelect "system.mecha.servos.4.extremityKey" system.mecha.servos.[4].extremityKey "leg"}}</td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[4].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[4].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.4.armor" system.mecha.servos.[4].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[4].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[5].sp}}" readonly title="Derived from armor"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[5].hits}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[5].servo}}" readonly/></td>
+          <td>{{servoClassSelect "system.mecha.servos.5.level" system.mecha.servos.[5].level}}</td>
+          <td>{{servoExtremitySelect "system.mecha.servos.5.extremityKey" system.mecha.servos.[5].extremityKey "leg"}}</td>
+          <td><input class="derived-input" type="text" value="{{system.mecha.servos.[5].space}}" readonly title="Derived from servo class"/></td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[5].cost}}" readonly title="Derived from servo class"/></td>
+          <td>{{armorClassSelect "system.mecha.servos.5.armor" system.mecha.servos.[5].armor}}</td>
+          <td><input class="derived-input" type="number" value="{{system.mecha.servos.[5].armorCost}}" readonly title="Derived from armor"/></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Bottom Full-Width Space Used by Location (rollup) -->
+  <section class="space-summary-section">
+    <h3>SPACE USED BY LOCATION</h3>
+    <table class="space-summary-table">
+      <thead><tr><th>Head</th><th>Torso</th><th>R Arm</th><th>L Arm</th><th>R Leg</th><th>L Leg</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.head.space}}" readonly/></td>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.torso.space}}" readonly/></td>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.rArm.space}}" readonly/></td>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.lArm.space}}" readonly/></td>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.rLeg.space}}" readonly/></td>
+          <td><input class="derived-input" type="number" value="{{system.derived.mecha.spaceByLocation.lLeg.space}}" readonly/></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
   <!-- Bottom Full-Width Armament -->
   <section class="armament-section">
     <h3>ARMAMENT</h3>
     <table class="armament-table">
       <thead>
-        <tr><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>K</th><th>Loc</th><th>Cost</th><th>Space</th><th>Notes</th></tr>
+        <tr><th>Roll</th><th>Category</th><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>K</th><th>BV</th><th>Loc</th><th>Cost</th><th>Space</th><th>Weight</th><th>Notes</th></tr>
       </thead>
       <tbody>
         {{#each system.mecha.weapons as |weapon idx|}}
         <tr>
-          <td><input type="text" name="system.mecha.weapons.{{idx}}.name" value="{{weapon.name}}"/></td>
-          <td><input type="number" name="system.mecha.weapons.{{idx}}.wa" value="{{weapon.wa}}"/></td>
-          <td><input type="text" name="system.mecha.weapons.{{idx}}.range" value="{{weapon.range}}"/></td>
-          <td><input type="text" name="system.mecha.weapons.{{idx}}.damage" value="{{weapon.damage}}"/></td>
-          <td><input type="number" name="system.mecha.weapons.{{idx}}.shots" value="{{weapon.shots}}"/></td>
-          <td><input type="number" name="system.mecha.weapons.{{idx}}.hits" value="{{weapon.hits}}"/></td>
-          <td><input type="text" name="system.mecha.weapons.{{idx}}.loc" value="{{weapon.loc}}"/></td>
-          <td><input type="number" name="system.mecha.weapons.{{idx}}.cost" value="{{weapon.cost}}"/></td>
-          <td><input type="number" name="system.mecha.weapons.{{idx}}.space" value="{{weapon.space}}"/></td>
-          <td><input type="text" name="system.mecha.weapons.{{idx}}.notes" value="{{weapon.notes}}"/></td>
+          <td><button type="button" class="mecha-weapon-roll" data-idx="{{idx}}" data-mech="mecha" title="Roll {{#if weapon.name}}{{weapon.name}}{{else}}weapon (1d10 + MR + skill + WA){{/if}}"><i class="fas fa-dice-d20"></i></button></td>
+          <td>{{weaponCategorySelect (concat "system.mecha.weapons." idx ".category") weapon.category}}</td>
+          <td>{{weaponKeySelect (concat "system.mecha.weapons." idx ".weaponKey") weapon.weaponKey weapon.category}}</td>
+          <td><input class="derived-input" type="number" value="{{weapon.wa}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="text" value="{{weapon.range}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="text" value="{{weapon.damage}}" readonly title="Derived from weapon (Kills)"/></td>
+          <td><input class="derived-input" type="text" value="{{weapon.shots}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="number" value="{{weapon.hits}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="text" value="{{weapon.bv}}" readonly title="Burst value, derived from weapon"/></td>
+          <td>{{mechaLocationSelect (concat "system.mecha.weapons." idx ".loc") weapon.loc}}</td>
+          <td><input class="derived-input" type="number" value="{{weapon.cost}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="number" value="{{weapon.space}}" readonly title="Derived from weapon"/></td>
+          <td><input class="derived-input" type="number" value="{{weapon.weightTons}}" readonly title="Derived from weapon"/></td>
+          <td>
+            {{#if weapon.damageNote}}<span class="weapon-damage-note" title="Special rule, derived from weapon">{{weapon.damageNote}}</span>{{/if}}
+            <input type="text" name="system.mecha.weapons.{{idx}}.notes" value="{{weapon.notes}}"/>
+          </td>
         </tr>
         {{/each}}
       </tbody>
