@@ -1,3 +1,12 @@
+## [0.1.15] - 2026-09-18
+### Changed
+- Movement Systems section moved from beside Sensors (left column) to under Shields (right column); dropped its Kills (K) column.
+- Sensors is now two independent slots (Main and Backup are separate purchases, not an either/or pick) instead of one, each with its own Type/Loc/Range/Comm and derived Kills/Cost/Space/Weight, both counted toward the mech's totals. Laid out as two value columns (Sensor 1 / Sensor 2) against the same attribute rows, not two stacked row-tables.
+- Armament roll button reworked into a single `_onRollWeapon` entry point that dispatches to the Combat tab's Item-based weapon roll or the Mecha tab's Armament-row roll (1d10 + MR + Mecha skill by weapon category + WA), instead of two separate, differently-named handlers. The Mecha roll's chat message now also shows Damage/Shots/Loc pulled from the weapon row.
+- Mecha Combat Skills panel and its skill roll now read the real derived MR (`system.mecha.config.mr` / `system.snaggletooth.config.mr`, per mech) instead of a stale REF + Initiative-Mod calculation that always showed 0.
+### Fixed
+- Initiative Mod (MV) box on the Mecha tab confirmed intentionally manual (wound-penalty entry) and left untouched after a prior pass mistakenly wired it to derived MR.
+
 ## [0.1.14] - 2026-09-17
 ### Added
 - New mecha construction/weapons/movement data modules (`mecha-construction.js`, `mecha-weapons.js`, `mecha-movement.js`), ported with export style matched to the rest of the codebase; values unchanged from source.

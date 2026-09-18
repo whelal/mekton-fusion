@@ -158,7 +158,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     cp: new fields.NumberField({ initial: 0, min: 0 }),
                     h: new fields.NumberField({ initial: 0, min: 0, integer: true })
                 }), { initial: [{},{}] }),
-                sensors: new fields.SchemaField({
+                // Two independent sensor slots -- Main and Backup are separate purchases,
+                // not mutually exclusive picks, so both rows use the same Type picker.
+                sensors: new fields.ArrayField(new fields.SchemaField({
                     type: new fields.StringField({ initial: "" }), // SENSORS key ("main"/"backup"); derives cost/space/hits/weight
                     loc: new fields.StringField({ initial: "" }),
                     range: new fields.NumberField({ initial: 0, min: 0 }),
@@ -167,7 +169,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }),
+                }), { initial: [{},{}] }),
                 subassemblies: new fields.SchemaField({
                     cockpit: new fields.SchemaField({
                         type: new fields.StringField({ initial: "" }), // COCKPIT key ("main"/"passenger"); derives cost/space/crew
@@ -272,7 +274,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     cp: new fields.NumberField({ initial: 0, min: 0 }),
                     h: new fields.NumberField({ initial: 0, min: 0, integer: true })
                 }), { initial: [{},{}] }),
-                sensors: new fields.SchemaField({
+                // Two independent sensor slots -- Main and Backup are separate purchases,
+                // not mutually exclusive picks, so both rows use the same Type picker.
+                sensors: new fields.ArrayField(new fields.SchemaField({
                     type: new fields.StringField({ initial: "" }), // SENSORS key ("main"/"backup"); derives cost/space/hits/weight
                     loc: new fields.StringField({ initial: "" }),
                     range: new fields.NumberField({ initial: 0, min: 0 }),
@@ -281,7 +285,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }),
+                }), { initial: [{},{}] }),
                 subassemblies: new fields.SchemaField({
                     cockpit: new fields.SchemaField({
                         type: new fields.StringField({ initial: "" }), // COCKPIT key ("main"/"passenger"); derives cost/space/crew
@@ -556,16 +560,17 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             if (spaceByLocation[row.loc]) spaceByLocation[row.loc].space += Number(row.space) || 0;
         });
 
-        // Sensors: SENSORS key ("main"/"backup") derives cost/space/hits/weight.
-        const sensors = mechaData.sensors;
-        if (sensors) {
-            const s = sensors.type ? SENSORS[sensors.type] : null;
-            sensors.cost = s?.cost ?? 0;
-            sensors.hits = s?.kills ?? 0;
-            sensors.space = s?.space ?? 0;
-            sensors.weightTons = s?.weightTons ?? 0;
-            totalCost += sensors.cost;
-            structuralKills += Number(sensors.hits) || 0;
+        // Sensors: two independent slots, each with its own SENSORS key ("main"/"backup").
+        // Main and Backup are separate purchases -- both rows can hold the same pick.
+        for (const sensorRow of mechaData.sensors ?? []) {
+            if (!sensorRow) continue;
+            const s = sensorRow.type ? SENSORS[sensorRow.type] : null;
+            sensorRow.cost = s?.cost ?? 0;
+            sensorRow.hits = s?.kills ?? 0;
+            sensorRow.space = s?.space ?? 0;
+            sensorRow.weightTons = s?.weightTons ?? 0;
+            totalCost += sensorRow.cost;
+            structuralKills += Number(sensorRow.hits) || 0;
         }
 
         // Cockpit: COCKPIT key ("main"/"passenger") derives cost/space/crew. Only one

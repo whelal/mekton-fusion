@@ -777,15 +777,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       this._queueSubstatChange?.(ev);
     });
 
-    // Weapon handlers
+    // Weapon handlers. .weapon-roll (Combat tab Item) and .mecha-weapon-roll (Mecha tab
+    // Armament row) share one handler, which dispatches by data attributes.
     html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
-    html.on('click', '.weapon-roll', ev => this._onRollWeapon(ev));
+    html.on('click', '.weapon-roll, .mecha-weapon-roll', ev => this._onRollWeapon(ev));
     html.on('click', '.weapon-damage-roll', ev => this._onRollWeaponDamage(ev));
     html.on('click', '.weapon-hitloc-roll', ev => this._onRollHitLocation(ev));
     html.on('click', '.mf-roll-hitloc', ev => this._onRollHitLocation(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
-    html.on('click', '.mecha-weapon-roll', ev => this._onRollMechaWeapon(ev));
 
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
@@ -1732,9 +1732,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     await roll.toMessage({ speaker, flavor });
   }
 
-  /** Roll a weapon attack */
-  async _onRollWeapon(ev) {    ev.preventDefault();
+  /**
+   * Roll a weapon attack. Dispatches by source: a Combat tab weapon Item
+   * (data-item-id) or a Mecha tab Armament row (data-mech + data-idx).
+   */
+  async _onRollWeapon(ev) {
+    ev.preventDefault();
     const button = ev.currentTarget;
+    if (button.dataset.mech !== undefined) return this._rollMechaArmamentRow(button);
+    return this._rollWeaponItem(button);
+  }
+
+  /** Roll a Combat tab weapon Item attack: 1d10 + skill + WA. */
+  async _rollWeaponItem(button) {
     const itemId = button.dataset.itemId;
     if (!itemId) return;
 
@@ -1788,12 +1798,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /**
    * Roll a Mecha tab Armament row: 1d10 + MR + Mecha skill (by weapon category) + WA.
    * Reads the row's derived data directly (system.mecha.weapons[idx] or
-   * system.snaggletooth.weapons[idx]) rather than an Item, since these rows are
-   * actor-embedded and derived from mecha-weapons.js, not Item documents.
+   * system.snaggletooth.weapons[idx]) rather than an Item -- this is also the shape
+   * mook NPC attacks will read from, since the attack's data already lives on the row.
    */
-  async _onRollMechaWeapon(ev) {
-    ev.preventDefault();
-    const button = ev.currentTarget;
+  async _rollMechaArmamentRow(button) {
     const mechKey = button.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
     const idx = Number(button.dataset.idx);
     const row = this.actor.system?.[mechKey]?.weapons?.[idx];
@@ -1829,7 +1837,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const weaponName = row.name || 'Weapon';
     const skillLabel = skillName ? skillName.replace(' (H)', '') : 'Skill';
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>`;
+    const damageStr = (row.damage !== undefined && row.damage !== '') ? `${row.damage}K${row.damageNote ? ` (${row.damageNote})` : ''}` : '—';
+    const shotsStr = row.shots || '—';
+    const locStr = row.loc || 'unassigned';
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>`;
 
     await roll.toMessage({ speaker, flavor });
   }

@@ -154,46 +154,59 @@
         </table>
       </section>
 
-      <!-- Movement Systems & Sensors Row -->
-      <div class="movement-sensors-row">
-        <section class="movement-section">
-          <h3>MOVEMENT SYSTEMS</h3>
-          <table class="movement-table">
-            <thead>
-              <tr><th>Label</th><th>Type</th><th>Target MA</th><th>Loc</th><th>Spc</th><th>CP</th><th>K</th></tr>
-            </thead>
-            <tbody>
-              {{#each system.snaggletooth.movementSystems as |ms idx|}}
-              <tr>
-                <td><input type="text" name="system.snaggletooth.movementSystems.{{idx}}.system" value="{{ms.system}}" placeholder="e.g. Leg Thruster"/></td>
-                <td>{{movementTypeSelect (concat "system.snaggletooth.movementSystems." idx ".type") ms.type}}</td>
-                <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.targetMA" value="{{ms.targetMA}}" min="0"/></td>
-                <td>{{mechaLocationSelect (concat "system.snaggletooth.movementSystems." idx ".loc") ms.loc}}</td>
-                <td><input class="derived-input" type="number" value="{{ms.spc}}" readonly title="Derived from final weight + target MA"/></td>
-                <td><input class="derived-input" type="number" value="{{ms.cp}}" readonly title="Derived from final weight + target MA (equal to Spc)"/></td>
-                <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.h" value="{{ms.h}}"/></td>
-              </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        </section>
-
-        <section class="sensors-section">
-          <h3>SENSORS</h3>
-          <table class="sensors-table">
-            <tbody>
-              <tr><td class="sensor-label">Type</td><td>{{sensorTypeSelect "system.snaggletooth.sensors.type" system.snaggletooth.sensors.type}}</td></tr>
-              <tr><td class="sensor-label">Sensors Loc</td><td><input name="system.snaggletooth.sensors.loc" type="text" value="{{system.snaggletooth.sensors.loc}}"/></td></tr>
-              <tr><td class="sensor-label">Range</td><td><input name="system.snaggletooth.sensors.range" type="number" value="{{system.snaggletooth.sensors.range}}"/></td></tr>
-              <tr><td class="sensor-label">Comm</td><td><input name="system.snaggletooth.sensors.comm" type="number" value="{{system.snaggletooth.sensors.comm}}"/></td></tr>
-              <tr><td class="sensor-label">Kills</td><td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.hits}}" readonly title="Derived from sensor type"/></td></tr>
-              <tr><td class="sensor-label">Cost</td><td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.cost}}" readonly title="Derived from sensor type"/></td></tr>
-              <tr><td class="sensor-label">Space</td><td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.space}}" readonly title="Derived from sensor type"/></td></tr>
-              <tr><td class="sensor-label">Weight</td><td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.weightTons}}" readonly title="Derived from sensor type"/></td></tr>
-            </tbody>
-          </table>
-        </section>
-      </div>
+      <!-- Sensors -->
+      <section class="sensors-section">
+        <h3>SENSORS</h3>
+        <table class="sensors-table">
+          <thead>
+            <tr><th></th><th>Sensor 1</th><th>Sensor 2</th></tr>
+          </thead>
+          <tbody>
+            {{!-- Main and Backup sensors are separate purchases, not exclusive picks --
+                 both columns can hold the same Type. --}}
+            <tr>
+              <td class="sensor-label">Type</td>
+              <td>{{sensorTypeSelect "system.snaggletooth.sensors.0.type" system.snaggletooth.sensors.[0].type}}</td>
+              <td>{{sensorTypeSelect "system.snaggletooth.sensors.1.type" system.snaggletooth.sensors.[1].type}}</td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Loc</td>
+              <td><input type="text" name="system.snaggletooth.sensors.0.loc" value="{{system.snaggletooth.sensors.[0].loc}}"/></td>
+              <td><input type="text" name="system.snaggletooth.sensors.1.loc" value="{{system.snaggletooth.sensors.[1].loc}}"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Range</td>
+              <td><input type="number" name="system.snaggletooth.sensors.0.range" value="{{system.snaggletooth.sensors.[0].range}}"/></td>
+              <td><input type="number" name="system.snaggletooth.sensors.1.range" value="{{system.snaggletooth.sensors.[1].range}}"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Comm</td>
+              <td><input type="number" name="system.snaggletooth.sensors.0.comm" value="{{system.snaggletooth.sensors.[0].comm}}"/></td>
+              <td><input type="number" name="system.snaggletooth.sensors.1.comm" value="{{system.snaggletooth.sensors.[1].comm}}"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Kills</td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[0].hits}}" readonly title="Derived from sensor type"/></td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[1].hits}}" readonly title="Derived from sensor type"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Cost</td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[0].cost}}" readonly title="Derived from sensor type"/></td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[1].cost}}" readonly title="Derived from sensor type"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Space</td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[0].space}}" readonly title="Derived from sensor type"/></td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[1].space}}" readonly title="Derived from sensor type"/></td>
+            </tr>
+            <tr>
+              <td class="sensor-label">Weight</td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[0].weightTons}}" readonly title="Derived from sensor type"/></td>
+              <td><input class="derived-input" type="number" value="{{system.snaggletooth.sensors.[1].weightTons}}" readonly title="Derived from sensor type"/></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </div>
 
     <!-- RIGHT COLUMN -->
@@ -278,6 +291,28 @@
               <td><input class="derived-input" type="number" value="{{system.snaggletooth.shields.[0].cost}}" readonly title="Derived from shield"/></td>
               <td><input class="derived-input" type="number" value="{{system.snaggletooth.shields.[0].weightTons}}" readonly title="Derived from shield"/></td>
             </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Movement Systems -->
+      <section class="movement-section">
+        <h3>MOVEMENT SYSTEMS</h3>
+        <table class="movement-table">
+          <thead>
+            <tr><th>Label</th><th>Type</th><th>Target MA</th><th>Loc</th><th>Spc</th><th>CP</th></tr>
+          </thead>
+          <tbody>
+            {{#each system.snaggletooth.movementSystems as |ms idx|}}
+            <tr>
+              <td><input type="text" name="system.snaggletooth.movementSystems.{{idx}}.system" value="{{ms.system}}" placeholder="e.g. Leg Thruster"/></td>
+              <td>{{movementTypeSelect (concat "system.snaggletooth.movementSystems." idx ".type") ms.type}}</td>
+              <td><input type="number" name="system.snaggletooth.movementSystems.{{idx}}.targetMA" value="{{ms.targetMA}}" min="0"/></td>
+              <td>{{mechaLocationSelect (concat "system.snaggletooth.movementSystems." idx ".loc") ms.loc}}</td>
+              <td><input class="derived-input" type="number" value="{{ms.spc}}" readonly title="Derived from final weight + target MA"/></td>
+              <td><input class="derived-input" type="number" value="{{ms.cp}}" readonly title="Derived from final weight + target MA (equal to Spc)"/></td>
+            </tr>
+            {{/each}}
           </tbody>
         </table>
       </section>
