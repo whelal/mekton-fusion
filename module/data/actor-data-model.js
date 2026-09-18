@@ -1,24 +1,14 @@
 import { getBodyValues, getMovementAllowance, getStandardMovement, getSkillPointMultiplier, encumberedMA } from "./body-values.js";
-import { deriveServo, deriveArmor, SENSORS, COCKPIT } from "./mecha-construction.js";
+import { deriveServo, deriveArmor, SENSORS, COCKPIT, SERVO_ROW_LOCATIONS } from "./mecha-construction.js";
 import { getWeapon, SHIELDS } from "./mecha-weapons.js";
+import { OPTIONS, optionCost } from "./mecha-options.js";
 import { finalWeight, propulsionLiftPoints, groundMA, maneuverValue, mechaReflex, maneuverPool } from "./mecha-movement.js";
+import { getPowerplant, powerplantMultipliers } from "./mecha-powerplant.js";
+import { finalCost, collectMultipliers } from "./mecha-cost.js";
 
 // Body-location keys mapped onto the BOD hit-value groups body-values.js provides
 // (head/torso get their own column; all limbs share the "limbs" column).
 const BODY_LOCATION_GROUPS = { head: "head", torso: "torso", rArm: "limbs", lArm: "limbs", rLeg: "limbs", lLeg: "limbs" };
-
-// Mecha servo rows are a fixed 6-slot array (see the ArrayField's `initial` below);
-// this is the location each slot represents and the deriveServo() "location" kind it maps to.
-// Each location now has its own construction table (Torso/Arm/Leg/Head all differ),
-// so this mapping matters -- it used to be masked by a shared table.
-const SERVO_ROW_LOCATIONS = [
-    { key: "head", label: "Head", kind: "head" },
-    { key: "torso", label: "Torso", kind: "torso" },
-    { key: "rArm", label: "R Arm", kind: "arm" },
-    { key: "lArm", label: "L Arm", kind: "arm" },
-    { key: "rLeg", label: "R Leg", kind: "leg" },
-    { key: "lLeg", label: "L Leg", kind: "leg" }
-];
 
 // mecha-weapons.js uses the string "inf" for unlimited shots/burst value; render as ∞.
 function formatInfinite(v) {
@@ -132,8 +122,15 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 }),
                 maneuverPool: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                 costMultiplier: new fields.SchemaField({
-                    system: new fields.StringField({ initial: "" }),
-                    powerplant: new fields.StringField({ initial: "" })
+                    other: new fields.NumberField({ initial: 0 }) // manual multiplier value (e.g. 0.2) for unmodeled multiplier systems (transformation forms, stealth, etc.); feeds the cost engine directly
+                }),
+                powerplant: new fields.SchemaField({
+                    charge: new fields.StringField({ initial: "" }), // CHARGE_LEVELS key
+                    source: new fields.StringField({ initial: "" }), // POWER_SOURCES key
+                    hot: new fields.BooleanField({ initial: false }), // "if Hot" charge variant
+                    explosionSave: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived: D10 roll-or-under to explode when hit
+                    chargeCostMod: new fields.NumberField({ initial: 0 }), // derived; feeds the cost engine's multiplier sum
+                    mpMod: new fields.NumberField({ initial: 0 }) // derived combat modifier (Maneuver Pool); reference only, not yet applied
                 }),
                 servos: new fields.ArrayField(new fields.SchemaField({
                     sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived from armor (ARMOR table)
@@ -157,7 +154,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     spc: new fields.NumberField({ initial: 0, min: 0 }),
                     cp: new fields.NumberField({ initial: 0, min: 0 }),
                     h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                }), { initial: [{},{}] }),
+                }), { initial: [{},{},{}] }),
                 // Two independent sensor slots -- Main and Backup are separate purchases,
                 // not mutually exclusive picks, so both rows use the same Type picker.
                 sensors: new fields.ArrayField(new fields.SchemaField({
@@ -179,12 +176,14 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         cp: new fields.NumberField({ initial: 0, min: 0 })
                     }),
                     items: new fields.ArrayField(new fields.SchemaField({
+                        key: new fields.StringField({ initial: "" }), // OPTIONS picker key; derives name/cost/space
                         name: new fields.StringField({ initial: "" }),
+                        variant: new fields.BooleanField({ initial: false }), // Anti-theft Code Lock's alarm variant (costMax vs costMin); unused by flat-cost options
                         loc: new fields.StringField({ initial: "" }),
                         space: new fields.NumberField({ initial: 0, min: 0 }),
                         cp: new fields.NumberField({ initial: 0, min: 0 }),
                         h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                    }), { initial: [{}] })
+                    }), { initial: [{},{},{},{}] })
                 }),
                 shields: new fields.ArrayField(new fields.SchemaField({
                     key: new fields.StringField({ initial: "" }), // SHIELDS picker key; derives name/da/sp/cost/weight
@@ -195,7 +194,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{}] }),
+                }), { initial: [{},{}] }),
                 weapons: new fields.ArrayField(new fields.SchemaField({
                     category: new fields.StringField({ initial: "" }), // WEAPON_CATEGORIES key (beam/projectile/missile/melee/energyMelee)
                     weaponKey: new fields.StringField({ initial: "" }), // key within that category; category+weaponKey derive everything but loc/notes
@@ -212,7 +211,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 }),
                     notes: new fields.StringField({ initial: "" })
-                }), { initial: [{},{},{}] }),
+                }), { initial: [{},{},{},{}] }),
                 imageUrl: new fields.StringField({ initial: "" })
             }),
             // Snaggletooth - separate duplicate of mecha data
@@ -248,8 +247,15 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 }),
                 maneuverPool: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                 costMultiplier: new fields.SchemaField({
-                    system: new fields.StringField({ initial: "" }),
-                    powerplant: new fields.StringField({ initial: "" })
+                    other: new fields.NumberField({ initial: 0 }) // manual multiplier value (e.g. 0.2) for unmodeled multiplier systems (transformation forms, stealth, etc.); feeds the cost engine directly
+                }),
+                powerplant: new fields.SchemaField({
+                    charge: new fields.StringField({ initial: "" }), // CHARGE_LEVELS key
+                    source: new fields.StringField({ initial: "" }), // POWER_SOURCES key
+                    hot: new fields.BooleanField({ initial: false }), // "if Hot" charge variant
+                    explosionSave: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived: D10 roll-or-under to explode when hit
+                    chargeCostMod: new fields.NumberField({ initial: 0 }), // derived; feeds the cost engine's multiplier sum
+                    mpMod: new fields.NumberField({ initial: 0 }) // derived combat modifier (Maneuver Pool); reference only, not yet applied
                 }),
                 servos: new fields.ArrayField(new fields.SchemaField({
                     sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived from armor (ARMOR table)
@@ -273,7 +279,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     spc: new fields.NumberField({ initial: 0, min: 0 }),
                     cp: new fields.NumberField({ initial: 0, min: 0 }),
                     h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                }), { initial: [{},{}] }),
+                }), { initial: [{},{},{}] }),
                 // Two independent sensor slots -- Main and Backup are separate purchases,
                 // not mutually exclusive picks, so both rows use the same Type picker.
                 sensors: new fields.ArrayField(new fields.SchemaField({
@@ -295,12 +301,14 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         cp: new fields.NumberField({ initial: 0, min: 0 })
                     }),
                     items: new fields.ArrayField(new fields.SchemaField({
+                        key: new fields.StringField({ initial: "" }), // OPTIONS picker key; derives name/cost/space
                         name: new fields.StringField({ initial: "" }),
+                        variant: new fields.BooleanField({ initial: false }), // Anti-theft Code Lock's alarm variant (costMax vs costMin); unused by flat-cost options
                         loc: new fields.StringField({ initial: "" }),
                         space: new fields.NumberField({ initial: 0, min: 0 }),
                         cp: new fields.NumberField({ initial: 0, min: 0 }),
                         h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                    }), { initial: [{}] })
+                    }), { initial: [{},{},{},{}] })
                 }),
                 shields: new fields.ArrayField(new fields.SchemaField({
                     key: new fields.StringField({ initial: "" }), // SHIELDS picker key; derives name/da/sp/cost/weight
@@ -311,7 +319,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{}] }),
+                }), { initial: [{},{}] }),
                 weapons: new fields.ArrayField(new fields.SchemaField({
                     category: new fields.StringField({ initial: "" }), // WEAPON_CATEGORIES key (beam/projectile/missile/melee/energyMelee)
                     weaponKey: new fields.StringField({ initial: "" }), // key within that category; category+weaponKey derive everything but loc/notes
@@ -328,7 +336,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 }),
                     notes: new fields.StringField({ initial: "" })
-                }), { initial: [{},{},{}] }),
+                }), { initial: [{},{},{},{}] }),
                 imageUrl: new fields.StringField({ initial: "" })
             }),
             /* Body model for paperdoll locations */
@@ -402,6 +410,18 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     })
                 }),
                 notes: new fields.StringField({ initial: "" })
+            }),
+            // Non-mecha enemy/creature stat block (character body-plan/enemy model,
+            // not mecha construction). BOD stat drives hit points as usual; bodyPlan
+            // is flavor/reference only (Mekton Z defines no non-humanoid hit tables).
+            creature: new fields.SchemaField({
+                bodyPlan: new fields.StringField({ initial: "" }), // BODY_PLANS key
+                armorSP: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor; stamped onto body.locations.*.sp on preset load
+                naturalWeapons: new fields.ArrayField(new fields.SchemaField({
+                    name: new fields.StringField({ initial: "" }),
+                    damage: new fields.StringField({ initial: "" }),
+                    type: new fields.StringField({ initial: "" })
+                }), { initial: [{},{},{},{}] })
             }),
             equipment: new fields.SchemaField({
                 gear: new fields.StringField({ initial: "" }),
@@ -584,11 +604,24 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             totalCost += cockpit.cp;
         }
 
-        // Subassembly items aren't derived yet (formula-based, out of scope for now), but
-        // their manually-entered Cost and Kills still count toward the mech's totals.
+        // Optional subassembly picks (OPTIONS table: CP + Space). Anti-theft Code
+        // Lock has a cost range -- the row's "variant" checkbox (alarm) selects
+        // costMax over costMin. Kills (h) has no OPTIONS equivalent, so it stays a
+        // manual override, same as before.
         for (const item of mechaData.subassemblies?.items ?? []) {
-            totalCost += Number(item?.cp) || 0;
-            structuralKills += Number(item?.h) || 0;
+            if (!item) continue;
+            const opt = item.key ? OPTIONS[item.key] : null;
+            if (opt) {
+                item.name = opt.label;
+                item.cp = optionCost(item.key, !!item.variant) ?? 0;
+                item.space = opt.space ?? 0;
+            } else {
+                item.cp = item.cp || 0;
+                item.space = item.space || 0;
+            }
+            totalCost += Number(item.cp) || 0;
+            if (spaceByLocation[item.loc]) spaceByLocation[item.loc].space += Number(item.space) || 0;
+            structuralKills += Number(item.h) || 0;
         }
         // Movement systems' own Kills (h) is likewise manual; sum it before deriving
         // Spaces/CP below, since that derivation needs finalWeight, which needs this sum.
@@ -624,7 +657,11 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         }
 
         // MEKTON STATS config rows: MV/MR are mech-wide and derived for all three.
-        // Configuration name, Land MA, and Flight MA stay manual per config.
+        // Configuration name, Land MA, and Flight MA stay manual per config (a
+        // transforming mecha can walk in one mode and fly in another). Land MA is
+        // filled from the tonnage-only Ground MA hint whenever it's at its unset
+        // default (0) -- a starting suggestion the pilot can type over with any
+        // nonzero value, which then sticks (0 always re-suggests the hint).
         const cfg = mechaData.config;
         if (cfg) {
             cfg.mv = mv ?? 0;
@@ -633,6 +670,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             cfg.mr2 = mr;
             cfg.mv3 = mv ?? 0;
             cfg.mr3 = mr;
+            if (!cfg.landMA) cfg.landMA = groundMaHexes ?? 0;
+            if (!cfg.landMA2) cfg.landMA2 = groundMaHexes ?? 0;
+            if (!cfg.landMA3) cfg.landMA3 = groundMaHexes ?? 0;
         }
 
         // Maneuver Pool keys off the Mecha Piloting (H) skill's total (stat + rank) --
@@ -643,10 +683,34 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             : 0;
         mechaData.maneuverPool = maneuverPool(pilotingTotal);
 
-        mechaData.cost = Math.round(totalCost * 100) / 100;
+        // Powerplant (Charge + Source): the Charge cost modifier is a confirmed
+        // multiplier contribution; the Source column is provisional (not verified
+        // against a worked book example) and held out of the cost sum per
+        // mecha-cost.js's own caveat -- exposed read-only below instead.
+        const ppData = mechaData.powerplant;
+        const pp = (ppData?.charge && ppData?.source) ? getPowerplant(ppData.charge, ppData.source, !!ppData.hot) : null;
+        const ppMults = powerplantMultipliers(pp);
+        if (ppData) {
+            ppData.explosionSave = pp?.explosionSave ?? 0;
+            ppData.chargeCostMod = ppMults.chargeMod;
+            ppData.mpMod = pp?.combat?.mpMod ?? 0;
+        }
+
+        // Unified cost engine (mecha-cost.js): totalCost above is the Base Cost
+        // (sum of every additive system -- servos/armor, weapons, shields, sensors,
+        // cockpit, subassembly options, movement systems). Multiplier systems add
+        // NO cost of their own; their values sum, then apply once: Base x (1 + sum).
+        // Modeled multipliers so far: powerplant Charge, plus a manual "Other"
+        // override for systems not yet modeled (transformation forms, stealth, etc.).
+        const multipliers = collectMultipliers({
+            chargeMod: ppMults.chargeMod,
+            otherMults: [Number(mechaData.costMultiplier?.other) || 0]
+        });
+        mechaData.cost = finalCost(totalCost, multipliers);
         mechaData.weight = Math.round(adjustedWeight * 100) / 100;
 
         return {
+            baseCost: Math.round(totalCost * 100) / 100,
             totalCost: mechaData.cost,
             weight: mechaData.weight,
             spaceByLocation,
@@ -655,7 +719,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             adjustedWeight,
             groundMA: groundMaHexes,
             maneuverValue: mv,
-            mechaReflex: mr
+            mechaReflex: mr,
+            powerplantSourceProvisional: ppMults.sourceContributionProvisional
         };
     }
 }

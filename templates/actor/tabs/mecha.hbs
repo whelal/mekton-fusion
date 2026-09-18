@@ -22,6 +22,17 @@
   .tab.mecha .mecha-stats-table td:nth-child(4) input[type="number"] { width: 98% !important; max-width: 98% !important; }
   .tab.mecha .mecha-stats-table td:nth-child(5) input[type="number"] { width: 90% !important; max-width: 90% !important; }
   </style>
+  <!-- Preset Loader -->
+  <div class="preset-loader-row">
+    <label>Load Preset</label>
+    <select class="preset-select" data-mech="mecha">
+      {{#each mechaPresetOptions}}
+        <option value="{{this.id}}">{{this.label}}</option>
+      {{/each}}
+    </select>
+    <button type="button" class="load-preset-btn" data-mech="mecha" title="Stamp this preset's servos/armament/shields/movement into this mech (overwrites current loadout)">Load</button>
+  </div>
+
   <div class="mecha-columns">
     <!-- LEFT COLUMN -->
     <div class="mecha-left-col">
@@ -83,14 +94,34 @@
         </section>
 
         <section class="cost-multipliers-section">
-          <h3>COST MULTIPLIERS</h3>
+          <h3>POWERPLANT</h3>
           <div class="multiplier-row">
-            <label>Multiplier System</label>
-            <input name="system.mecha.costMultiplier.system" type="text" value="{{system.mecha.costMultiplier.system}}" placeholder="CP x ?"/>
+            <label>Charge</label>
+            {{powerplantChargeSelect "system.mecha.powerplant.charge" system.mecha.powerplant.charge}}
           </div>
           <div class="multiplier-row">
-            <label>Powerplant</label>
-            <input name="system.mecha.costMultiplier.powerplant" type="text" value="{{system.mecha.costMultiplier.powerplant}}" placeholder="X5:"/>
+            <label>Source</label>
+            {{powerplantSourceSelect "system.mecha.powerplant.source" system.mecha.powerplant.source}}
+          </div>
+          <div class="multiplier-row">
+            <label>Hot</label>
+            <input type="checkbox" name="system.mecha.powerplant.hot" {{#if system.mecha.powerplant.hot}}checked{{/if}} title="Hot charge variant: higher Explosion Save risk; different cost/combat modifiers"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Explosion Save</label>
+            <input class="derived-input" type="number" value="{{system.mecha.powerplant.explosionSave}}" readonly title="D10 roll-or-under to explode when hit, derived from Charge"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Charge Cost Mod</label>
+            <input class="derived-input" type="number" value="{{system.mecha.powerplant.chargeCostMod}}" readonly step="0.01" title="Charge's cost multiplier contribution -- included in total Cost"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Source (unverified)</label>
+            <input class="derived-input" type="number" value="{{system.derived.mecha.powerplantSourceProvisional}}" readonly title="Source's cost contribution -- NOT yet applied to total Cost; unconfirmed against the book, held until verified"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Other Mult.</label>
+            <input name="system.mecha.costMultiplier.other" type="number" value="{{system.mecha.costMultiplier.other}}" step="0.01" title="Manual multiplier value for systems not yet modeled (transformation forms, stealth, etc.) -- included in total Cost"/>
           </div>
         </section>
       </div>
@@ -233,7 +264,7 @@
             <td class="profile-label">Fuel</td>
             <td><input type="checkbox" name="system.mecha.fuel" {{#if system.mecha.fuel}}checked{{/if}} title="Book's 10% fuel rule; applied to Weight before MA/flight calc"/></td>
             <td class="profile-label">Cost</td>
-            <td><input class="derived-input" type="number" value="{{system.mecha.cost}}" readonly title="Sum of servo/weapon/shield/sensor/subassembly/movement cost"/></td>
+            <td><input class="derived-input" type="number" value="{{system.mecha.cost}}" readonly title="Base Cost {{system.derived.mecha.baseCost}} (servos/weapons/shields/sensors/subassembly/movement) x (1 + multiplier sum), per the unified cost engine"/></td>
           </tr>
         </table>
       </section>
@@ -257,15 +288,16 @@
         </table>
         <table class="subassemblies-table">
           <thead>
-            <tr><th>Subassemblies</th><th>Loc</th><th>Space</th><th>CP</th><th>K</th></tr>
+            <tr><th>Subassemblies</th><th>Alarm</th><th>Loc</th><th>Space</th><th>CP</th><th>K</th></tr>
           </thead>
           <tbody>
             {{#each system.mecha.subassemblies.items as |item idx|}}
             <tr>
-              <td><input type="text" name="system.mecha.subassemblies.items.{{idx}}.name" value="{{item.name}}"/></td>
-              <td><input type="text" name="system.mecha.subassemblies.items.{{idx}}.loc" value="{{item.loc}}"/></td>
-              <td><input type="number" name="system.mecha.subassemblies.items.{{idx}}.space" value="{{item.space}}"/></td>
-              <td><input type="number" name="system.mecha.subassemblies.items.{{idx}}.cp" value="{{item.cp}}"/></td>
+              <td>{{subassemblyOptionSelect (concat "system.mecha.subassemblies.items." idx ".key") item.key}}</td>
+              <td><input type="checkbox" name="system.mecha.subassemblies.items.{{idx}}.variant" {{#if item.variant}}checked{{/if}} title="Anti-theft Code Lock only: adds the audible-alert variant (costMax instead of costMin)"/></td>
+              <td>{{mechaLocationSelect (concat "system.mecha.subassemblies.items." idx ".loc") item.loc}}</td>
+              <td><input class="derived-input" type="number" value="{{item.space}}" readonly title="Derived from option"/></td>
+              <td><input class="derived-input" type="number" value="{{item.cp}}" readonly title="Derived from option"/></td>
               <td><input type="number" name="system.mecha.subassemblies.items.{{idx}}.h" value="{{item.h}}"/></td>
             </tr>
             {{/each}}
@@ -281,15 +313,17 @@
             <tr><th>Shield</th><th>DA</th><th>SP</th><th>Loc</th><th>Space</th><th>Cost</th><th>Weight</th></tr>
           </thead>
           <tbody>
+            {{#each system.mecha.shields as |shield idx|}}
             <tr>
-              <td>{{shieldSelect "system.mecha.shields.0.key" system.mecha.shields.[0].key}}</td>
-              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].da}}" readonly title="Derived from shield"/></td>
-              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].sp}}" readonly title="Derived from shield"/></td>
-              <td>{{mechaLocationSelect "system.mecha.shields.0.loc" system.mecha.shields.[0].loc}}</td>
-              <td><input type="number" name="system.mecha.shields.0.space" value="{{system.mecha.shields.[0].space}}"/></td>
-              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].cost}}" readonly title="Derived from shield"/></td>
-              <td><input class="derived-input" type="number" value="{{system.mecha.shields.[0].weightTons}}" readonly title="Derived from shield"/></td>
+              <td>{{shieldSelect (concat "system.mecha.shields." idx ".key") shield.key}}</td>
+              <td><input class="derived-input" type="number" value="{{shield.da}}" readonly title="Derived from shield"/></td>
+              <td><input class="derived-input" type="number" value="{{shield.sp}}" readonly title="Derived from shield"/></td>
+              <td>{{mechaLocationSelect (concat "system.mecha.shields." idx ".loc") shield.loc}}</td>
+              <td><input type="number" name="system.mecha.shields.{{idx}}.space" value="{{shield.space}}"/></td>
+              <td><input class="derived-input" type="number" value="{{shield.cost}}" readonly title="Derived from shield"/></td>
+              <td><input class="derived-input" type="number" value="{{shield.weightTons}}" readonly title="Derived from shield"/></td>
             </tr>
+            {{/each}}
           </tbody>
         </table>
       </section>
@@ -430,6 +464,13 @@
   <section class="armament-section">
     <h3>ARMAMENT</h3>
     <table class="armament-table">
+      <colgroup>
+        <col style="width: 3%" /><col style="width: 8%" /><col style="width: 18%" />
+        <col style="width: 5%" /><col style="width: 6%" /><col style="width: 7%" />
+        <col style="width: 7%" /><col style="width: 4%" /><col style="width: 4%" />
+        <col style="width: 6%" /><col style="width: 5%" /><col style="width: 5%" />
+        <col style="width: 6%" /><col style="width: 16%" />
+      </colgroup>
       <thead>
         <tr><th>Roll</th><th>Category</th><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>K</th><th>BV</th><th>Loc</th><th>Cost</th><th>Space</th><th>Weight</th><th>Notes</th></tr>
       </thead>

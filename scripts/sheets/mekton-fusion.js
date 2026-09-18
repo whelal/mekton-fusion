@@ -6,6 +6,9 @@ import { WeaponDataModel, SkillDataModel, ArmorDataModel } from "../../module/da
 import { syncActorCoreItems } from "../../module/seed.js";
 import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
+import { BODY_PLANS } from "../../module/data/body-values.js";
+import { OPTIONS } from "../../module/data/mecha-options.js";
+import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
 function escapeHtml(s) {
@@ -85,9 +88,11 @@ Hooks.once("init", () => {
     // The second select only lists that category's items; picking a new category
     // resubmits the form (submitOnChange) and the sheet re-renders with the second
     // select rebuilt for the new category -- no cascading JS needed.
+    // Abbreviated for the narrow Category column; the Weapon column needs the room more.
+    const WEAPON_CATEGORY_ABBR = { beam: "Beam", projectile: "Proj", missile: "Msl", melee: "Melee", energyMelee: "E.Melee" };
     Handlebars.registerHelper('weaponCategorySelect', (name, current) => {
-      const entries = Object.entries(WEAPON_CATEGORIES).map(([key, cat]) => ({ value: key, label: cat.label }));
-      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+      const entries = Object.entries(WEAPON_CATEGORIES).map(([key, cat]) => ({ value: key, label: WEAPON_CATEGORY_ABBR[key] ?? cat.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker" title="Weapon category">${buildOptions(entries, current)}</select>`);
     });
 
     Handlebars.registerHelper('weaponKeySelect', (name, current, categoryKey) => {
@@ -114,6 +119,28 @@ Hooks.once("init", () => {
     // Propulsion type picker for Movement Systems rows (thruster/GES); drives spc/cp.
     Handlebars.registerHelper('movementTypeSelect', (name, current) => {
       const entries = [{ value: 'thruster', label: 'Thruster' }, { value: 'ges', label: 'GES' }];
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Body-plan picker for the Body tab's Creature section; flavor/reference only.
+    Handlebars.registerHelper('bodyPlanSelect', (name, current) => {
+      const entries = Object.entries(BODY_PLANS).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Subassembly (optional extras) picker for the Mecha/Snaggletooth tabs; drives cost/space.
+    Handlebars.registerHelper('subassemblyOptionSelect', (name, current) => {
+      const entries = Object.entries(OPTIONS).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Powerplant Charge/Source pickers; drive Explosion Save + the cost engine's Charge multiplier.
+    Handlebars.registerHelper('powerplantChargeSelect', (name, current) => {
+      const entries = Object.entries(CHARGE_LEVELS).map(([key, v]) => ({ value: key, label: v.label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+    Handlebars.registerHelper('powerplantSourceSelect', (name, current) => {
+      const entries = Object.entries(POWER_SOURCES).map(([key, v]) => ({ value: key, label: v.label }));
       return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
     });
     console.log('mekton-fusion | Mecha picker Handlebars helpers registered');

@@ -91,6 +91,19 @@ export const ARMOR = buildTable({
   weightTons: [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,  5.5],
 });
 
+// Mecha servo rows are a fixed 6-slot array on the actor; this is the location
+// each slot represents and the deriveServo() "location" kind it maps to. Each
+// location has its own construction table (Torso/Arm/Leg/Head all differ), so
+// this mapping matters -- shared by ActorDataModel and the preset loader.
+export const SERVO_ROW_LOCATIONS = [
+  { key: "head", label: "Head", kind: "head" },
+  { key: "torso", label: "Torso", kind: "torso" },
+  { key: "rArm", label: "R Arm", kind: "arm" },
+  { key: "lArm", label: "L Arm", kind: "arm" },
+  { key: "rLeg", label: "R Leg", kind: "leg" },
+  { key: "lLeg", label: "L Leg", kind: "leg" },
+];
+
 // Location -> table lookup.
 export const LOCATION_TABLES = {
   torso: TORSO_SERVO,

@@ -1,3 +1,17 @@
+## [0.2.0] - 2026-09-18
+### Added
+- NPC/mook presets (`mecha-presets.js`): Vesper-class Skirmisher and Bulwark-class Assault mecha, plus a Dire Wolf creature. A "Load Preset" picker on the Mecha and Snaggletooth tabs stamps a preset's selection keys (servos/armament/shields/movement/powerplant) into that mech's arrays; the existing derive pipeline fills all computed cells. Overwrites the current loadout, so it's confirmed first.
+- Body tab gained a CREATURE section (non-mecha NPCs): a Load Preset picker, Body Plan reference field, Natural Armor SP, and a 4-row Natural Weapons table, following the character body-plan/enemy model rather than mecha construction.
+- SUBASSEMBLIES row is now a real picker (`mecha-options.js`'s 10 optional extras -- Damage Control, Ejection Seat, Storage Module, Weapon Linkage, etc.) deriving Cost and Space instead of manual entry; an Alarm checkbox selects Anti-theft Code Lock's costMax variant. Space now counts toward the Space Used by Location rollup (previously subassembly items only contributed Cost/Kills).
+- POWERPLANT section (Mecha/Snaggletooth tabs) replaces the old placeholder "Cost Multipliers" text fields: Charge and Source pickers derive Explosion Save and a cost multiplier contribution; a Hot toggle switches to the "if Hot" table column.
+- Unified cost engine (`mecha-cost.js`): mech Cost is now Base Cost (sum of every additive system -- servos/armor, weapons, shields, sensors, cockpit, subassembly options, movement systems) x (1 + sum of multiplier values), rounded to the nearest 0.1, instead of a flat sum. Powerplant Charge's cost modifier feeds the multiplier sum directly; Source's contribution is unverified against a worked book example, so it's computed and shown read-only ("Source (unverified)") but deliberately excluded from the total until confirmed. A manual "Other Mult." field covers systems not modeled yet (transformation forms, stealth, etc.).
+### Changed
+- Weapons array bumped from 3 to 4 slots and Shields from 1 to 2 (both mechs), so the verified presets fit; the Shields table is now a repeating row like Armament instead of a single hardcoded row. Movement Systems bumped from 2 to 3 slots for the same reason. Subassembly items bumped from 1 to 4 slots.
+- Armament table: Roll column narrowed (was forced ~100px wide by a stale min-width rule) and Weapon column widened; Category now shows short abbreviations (Beam/Proj/Msl/Melee/E.Melee) instead of full labels to free up space for Weapon.
+- Land MA now pre-fills from the tonnage-based Ground MA hint whenever it's at its unset default (0), across all three configs; still a plain manual/editable field afterward, and 0 always re-suggests the hint rather than locking in as "no movement."
+### Fixed
+- Roll column on the Armament table was min-width 100px, squeezing Category/Weapon into a few characters.
+
 ## [0.1.15] - 2026-09-18
 ### Changed
 - Movement Systems section moved from beside Sensors (left column) to under Shields (right column); dropped its Kills (K) column.

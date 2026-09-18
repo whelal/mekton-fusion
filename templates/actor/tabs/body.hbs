@@ -100,4 +100,36 @@
       </section>
     </div>
   </div>
+
+  <!-- Creature (non-mecha enemy/NPC) -->
+  <section class="creature-section">
+    <h3>CREATURE</h3>
+    <div class="preset-loader-row">
+      <label>Load Preset</label>
+      <select class="creature-preset-select">
+        {{#each creaturePresetOptions}}
+          <option value="{{this.id}}">{{this.label}}</option>
+        {{/each}}
+      </select>
+      <button type="button" class="load-creature-preset-btn" title="Stamp this preset's BODY/armor/natural weapons onto this actor (overwrites current values)">Load</button>
+    </div>
+    <div class="creature-fields-row">
+      <label>Body Plan</label>
+      {{bodyPlanSelect "system.creature.bodyPlan" system.creature.bodyPlan}}
+      <label>Natural Armor SP</label>
+      <input type="number" name="system.creature.armorSP" value="{{system.creature.armorSP}}" min="0"/>
+    </div>
+    <table class="natural-weapons-table">
+      <thead><tr><th>Natural Weapon</th><th>Damage</th><th>Type</th></tr></thead>
+      <tbody>
+        {{#each system.creature.naturalWeapons as |nw idx|}}
+        <tr>
+          <td><input type="text" name="system.creature.naturalWeapons.{{idx}}.name" value="{{nw.name}}"/></td>
+          <td><input type="text" name="system.creature.naturalWeapons.{{idx}}.damage" value="{{nw.damage}}"/></td>
+          <td><input type="text" name="system.creature.naturalWeapons.{{idx}}.type" value="{{nw.type}}"/></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </section>
 </div>

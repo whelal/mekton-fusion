@@ -33,6 +33,66 @@
   text-transform: uppercase;
 }
 
+/* Preset Loader (Mecha/Snaggletooth tabs + Body tab Creature section) */
+.mekton-fusion .preset-loader-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.mekton-fusion .preset-loader-row label {
+  font-weight: bold;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.mekton-fusion .preset-loader-row select {
+  flex: 1 1 auto;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.8rem;
+}
+
+.mekton-fusion .preset-loader-row button {
+  padding: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* Creature section (Body tab) */
+.mekton-fusion .tab.body .creature-section {
+  margin-top: 1rem;
+}
+
+.mekton-fusion .tab.body .creature-fields-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  flex-wrap: wrap;
+}
+
+.mekton-fusion .tab.body .creature-fields-row label {
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.mekton-fusion .tab.body .natural-weapons-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.mekton-fusion .tab.body .natural-weapons-table th,
+.mekton-fusion .tab.body .natural-weapons-table td {
+  border: 1px solid #bbb;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8rem;
+}
+
 /* Two-Column Layout */
 .mekton-fusion .tab.mecha .mecha-columns {
   display: grid;
@@ -253,12 +313,17 @@
   font-weight: bold;
 }
 
-.mekton-fusion .tab.mecha .multiplier-row input {
+.mekton-fusion .tab.mecha .multiplier-row input,
+.mekton-fusion .tab.mecha .multiplier-row select {
   width: 120px;
   padding: 0.15rem;
   font-size: 0.7rem;
   border: 1px solid #888;
   background: white;
+}
+
+.mekton-fusion .tab.mecha .multiplier-row input[type="checkbox"] {
+  width: auto;
 }
 
 /* Combat Skills */
@@ -638,6 +703,7 @@
 
 .mekton-fusion .tab.mecha .armament-table {
   width: 100%;
+  table-layout: fixed;
   font-size: 0.7rem;
   border-collapse: collapse;
   border: 1px solid var(--mf-black);
@@ -675,8 +741,7 @@
 .mekton-fusion .tab.mecha .armament-table .mecha-weapon-roll:hover { background: #222; }
 
 .mekton-fusion .tab.mecha .armament-table td:first-child {
-  min-width: 100px;
-  text-align: left;
+  padding: 0.15rem;
 }
 
 .mekton-fusion .tab.mecha .weapon-damage-note {

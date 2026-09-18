@@ -1,5 +1,6 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaults.js";
+import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 
 export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Sort by .system.sort (or .item.system.sort), then by name
@@ -493,6 +494,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // read it directly rather than through a shared context value, since MR differs
     // per mech (weight-dependent) and there are two mechs on this actor.
 
+    // Preset picker option lists (mecha tab + snaggletooth tab share one list;
+    // Body tab's Creature section uses the other).
+    ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
+    ctx.creaturePresetOptions = Object.values(CREATURE_PRESETS).map(p => ({ id: p.id, label: p.label }));
+
 
     // Expose per-tab view states
     ctx._skillViewStateSkills = vsSkills;
@@ -786,6 +792,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.mf-roll-hitloc', ev => this._onRollHitLocation(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
+
+    // Preset loaders (Mecha/Snaggletooth tabs + Body tab's Creature section).
+    html.on('click', '.load-preset-btn', ev => this._onLoadMechaPreset(ev));
+    html.on('click', '.load-creature-preset-btn', ev => this._onLoadCreaturePreset(ev));
 
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
@@ -1730,6 +1740,76 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const flavor = `<strong>${this.actor.name}</strong> hit location${weaponLabel}: rolled <strong>${result}</strong> → <strong style="font-size: 1.1em;">${location}</strong>`;
     await roll.toMessage({ speaker, flavor });
+  }
+
+  /**
+   * Load a mecha preset (MECHA_PRESETS) into the Mecha or Snaggletooth tab.
+   * Stamps selection keys only (servos/armament/shields/movement); the
+   * ActorDataModel derive pipeline fills Space/Cost/Kills/Weight on re-render.
+   * Overwrites the mech's current loadout, so confirm first.
+   */
+  async _onLoadMechaPreset(ev) {
+    ev.preventDefault();
+    const row = ev.currentTarget.closest('.preset-loader-row');
+    const mechKey = ev.currentTarget.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
+    const presetId = row?.querySelector('.preset-select')?.value;
+    const preset = presetId ? MECHA_PRESETS[presetId] : null;
+    if (!preset) { ui.notifications.warn('Pick a preset before loading.'); return; }
+
+    const confirmed = await Dialog.confirm({
+      title: `Load ${preset.label}?`,
+      content: `<p>This overwrites the current Servos, Armament, Shields, Movement Systems, and Powerplant on the <strong>${mechKey === 'snaggletooth' ? 'Snaggletooth' : 'Mecha'}</strong> tab with <strong>${preset.label}</strong>. Continue?</p>`
+    });
+    if (!confirmed) return;
+
+    const upd = buildMechaPresetUpdate(preset);
+    const update = {
+      [`system.${mechKey}.name`]: upd.name,
+      [`system.${mechKey}.servos`]: upd.servos,
+      [`system.${mechKey}.weapons`]: upd.weapons,
+      [`system.${mechKey}.shields`]: upd.shields,
+      [`system.${mechKey}.movementSystems`]: upd.movementSystems
+    };
+    if (upd.powerplant) {
+      update[`system.${mechKey}.powerplant.charge`] = upd.powerplant.charge;
+      update[`system.${mechKey}.powerplant.source`] = upd.powerplant.source;
+      update[`system.${mechKey}.powerplant.hot`] = upd.powerplant.hot;
+    }
+    await this.actor.update(update);
+  }
+
+  /**
+   * Load a creature preset (CREATURE_PRESETS) into the Body tab's Creature
+   * section. Uses the character body-plan/enemy model (BODY + naturalWeapons),
+   * not mecha construction. Overwrites BODY, natural armor, and natural
+   * weapons, so confirm first.
+   */
+  async _onLoadCreaturePreset(ev) {
+    ev.preventDefault();
+    const row = ev.currentTarget.closest('.preset-loader-row');
+    const presetId = row?.querySelector('.creature-preset-select')?.value;
+    const preset = presetId ? CREATURE_PRESETS[presetId] : null;
+    if (!preset) { ui.notifications.warn('Pick a preset before loading.'); return; }
+
+    const confirmed = await Dialog.confirm({
+      title: `Load ${preset.label}?`,
+      content: `<p>This overwrites BODY, natural armor SP, and natural weapons with <strong>${preset.label}</strong>. Continue?</p>`
+    });
+    if (!confirmed) return;
+
+    const upd = buildCreaturePresetUpdate(preset);
+    const update = {
+      name: upd.name,
+      "system.stats.BODY.value": upd.bod,
+      "system.creature.bodyPlan": upd.bodyPlan,
+      "system.creature.armorSP": upd.armorSP,
+      "system.creature.naturalWeapons": upd.naturalWeapons
+    };
+    for (const [key, loc] of Object.entries(upd.locations)) {
+      update[`system.body.locations.${key}.sp`] = loc.sp;
+      update[`system.body.locations.${key}.spMax`] = loc.spMax;
+    }
+    await this.actor.update(update);
   }
 
   /**
