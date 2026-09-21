@@ -489,13 +489,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         ctx.mechaSkills[key] = { name: skillName, rank: 0, total: 0 };
       }
     }
-    // Mecha Reflex (MR) is derived per-mech (system.mecha.config.mr /
-    // system.snaggletooth.config.mr) in ActorDataModel.prepareDerivedData -- templates
-    // read it directly rather than through a shared context value, since MR differs
-    // per mech (weight-dependent) and there are two mechs on this actor.
+    // Mecha Reflex (MR) is derived (system.mecha.config.mr) in
+    // ActorDataModel.prepareDerivedData -- templates read it directly rather than
+    // through a shared context value, since MR is weight-dependent.
 
-    // Preset picker option lists (mecha tab + snaggletooth tab share one list;
-    // Body tab's Creature section uses the other).
+    // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
     ctx.creaturePresetOptions = Object.values(CREATURE_PRESETS).map(p => ({ id: p.id, label: p.label }));
 
@@ -511,7 +509,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx._tabSkillsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/skills.hbs", ctx);
       ctx._tabPsiHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/psi.hbs", ctx);
       ctx._tabMechaHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/mecha.hbs", ctx);
-      ctx._tabSnaggletoothHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/snaggletooth.hbs", ctx);
       ctx._tabEquipmentHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/equipment.hbs", ctx);
       ctx._tabNotesHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/notes.hbs", ctx);
   // Optional paperdoll/body tab (empty by default until filled)
@@ -529,7 +526,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ctx._tabSkillsHtml = ctx._tabSkillsHtml || '';
       ctx._tabPsiHtml = ctx._tabPsiHtml || '';
       ctx._tabMechaHtml = ctx._tabMechaHtml || '';
-      ctx._tabSnaggletoothHtml = ctx._tabSnaggletoothHtml || '';
       ctx._tabEquipmentHtml = ctx._tabEquipmentHtml || '';
       ctx._tabNotesHtml = ctx._tabNotesHtml || '';
   ctx._tabBodyHtml = ctx._tabBodyHtml || '';
@@ -793,7 +789,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
 
-    // Preset loaders (Mecha/Snaggletooth tabs + Body tab's Creature section).
+    // Preset loaders (Mecha tab + Body tab's Creature section).
     html.on('click', '.load-preset-btn', ev => this._onLoadMechaPreset(ev));
     html.on('click', '.load-creature-preset-btn', ev => this._onLoadCreaturePreset(ev));
 
@@ -1557,12 +1553,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    // If this is a Mecha skill, use the piloted mech's derived Mecha Reflex (REF +
-    // Maneuver Value) instead of the raw REF stat. Which mech depends on which tab
-    // the roll button lives on (data-mech="mecha"|"snaggletooth" on the skill row).
+    // If this is a Mecha skill, use the mech's derived Mecha Reflex (REF +
+    // Maneuver Value) instead of the raw REF stat.
     const isMecha = String(skill.system?.category || '').toUpperCase() === 'REF:MECHA' || /MECHA\s+(PILOTING|FIGHTING|MELEE|GUNNERY|MISSILES)/i.test(skill.name || '');
-    const mechKey = li.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
-    const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.[mechKey]?.config?.mr ?? 0) : statVal;
+    const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.mecha?.config?.mr ?? 0) : statVal;
     const finalTotal = base + mr + rank + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
 
@@ -1743,7 +1737,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Load a mecha preset (MECHA_PRESETS) into the Mecha or Snaggletooth tab.
+   * Load a mecha preset (MECHA_PRESETS) into the Mecha tab.
    * Stamps selection keys only (servos/armament/shields/movement); the
    * ActorDataModel derive pipeline fills Space/Cost/Kills/Weight on re-render.
    * Overwrites the mech's current loadout, so confirm first.
@@ -1751,29 +1745,28 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   async _onLoadMechaPreset(ev) {
     ev.preventDefault();
     const row = ev.currentTarget.closest('.preset-loader-row');
-    const mechKey = ev.currentTarget.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
     const presetId = row?.querySelector('.preset-select')?.value;
     const preset = presetId ? MECHA_PRESETS[presetId] : null;
     if (!preset) { ui.notifications.warn('Pick a preset before loading.'); return; }
 
     const confirmed = await Dialog.confirm({
       title: `Load ${preset.label}?`,
-      content: `<p>This overwrites the current Servos, Armament, Shields, Movement Systems, and Powerplant on the <strong>${mechKey === 'snaggletooth' ? 'Snaggletooth' : 'Mecha'}</strong> tab with <strong>${preset.label}</strong>. Continue?</p>`
+      content: `<p>This overwrites the current Servos, Armament, Shields, Movement Systems, and Powerplant on the <strong>Mecha</strong> tab with <strong>${preset.label}</strong>. Continue?</p>`
     });
     if (!confirmed) return;
 
     const upd = buildMechaPresetUpdate(preset);
     const update = {
-      [`system.${mechKey}.name`]: upd.name,
-      [`system.${mechKey}.servos`]: upd.servos,
-      [`system.${mechKey}.weapons`]: upd.weapons,
-      [`system.${mechKey}.shields`]: upd.shields,
-      [`system.${mechKey}.movementSystems`]: upd.movementSystems
+      "system.mecha.name": upd.name,
+      "system.mecha.servos": upd.servos,
+      "system.mecha.weapons": upd.weapons,
+      "system.mecha.shields": upd.shields,
+      "system.mecha.movementSystems": upd.movementSystems
     };
     if (upd.powerplant) {
-      update[`system.${mechKey}.powerplant.charge`] = upd.powerplant.charge;
-      update[`system.${mechKey}.powerplant.source`] = upd.powerplant.source;
-      update[`system.${mechKey}.powerplant.hot`] = upd.powerplant.hot;
+      update["system.mecha.powerplant.charge"] = upd.powerplant.charge;
+      update["system.mecha.powerplant.source"] = upd.powerplant.source;
+      update["system.mecha.powerplant.hot"] = upd.powerplant.hot;
     }
     await this.actor.update(update);
   }
@@ -1877,14 +1870,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * Roll a Mecha tab Armament row: 1d10 + MR + Mecha skill (by weapon category) + WA.
-   * Reads the row's derived data directly (system.mecha.weapons[idx] or
-   * system.snaggletooth.weapons[idx]) rather than an Item -- this is also the shape
-   * mook NPC attacks will read from, since the attack's data already lives on the row.
+   * Reads the row's derived data directly (system.mecha.weapons[idx]) rather than an
+   * Item -- this is also the shape mook NPC attacks will read from, since the attack's
+   * data already lives on the row.
    */
   async _rollMechaArmamentRow(button) {
-    const mechKey = button.dataset.mech === 'snaggletooth' ? 'snaggletooth' : 'mecha';
     const idx = Number(button.dataset.idx);
-    const row = this.actor.system?.[mechKey]?.weapons?.[idx];
+    const row = this.actor.system?.mecha?.weapons?.[idx];
     if (!row || !row.category || !row.weaponKey) {
       ui.notifications.warn('Pick a weapon before rolling.');
       return;
@@ -1901,7 +1893,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skillName = CATEGORY_SKILL[row.category] ?? null;
     const skill = skillName ? this.actor.items.find(i => i.type === 'skill' && i.name === skillName) : null;
     const rank = MektonActorSheet._num(skill?.system?.rank, 0);
-    const mr = Number(this.actor.system?.[mechKey]?.config?.mr ?? 0);
+    const mr = Number(this.actor.system?.mecha?.config?.mr ?? 0);
     const wa = MektonActorSheet._num(row.wa, 0);
 
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();

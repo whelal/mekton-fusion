@@ -214,131 +214,6 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 }), { initial: [{},{},{},{}] }),
                 imageUrl: new fields.StringField({ initial: "" })
             }),
-            // Snaggletooth - separate duplicate of mecha data
-            snaggletooth: new fields.SchemaField({
-                name: new fields.StringField({ initial: "" }),
-                weight: new fields.NumberField({ initial: 0, min: 0 }), // derived: finalWeight (x1.1 if fuel)
-                fuel: new fields.BooleanField({ initial: false }), // book's 10% fuel rule; applied before MA/flight calc
-                cost: new fields.NumberField({ initial: 0, min: 0 }),
-                activeConfig: new fields.NumberField({ initial: 1, min: 1, max: 3, integer: true }),
-                config: new fields.SchemaField({
-                    name: new fields.StringField({ initial: "" }),
-                    mv: new fields.NumberField({ initial: 0, integer: true }),
-                    mr: new fields.NumberField({ initial: 0, integer: true }),
-                    landMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    flightMA: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    name2: new fields.StringField({ initial: "" }),
-                    mv2: new fields.NumberField({ initial: 0, integer: true }),
-                    mr2: new fields.NumberField({ initial: 0, integer: true }),
-                    landMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    flightMA2: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    name3: new fields.StringField({ initial: "" }),
-                    mv3: new fields.NumberField({ initial: 0, integer: true }),
-                    mr3: new fields.NumberField({ initial: 0, integer: true }),
-                    landMA3: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    flightMA3: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                }),
-                skills: new fields.SchemaField({
-                    piloting: new fields.NumberField({ initial: 0, integer: true }),
-                    fighting: new fields.NumberField({ initial: 0, integer: true }),
-                    melee: new fields.NumberField({ initial: 0, integer: true }),
-                    gunnery: new fields.NumberField({ initial: 0, integer: true }),
-                    missiles: new fields.NumberField({ initial: 0, integer: true })
-                }),
-                maneuverPool: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                costMultiplier: new fields.SchemaField({
-                    other: new fields.NumberField({ initial: 0 }) // manual multiplier value (e.g. 0.2) for unmodeled multiplier systems (transformation forms, stealth, etc.); feeds the cost engine directly
-                }),
-                powerplant: new fields.SchemaField({
-                    charge: new fields.StringField({ initial: "" }), // CHARGE_LEVELS key
-                    source: new fields.StringField({ initial: "" }), // POWER_SOURCES key
-                    hot: new fields.BooleanField({ initial: false }), // "if Hot" charge variant
-                    explosionSave: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived: D10 roll-or-under to explode when hit
-                    chargeCostMod: new fields.NumberField({ initial: 0 }), // derived; feeds the cost engine's multiplier sum
-                    mpMod: new fields.NumberField({ initial: 0 }) // derived combat modifier (Maneuver Pool); reference only, not yet applied
-                }),
-                servos: new fields.ArrayField(new fields.SchemaField({
-                    sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived from armor (ARMOR table)
-                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    servo: new fields.StringField({ initial: "" }),
-                    level: new fields.StringField({ initial: "" }), // servo class key (e.g. "striker"); derives hits/space/cost/weight
-                    extremityKey: new fields.StringField({ initial: "" }), // arm/leg rows only
-                    extremitySpace: new fields.NumberField({ initial: 0, min: 0 }), // tracked separately from servo space per the book
-                    space: new fields.StringField({ initial: "" }),
-                    cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    weightTons: new fields.NumberField({ initial: 0, min: 0 }),
-                    armor: new fields.StringField({ initial: "" }), // ARMOR class key (reused field); derives sp/armorCost/armorWeightTons
-                    armorCost: new fields.NumberField({ initial: 0, min: 0 }),
-                    armorWeightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{},{},{},{},{},{}] }),
-                movementSystems: new fields.ArrayField(new fields.SchemaField({
-                    system: new fields.StringField({ initial: "" }), // free-text label (e.g. "Left Leg Thruster"), stays manual
-                    type: new fields.StringField({ initial: "" }), // "thruster"/"ges"; with targetMA, derives spc/cp (equal)
-                    targetMA: new fields.NumberField({ initial: 0, min: 0 }), // desired MA this propulsion system delivers; manual
-                    loc: new fields.StringField({ initial: "" }),
-                    spc: new fields.NumberField({ initial: 0, min: 0 }),
-                    cp: new fields.NumberField({ initial: 0, min: 0 }),
-                    h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                }), { initial: [{},{},{}] }),
-                // Two independent sensor slots -- Main and Backup are separate purchases,
-                // not mutually exclusive picks, so both rows use the same Type picker.
-                sensors: new fields.ArrayField(new fields.SchemaField({
-                    type: new fields.StringField({ initial: "" }), // SENSORS key ("main"/"backup"); derives cost/space/hits/weight
-                    loc: new fields.StringField({ initial: "" }),
-                    range: new fields.NumberField({ initial: 0, min: 0 }),
-                    comm: new fields.NumberField({ initial: 0, min: 0 }),
-                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    space: new fields.NumberField({ initial: 0, min: 0 }),
-                    weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{},{}] }),
-                subassemblies: new fields.SchemaField({
-                    cockpit: new fields.SchemaField({
-                        type: new fields.StringField({ initial: "" }), // COCKPIT key ("main"/"passenger"); derives cost/space/crew
-                        crew: new fields.NumberField({ initial: 1, min: 0, integer: true }),
-                        options: new fields.StringField({ initial: "" }),
-                        space: new fields.NumberField({ initial: 0, min: 0 }),
-                        cp: new fields.NumberField({ initial: 0, min: 0 })
-                    }),
-                    items: new fields.ArrayField(new fields.SchemaField({
-                        key: new fields.StringField({ initial: "" }), // OPTIONS picker key; derives name/cost/space
-                        name: new fields.StringField({ initial: "" }),
-                        variant: new fields.BooleanField({ initial: false }), // Anti-theft Code Lock's alarm variant (costMax vs costMin); unused by flat-cost options
-                        loc: new fields.StringField({ initial: "" }),
-                        space: new fields.NumberField({ initial: 0, min: 0 }),
-                        cp: new fields.NumberField({ initial: 0, min: 0 }),
-                        h: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                    }), { initial: [{},{},{},{}] })
-                }),
-                shields: new fields.ArrayField(new fields.SchemaField({
-                    key: new fields.StringField({ initial: "" }), // SHIELDS picker key; derives name/da/sp/cost/weight
-                    name: new fields.StringField({ initial: "" }),
-                    da: new fields.NumberField({ initial: 0, integer: true }),
-                    sp: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    loc: new fields.StringField({ initial: "" }),
-                    space: new fields.NumberField({ initial: 0, min: 0 }),
-                    cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    weightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{},{}] }),
-                weapons: new fields.ArrayField(new fields.SchemaField({
-                    category: new fields.StringField({ initial: "" }), // WEAPON_CATEGORIES key (beam/projectile/missile/melee/energyMelee)
-                    weaponKey: new fields.StringField({ initial: "" }), // key within that category; category+weaponKey derive everything but loc/notes
-                    name: new fields.StringField({ initial: "" }),
-                    wa: new fields.NumberField({ initial: 0, integer: true }),
-                    range: new fields.StringField({ initial: "" }),
-                    damage: new fields.StringField({ initial: "" }), // damageK, plain number as text (0 is valid, e.g. Epoxy Gun)
-                    damageNote: new fields.StringField({ initial: "" }), // special-rule marker (AP, grapples, etc.) -- read-only, separate from notes
-                    shots: new fields.StringField({ initial: "" }), // number, "10 bursts", or "∞"
-                    bv: new fields.StringField({ initial: "" }), // burst value; blank when the weapon has none
-                    hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    loc: new fields.StringField({ initial: "" }),
-                    cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    space: new fields.NumberField({ initial: 0, min: 0 }),
-                    weightTons: new fields.NumberField({ initial: 0, min: 0 }),
-                    notes: new fields.StringField({ initial: "" })
-                }), { initial: [{},{},{},{}] }),
-                imageUrl: new fields.StringField({ initial: "" })
-            }),
             /* Body model for paperdoll locations */
             body: new fields.SchemaField({
                 locations: new fields.SchemaField({
@@ -485,13 +360,12 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             },
             skillPointMultiplier: getSkillPointMultiplier(intVal, edu),
             encumberedMA: encumberedMA(this.equipment?.totalWeight ?? 0, bod, run),
-            mecha: this._deriveMecha(this.mecha),
-            snaggletooth: this._deriveMecha(this.snaggletooth)
+            mecha: this._deriveMecha(this.mecha)
         };
     }
 
     /**
-     * Derive servo/weapon/shield stat-block rows for one mech (mecha or snaggletooth)
+     * Derive servo/weapon/shield stat-block rows for the mech
      * from their picker fields, overwrite the mech's own Weight/Cost totals, and
      * return a per-location Space-used breakdown (no dedicated schema field for that).
      * Mutates `mechaData` in place (same pattern as the BODY/MA overwrites above).

@@ -33,7 +33,7 @@
   text-transform: uppercase;
 }
 
-/* Preset Loader (Mecha/Snaggletooth tabs + Body tab Creature section) */
+/* Preset Loader (Mecha tab + Body tab Creature section) */
 .mekton-fusion .preset-loader-row {
   display: flex;
   align-items: center;

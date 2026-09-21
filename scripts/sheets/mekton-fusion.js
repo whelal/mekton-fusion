@@ -128,7 +128,7 @@ Hooks.once("init", () => {
       return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
     });
 
-    // Subassembly (optional extras) picker for the Mecha/Snaggletooth tabs; drives cost/space.
+    // Subassembly (optional extras) picker for the Mecha tab; drives cost/space.
     Handlebars.registerHelper('subassemblyOptionSelect', (name, current) => {
       const entries = Object.entries(OPTIONS).map(([key, v]) => ({ value: key, label: v.label }));
       return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);

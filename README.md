@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a two-mech Mekton Zeta construction/combat system. Currently **v0.2.1** -- APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.2.2** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -14,7 +14,7 @@ The goal: Provide a **complete character sheet and rules support** for campaigns
 
 Core areas:
 - Character stats, derived combat values, and skill checks (CP2020 style)
-- Mekton Zeta mecha construction, combat, and movement -- two independent mechs per actor
+- Mekton Zeta mecha construction, combat, and movement
 - Psionics framework (stat/point tracking; advanced powers still planned)
 
 ---
@@ -31,7 +31,7 @@ Core areas:
 - Hard skill markers `(H)`, i18n keys under `MF.*`
 - Personal & mecha weapon tables on the Combat tab with roll buttons
 
-**Mecha** (two independent mechs per actor: Mecha + Snaggletooth)
+**Mecha**
 - Per-location servo construction (Torso/Arm/Leg/Head/Wing/Tail/Pod), each with its own class/extremity/armor pickers deriving Kills/Space/Cost/Weight
 - Armament: two-level Category -> Weapon picker (Beam/Projectile/Missile/Melee/Energy Melee) deriving WA/Range/Damage/Shots/BV/Cost/Space/Weight, with a roll button (`1d10 + MR + Mecha skill + WA`)
 - Shields, two independent Sensor slots (Main + Backup), Cockpit, and 10 optional Subassemblies (Damage Control, Ejection Seat, Storage Module, Weapon Linkage, etc.), all deriving Cost/Space from picks
@@ -59,7 +59,7 @@ Version-by-version detail lives in [CHANGELOG.md](CHANGELOG.md) -- development h
 | Localization | Additional languages beyond English | Planned |
 | Testing | Automated test harness | Planned |
 
-Already shipped: BOD/MA-derived combat stats, full Mekton Zeta mecha construction (servos/armor/extremities per location, weapons, shields, sensors, cockpit, subassemblies, movement systems, powerplant), a unified cost engine, NPC/mook presets, and a two-mech (Mecha + Snaggletooth) actor layout.
+Already shipped: BOD/MA-derived combat stats, full Mekton Zeta mecha construction (servos/armor/extremities per location, weapons, shields, sensors, cockpit, subassemblies, movement systems, powerplant), a unified cost engine, and NPC/mook presets.
 
 ---
 ## 📦 Installation (Development)
@@ -86,7 +86,6 @@ system: {
   creature: { bodyPlan, armorSP, naturalWeapons },   // non-mecha NPCs
   mecha: { /* full construction: servos, weapons, shields, sensors,
              cockpit, subassemblies, movementSystems, powerplant, config */ },
-  snaggletooth: { /* identical shape -- a second, independent mech */ },
   psi: { points, maxPoints },
   equipment: { gear, totalWeight }
 }
@@ -134,7 +133,7 @@ scripts/sheets/
 styles/ (CSS: mekton-fusion.css)
 templates/actor/
   actor-sheet.hbs (main sheet)
-  tabs/ (stats, combat, skills, body, mecha, snaggletooth, psi, equipment, notes)
+  tabs/ (stats, combat, skills, body, mecha, psi, equipment, notes)
 lang/en.json
 system.json
 ```

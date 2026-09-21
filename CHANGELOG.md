@@ -1,3 +1,7 @@
+## [0.2.2] - 2026-09-21
+### Removed
+- Snaggletooth tab removed entirely -- it was an exact duplicate of the Mecha tab's construction/combat schema and no longer served a purpose. Dropped its template, its `system.snaggletooth` DataModel schema block, its `_deriveMecha()` call, the tab nav entry + body slot, and all `data-mech="snaggletooth"` branch points in roll/preset-loader logic (those now go straight to `system.mecha`). No migration script; any existing actor's `system.snaggletooth` data is dropped by the DataModel on next save (same precedent as the Witcher tab removal, CHANGELOG 0.1.11).
+
 ## [0.2.1] - 2026-09-20
 ### Added
 - Flight MA now pre-fills (all three configs) from the sum of the mech's thruster `targetMA` values whenever it's at its unset default (0) -- mirrors the existing Land MA hint. GES-type propulsion is excluded since it's priced as ground-hugging movement, not true flight. Still a plain manual/editable field afterward.
