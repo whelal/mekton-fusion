@@ -66,10 +66,10 @@
                 <td><span class="mf-dot mf-{{key}}"></span>{{loc.label}}</td>
                 <td><input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" /></td>
                 <td><input type="number" name="system.body.locations.{{key}}.spMax" value="{{loc.spMax}}" min="0" /></td>
-                <td><input type="number" name="system.body.locations.{{key}}.mektonHp" value="{{loc.mektonHp}}" /> </td>
-                <td><input class="derived-input" type="number" value="{{loc.mektonHpMax}}" readonly title="Derived from BODY" /> </td>
+                <td><input type="number" name="system.body.locations.{{key}}.hits" value="{{loc.hits}}" /> </td>
+                <td><input class="derived-input" type="number" value="{{loc.hitsMax}}" readonly title="Derived from BODY" /> </td>
                 <td><div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div></td>
-                <td><div class="bar hp" style="--val: {{percent loc.mektonHp loc.mektonHpMax}}"></div></td>
+                <td><div class="bar hp" style="--val: {{percent loc.hits loc.hitsMax}}"></div></td>
               </tr>
             {{/each}}
           </tbody>

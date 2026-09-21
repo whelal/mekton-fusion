@@ -89,7 +89,7 @@
           <input class="pool-input derived-input" type="number" value="{{system.mecha.maneuverPool}}" readonly title="Derived from Mecha Piloting (H) total"/>
           <div class="initmod-row">
             <label class="initmod-label">{{localize 'MF.InitiativeMod'}}</label>
-            <input name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input initmod-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
+            <input data-name="system.substats.initiative" type="number" value="{{system.substats.initiative}}" class="pool-input substat-input initmod-input" data-dtype="Number" title="Initiative Modifier (linked to Stats tab)" step="1"/>
           </div>
         </section>
 
@@ -113,11 +113,15 @@
           </div>
           <div class="multiplier-row">
             <label>Charge Cost Mod</label>
-            <input class="derived-input" type="number" value="{{system.mecha.powerplant.chargeCostMod}}" readonly step="0.01" title="Charge's cost multiplier contribution -- included in total Cost"/>
+            <input class="derived-input" type="number" value="{{system.mecha.powerplant.chargeCostMod}}" readonly step="0.01" title="Charge's own cost modifier -- multiplied by Source below, not included in total Cost on its own"/>
           </div>
           <div class="multiplier-row">
-            <label>Source (unverified)</label>
-            <input class="derived-input" type="number" value="{{system.derived.mecha.powerplantSourceProvisional}}" readonly title="Source's cost contribution -- NOT yet applied to total Cost; unconfirmed against the book, held until verified"/>
+            <label>Source</label>
+            <input class="derived-input" type="number" value="{{system.mecha.powerplant.sourceFactor}}" readonly step="0.01" title="Source's cost factor -- multiplies Charge Cost Mod (ATM p.68)"/>
+          </div>
+          <div class="multiplier-row">
+            <label>Powerplant Mult.</label>
+            <input class="derived-input" type="number" value="{{system.mecha.powerplant.costMult}}" readonly step="0.01" title="Charge Cost Mod x Source = the powerplant's combined cost-multiplier contribution -- included in total Cost"/>
           </div>
           <div class="multiplier-row">
             <label>Other Mult.</label>

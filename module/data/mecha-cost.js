@@ -36,26 +36,20 @@ function finalCost(baseCost, multipliers = []) {
  * Collect multiplier values from the systems on a mecha. Each entry is a
  * number = that system's multiplier contribution to the sum.
  *
- * NOTE ON POWERPLANT SOURCE: the powerplant Charge cost modifier
- * (Undercharged -0.15 ... Supercharged +0.3) is a multiplier value and goes
- * in this list directly. The Source column (Bioenergy 1.5, Fusion 1.0, Power
- * Cell -0.15, Combustion -0.33) is NOT confirmed to be on the same "add to
- * the sum" footing -- Fusion 1.0 may mean a neutral x1.0 (contributes 0) or
- * an additive +1.0. Pass sourceContribution explicitly once verified against
- * a book example that includes a powerplant in the multiplier sum. Until
- * then this engine does not assume one.
+ * NOTE ON POWERPLANT: Charge and Source combine into ONE value before they
+ * ever reach this engine -- Charge cost modifier x Source factor (ATM p.68,
+ * verified; see mecha-powerplant.js's powerplantMultipliers()). Pass that
+ * single product as powerplantMult; there is no separate Source term here.
  *
  * @param {object} opts
- * @param {number} [opts.chargeMod] - powerplant charge cost modifier
- * @param {number} [opts.sourceContribution] - verified source contribution (see note)
+ * @param {number} [opts.powerplantMult] - combined Charge x Source cost multiplier
  * @param {number[]} [opts.transformationMults] - each purchased form's multiplier
  * @param {number[]} [opts.otherMults] - stealth, energy absorption, etc.
  * @returns {number[]}
  */
 function collectMultipliers(opts = {}) {
   const list = [];
-  if (typeof opts.chargeMod === "number") list.push(opts.chargeMod);
-  if (typeof opts.sourceContribution === "number") list.push(opts.sourceContribution);
+  if (typeof opts.powerplantMult === "number") list.push(opts.powerplantMult);
   if (Array.isArray(opts.transformationMults)) list.push(...opts.transformationMults);
   if (Array.isArray(opts.otherMults)) list.push(...opts.otherMults);
   return list;

@@ -218,6 +218,20 @@ Hooks.once("init", () => {
 });
 
 // Auto-seed skills when actors are created
+// Fresh-actor init: start each body location's current hits at full (BOD-derived
+// hitsMax). Schema `initial` can't reference BOD, so this happens once here, after
+// the DataModel's prepareDerivedData() has already computed hitsMax for this actor.
+Hooks.on("preCreateActor", (actor) => {
+  if (!["character", "npc"].includes(actor.type)) return;
+  const locations = actor.system?.body?.locations;
+  if (!locations) return;
+  const update = {};
+  for (const [key, loc] of Object.entries(locations)) {
+    update[`system.body.locations.${key}.hits`] = loc.hitsMax;
+  }
+  actor.updateSource(update);
+});
+
 Hooks.on("createActor", async (actor) => {
   if (["character", "npc"].includes(actor.type)) {
     console.log("mekton-fusion | Auto-seeding new actor:", actor.name);
@@ -433,7 +447,33 @@ Hooks.on("updateTokenActor", (tokenActor, changes, options, userId) => {
 
 Hooks.once("ready", () => {
   console.log("mekton-fusion | ready");
-  
+
+  // Deferred damage application: the attack resolver posts an "Apply to
+  // targeted token" button when it couldn't resolve a unique target at roll
+  // time (0 or >1 tokens targeted). Delegated on document so it keeps working
+  // across chat log re-renders/scrollback without a renderChatMessage hook.
+  $(document).on('click', '.mf-apply-damage', async ev => {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    if (btn.disabled) return;
+    const key = btn.dataset.locKey;
+    const locLabel = btn.dataset.locLabel;
+    const dmgTotal = Number(btn.dataset.dmg) || 0;
+
+    const targets = Array.from(game.user.targets);
+    if (targets.length !== 1 || !targets[0].actor) {
+      ui.notifications.warn('Target exactly one token before applying damage.');
+      return;
+    }
+    btn.disabled = true;
+
+    const targetActor = targets[0].actor;
+    const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal);
+    const speaker = ChatMessage.getSpeaker({ actor: targetActor });
+    const content = `Applied <strong>${dmgTotal}</strong> damage to <strong>${targetActor.name}'s ${locLabel}</strong>: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
+    await ChatMessage.create({ speaker, content });
+  });
+
   // Override Combat.rollInitiative to use exploding dice
   if (CONFIG.Combat.documentClass) {
     const originalCombatRollInitiative = CONFIG.Combat.documentClass.prototype.rollInitiative;

@@ -16,9 +16,10 @@
  * Base Maneuver Pool per the rules = (Piloting Skill - 5); the Charge's MP
  * modifier multiplies THAT, not the pool-table lookup.
  *
- * Cost: Charge and Source are cost multipliers on the mecha's cost. The exact
- * order of combination is not shown by a worked example in the rules text seen
- * -- applyPowerplant's model is an interpretation; verify before trusting.
+ * Cost (ATM p.68, verified): Source's cost value is a FACTOR that multiplies the
+ * Charge's cost modifier; the single resulting product is the powerplant's whole
+ * contribution to the cost-multiplier sum. Worked example: Hot Overcharged
+ * Combustion = chargeCostMod 0.15 x sourceFactor 0.67 = 0.1.
  */
 
 // CHARGE: explosionSave (cool/hot), costMod (normal/hot), combat modifiers.
@@ -31,12 +32,13 @@ const CHARGE_LEVELS = {
   supercharged:   { label: "Supercharged",     explosionSave: 1, explosionSaveHot: 5, costMod:  0.3,  costModHot:  0.3,  mv:  2, ma:  2, mpMod:  0.67 }, // +67% MP
 };
 
-// SOURCE: cost multiplier/modifier.
+// SOURCE: cost is the book's column value (kept for display); factor is the
+// verified multiplier applied to the Charge cost modifier (ATM p.68).
 const POWER_SOURCES = {
-  bioenergy:   { label: "Bioenergy",   cost:  1.5  },
-  fusion:      { label: "Fusion",      cost:  1.0  },
-  powerCell:   { label: "Power Cell",  cost: -0.15 },
-  combustion:  { label: "Combustion",  cost: -0.33 },
+  bioenergy:   { label: "Bioenergy",   cost:  1.5,  factor: 1.5  }, // table x1.5 (direct factor)
+  fusion:      { label: "Fusion",      cost:  1.0,  factor: 1.0  }, // table x1.0 (neutral standard)
+  powerCell:   { label: "Power Cell",  cost: -0.15, factor: 0.85 }, // -x0.15 -> x(1-0.15)
+  combustion:  { label: "Combustion",  cost: -0.33, factor: 0.67 }, // -x0.33 -> x(1-0.33)
 };
 
 // OPTION noted in the table (no numeric value given here).
@@ -59,6 +61,7 @@ function getPowerplant(chargeKey, sourceKey, hot = false) {
     explosionSave: hot ? charge.explosionSaveHot : charge.explosionSave,
     chargeCostMod: hot ? charge.costModHot : charge.costMod,
     sourceCost: source.cost,
+    sourceFactor: source.factor,
     // Standard-Hot grants no MP bonus (per rules); zero it in that case.
     combat: {
       mv: charge.mv,
@@ -69,31 +72,20 @@ function getPowerplant(chargeKey, sourceKey, hot = false) {
 }
 
 /**
- * Powerplant multiplier CONTRIBUTIONS for the unified cost engine.
- * Per the Additive-vs-Multiplier rule, multiplier systems ADD their values
- * into one sum, then Base Cost x (1 + sum) is applied ONCE. So the powerplant
- * does NOT multiply cost on its own -- it contributes values to that sum.
- *
- * chargeMod is a confirmed multiplier value (Undercharged -0.15 ...
- * Supercharged +0.3) -> include directly.
- *
- * sourceContribution is NOT confirmed: the Source column (Bioenergy 1.5,
- * Fusion 1.0, Power Cell -0.15, Combustion -0.33) may be an additive
- * contribution or Fusion 1.0 may mean neutral x1.0 (contributes 0). Returned
- * separately and flagged so the caller decides, rather than baking in a guess.
+ * Powerplant multiplier CONTRIBUTION for the unified cost engine.
+ * Per the Additive-vs-Multiplier rule, multiplier systems ADD their values into
+ * one sum, then Base Cost x (1 + sum) is applied ONCE. The powerplant's own
+ * contribution to that sum is Charge cost modifier x Source factor (ATM p.68,
+ * verified) -- a single combined value, not two separate ones.
+ * Worked example: Hot Overcharged Combustion = 0.15 x 0.67 = 0.1.
  *
  * @param {object} pp - from getPowerplant
- * @returns {{ chargeMod:number, sourceRaw:number, sourceContributionProvisional:number }}
+ * @returns {{ costMult:number, chargeMod:number, sourceFactor:number }}
  */
 function powerplantMultipliers(pp) {
-  if (!pp) return { chargeMod: 0, sourceRaw: 0, sourceContributionProvisional: 0 };
-  return {
-    chargeMod: pp.chargeCostMod,
-    sourceRaw: pp.sourceCost,
-    // Provisional reading: treat the source value as an additive contribution.
-    // Verify against a book example that sums a powerplant into total cost.
-    sourceContributionProvisional: pp.sourceCost,
-  };
+  if (!pp) return { costMult: 0, chargeMod: 0, sourceFactor: 1 };
+  const costMult = pp.chargeCostMod * pp.sourceFactor;
+  return { costMult, chargeMod: pp.chargeCostMod, sourceFactor: pp.sourceFactor };
 }
 
 /**

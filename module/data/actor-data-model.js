@@ -77,10 +77,6 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 kick: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 humanity: new fields.NumberField({initial: 0, min: 0, integer: true})
             }),
-            hp: new fields.SchemaField({
-                current: new fields.NumberField({initial: 10, min: 0, integer: true}),
-                max: new fields.NumberField({initial: 10, min: 0, integer: true})
-            }),
             magic: new fields.SchemaField({
                 vigor: new fields.NumberField({initial: 5, min: 0, integer: true}),
                 maxVigor: new fields.NumberField({initial: 5, min: 0, integer: true})
@@ -129,7 +125,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     source: new fields.StringField({ initial: "" }), // POWER_SOURCES key
                     hot: new fields.BooleanField({ initial: false }), // "if Hot" charge variant
                     explosionSave: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived: D10 roll-or-under to explode when hit
-                    chargeCostMod: new fields.NumberField({ initial: 0 }), // derived; feeds the cost engine's multiplier sum
+                    chargeCostMod: new fields.NumberField({ initial: 0 }), // derived: Charge's own cost modifier
+                    sourceFactor: new fields.NumberField({ initial: 1 }), // derived: Source's cost factor (multiplies chargeCostMod)
+                    costMult: new fields.NumberField({ initial: 0 }), // derived: chargeCostMod x sourceFactor; feeds the cost engine's multiplier sum
                     mpMod: new fields.NumberField({ initial: 0 }) // derived combat modifier (Maneuver Pool); reference only, not yet applied
                 }),
                 servos: new fields.ArrayField(new fields.SchemaField({
@@ -178,7 +176,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     items: new fields.ArrayField(new fields.SchemaField({
                         key: new fields.StringField({ initial: "" }), // OPTIONS picker key; derives name/cost/space
                         name: new fields.StringField({ initial: "" }),
-                        variant: new fields.BooleanField({ initial: false }), // Anti-theft Code Lock's alarm variant (costMax vs costMin); unused by flat-cost options
+                        variant: new fields.BooleanField({ required: false, initial: false }), // Anti-theft Code Lock's alarm variant (costMax vs costMin); unused by flat-cost options. required:false so the ArrayField's bare {} placeholder default (ArrayField#initial doesn't recursively clean nested schema defaults) doesn't fail validation with "may not be undefined"
                         loc: new fields.StringField({ initial: "" }),
                         space: new fields.NumberField({ initial: 0, min: 0 }),
                         cp: new fields.NumberField({ initial: 0, min: 0 }),
@@ -221,10 +219,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Head" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 6, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 6, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 6, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 6, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 6, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 6, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -232,10 +228,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Torso" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 12, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 12, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 12, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 12, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 12, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 12, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -243,10 +237,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Right Arm" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -254,10 +246,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Left Arm" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -265,10 +255,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Right Leg" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -276,10 +264,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         label: new fields.StringField({ initial: "Left Leg" }),
                             sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                        hp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                        hpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHp: new fields.NumberField({ initial: 9, min: 0, integer: true }),
-                            mektonHpMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
+                            hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     })
@@ -337,9 +323,11 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         this.substats.swim = Math.round((ma / 3) * 100) / 100;
 
         // Per-location hit points (labeled SDP on the Body tab) follow the same BOD table.
+        // Only the max is derived here -- this runs every render, so writing current
+        // hits would erase damage the player has already tracked.
         for (const [loc, group] of Object.entries(BODY_LOCATION_GROUPS)) {
             const locData = this.body?.locations?.[loc];
-            if (locData) locData.mektonHpMax = body.hits[group].hits;
+            if (locData) locData.hitsMax = body.hits[group].hits;
         }
 
         // Values with no dedicated schema field (Throw, Dmg, EV, Walk, Running Jump,
@@ -566,10 +554,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             : 0;
         mechaData.maneuverPool = maneuverPool(pilotingTotal);
 
-        // Powerplant (Charge + Source): the Charge cost modifier is a confirmed
-        // multiplier contribution; the Source column is provisional (not verified
-        // against a worked book example) and held out of the cost sum per
-        // mecha-cost.js's own caveat -- exposed read-only below instead.
+        // Powerplant (Charge x Source): both are now verified (ATM p.68) to combine
+        // into ONE cost-multiplier contribution -- Charge cost modifier x Source
+        // factor -- rather than two separate terms in the sum.
         const ppData = mechaData.powerplant;
         const pp = (ppData?.charge && ppData?.source) ? getPowerplant(ppData.charge, ppData.source, !!ppData.hot) : null;
         const ppMults = powerplantMultipliers(pp);
@@ -577,16 +564,19 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             ppData.explosionSave = pp?.explosionSave ?? 0;
             ppData.chargeCostMod = ppMults.chargeMod;
             ppData.mpMod = pp?.combat?.mpMod ?? 0;
+            ppData.costMult = ppMults.costMult;
+            ppData.sourceFactor = ppMults.sourceFactor;
         }
 
         // Unified cost engine (mecha-cost.js): totalCost above is the Base Cost
         // (sum of every additive system -- servos/armor, weapons, shields, sensors,
         // cockpit, subassembly options, movement systems). Multiplier systems add
         // NO cost of their own; their values sum, then apply once: Base x (1 + sum).
-        // Modeled multipliers so far: powerplant Charge, plus a manual "Other"
-        // override for systems not yet modeled (transformation forms, stealth, etc.).
+        // Modeled multipliers so far: the combined powerplant Charge x Source term,
+        // plus a manual "Other" override for systems not yet modeled (transformation
+        // forms, stealth, etc.).
         const multipliers = collectMultipliers({
-            chargeMod: ppMults.chargeMod,
+            powerplantMult: ppMults.costMult,
             otherMults: [Number(mechaData.costMultiplier?.other) || 0]
         });
         mechaData.cost = finalCost(totalCost, multipliers);
@@ -604,7 +594,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             flightMAHint: flightMaHint,
             maneuverValue: mv,
             mechaReflex: mr,
-            powerplantSourceProvisional: ppMults.sourceContributionProvisional
+            powerplantCostMult: ppMults.costMult
         };
     }
 }

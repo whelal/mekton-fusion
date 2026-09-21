@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.2.2** -- APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.0** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -52,7 +52,6 @@ Version-by-version detail lives in [CHANGELOG.md](CHANGELOG.md) -- development h
 
 | Area | Goal | Status |
 |------|------|--------|
-| Mecha | Verify Powerplant Source cost contribution against a worked book example, then fold it into the cost engine | Open (currently computed but excluded from total Cost) |
 | Mecha | Transformation-form / stealth / other multiplier data for the cost engine | Planned (a manual "Other Mult." override covers it for now) |
 | Mecha | Weapon Linkage enforcement (same type/servo/target, one roll, per-shot hit locations) | Deferred (CP-only for now) |
 | Psionics | Advanced powers beyond point tracking | Planned |
@@ -144,7 +143,6 @@ Add another language by copying `lang/en.json` to e.g. `lang/fr.json` and adding
 
 ---
 ## 🚧 Known Gaps
-- Powerplant Source cost contribution is unverified against a worked book example; computed but held out of total Cost until confirmed
 - Transformation-form and stealth/other multiplier systems aren't modeled yet (a manual "Other Mult." override covers them for now)
 - Weapon Linkage is charged (CP) but not enforced -- no linked-fire roll resolution yet
 - Limited validation on skill rank editing

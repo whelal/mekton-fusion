@@ -2,6 +2,58 @@
 import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaults.js";
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 
+/**
+ * One-time migration: body.locations used to carry hp/hpMax (unused) and
+ * mektonHp/mektonHpMax (the actual SDP current/max) before the schema switched
+ * to hits/hitsMax. The new schema no longer defines those old field names, so
+ * they're unreachable through `actor.system` -- read them from the actor's
+ * stored source data instead, then unset them once migrated.
+ */
+async function migrateActorBody(actor) {
+  const locations = actor._source?.system?.body?.locations;
+  const update = {};
+  let needed = false;
+
+  for (const [key, loc] of Object.entries(locations ?? {})) {
+    if (!loc) continue;
+    if (loc.mektonHp === undefined && loc.mektonHpMax === undefined && loc.hp === undefined && loc.hpMax === undefined) continue;
+    needed = true;
+    const hitsMax = loc.mektonHpMax;
+    const hits = loc.mektonHp ?? loc.mektonHpMax ?? hitsMax;
+    update[`system.body.locations.${key}.hits`] = hits;
+    update[`system.body.locations.${key}.hitsMax`] = hitsMax;
+    update[`system.body.locations.${key}.-=mektonHp`] = null;
+    update[`system.body.locations.${key}.-=mektonHpMax`] = null;
+    update[`system.body.locations.${key}.-=hp`] = null;
+    update[`system.body.locations.${key}.-=hpMax`] = null;
+  }
+
+  if (actor._source?.system?.hp !== undefined) {
+    needed = true;
+    update["system.-=hp"] = null;
+  }
+
+  if (!needed) return;
+  console.warn("mekton-fusion | Migrating legacy body hit points (mektonHp/mektonHpMax -> hits/hitsMax) for", actor.name);
+  await actor.update(update);
+}
+
+/**
+ * Parse a weapon's Range field. MZ range is Combat-Max (two numbers), a single
+ * number, or "T" for thrown -- never a DV ladder, so this only tells the
+ * dialog which side of Combat Range the two numbers are, for display.
+ * @param {string} str
+ * @returns {{thrown:true}|{combat:number,max:number}|null}
+ */
+function parseRange(str) {
+  if (!str) return null;
+  if (/^t$/i.test(str.trim())) return { thrown: true };
+  const m = String(str).match(/(\d+)\s*[-\/]\s*(\d+)/);
+  if (m) return { combat: +m[1], max: +m[2] };
+  const n = Number(String(str).replace(/[^\d.]/g, ''));
+  return Number.isFinite(n) ? { combat: n, max: n } : null;
+}
+
 export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Sort by .system.sort (or .item.system.sort), then by name
   static bySortThenName(a, b, collator) {
@@ -138,6 +190,93 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return { roll, total, plusDice, minusDice, capped, maxExtra: MAX_EXTRA };
   }
 
+  // Human Random Hit Chart (body.hbs): 1d10 -> body location key + label.
+  static HIT_LOCATION_CHART = {
+    1: ['head', 'Head'],
+    2: ['torso', 'Torso'], 3: ['torso', 'Torso'], 4: ['torso', 'Torso'],
+    5: ['rArm', 'Right Arm'],
+    6: ['lArm', 'Left Arm'],
+    7: ['rLeg', 'Right Leg'], 8: ['rLeg', 'Right Leg'],
+    9: ['lLeg', 'Left Leg'], 10: ['lLeg', 'Left Leg']
+  };
+
+  /** Pure hit-location roll: 1d10 vs the Human Random Hit Chart. */
+  static async _rollHitLocationKey() {
+    const roll = new Roll('1d10');
+    await roll.evaluate();
+    const [key, label] = this.HIT_LOCATION_CHART[roll.total] ?? ['torso', 'Torso'];
+    return { key, label, roll };
+  }
+
+  /**
+   * MZ Human Damage Results wound state from a location's CURRENT hits (after
+   * damage). No BTM, no wound ladder -- just these threshold bands, flat to
+   * every location including the head (no head-doubling, no 12-point cap;
+   * both are BTM-coupled CP2020/IU rules MZ doesn't have).
+   * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
+   * @param {number} hitsNow
+   * @returns {"ok"|"unconscious"|"dead"|"broken"|"shattered"|"severed"}
+   */
+  static _woundState(key, hitsNow) {
+    const limb = key !== 'head' && key !== 'torso';
+    if (!limb) return hitsNow <= -2 ? 'dead' : hitsNow <= 0 ? 'unconscious' : 'ok';
+    return hitsNow <= -5 ? 'severed' : hitsNow <= -2 ? 'shattered' : hitsNow <= 0 ? 'broken' : 'ok';
+  }
+
+  static _woundStateLabel(state) {
+    return {
+      ok: 'OK', unconscious: 'UNCONSCIOUS', dead: 'DEAD',
+      broken: 'BROKEN', shattered: 'SHATTERED (lost without care)', severed: 'SEVERED'
+    }[state] ?? state;
+  }
+
+  /**
+   * Apply already-rolled weapon damage to ONE location on the TARGET actor
+   * (never the attacker -- caller passes the target explicitly). Damage
+   * chain: subtract that location's SP, apply the remainder to hits (may go
+   * negative). Flat to every location, head included -- no armor head-double.
+   * Also resolves a Stun/Shock save when this single hit's post-armor damage
+   * exceeds half the location's hits BEFORE the hit (1d10 <= substats.stun to
+   * stay conscious).
+   * @param {Actor} targetActor
+   * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
+   * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
+   * @returns {{sp:number, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
+   */
+  static async _applyLocationDamage(targetActor, key, dmgTotal) {
+    const loc = targetActor.system?.body?.locations?.[key];
+    const sp = MektonActorSheet._num(loc?.sp, 0);
+    const before = MektonActorSheet._num(loc?.hits, 0);
+    const after = Math.max(0, dmgTotal - sp);
+    const hitsNow = before - after;
+    await targetActor.update({ [`system.body.locations.${key}.hits`]: hitsNow });
+
+    const state = MektonActorSheet._woundState(key, hitsNow);
+
+    let stun = null;
+    if (after > 0 && after > before / 2) {
+      const stunVal = MektonActorSheet._num(targetActor.system?.substats?.stun, 0);
+      const stunRoll = new Roll('1d10');
+      await stunRoll.evaluate();
+      stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
+    }
+
+    return { sp, before, after, hitsNow, state, stun };
+  }
+
+  /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
+  static _formatDamageAppliedHtml(applied) {
+    const { sp, before, after, hitsNow, state, stun } = applied;
+    const stateLabel = MektonActorSheet._woundStateLabel(state);
+    const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
+    let html = `SP ${sp} soaked, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
+    if (stun) {
+      const stunColor = stun.conscious ? '#2a2' : '#c0392b';
+      html += `<br>Stun/Shock check (1d10 &le; ${stun.stunVal}): rolled <strong>${stun.total}</strong> &mdash; <strong style="color:${stunColor}">${stun.conscious ? 'CONSCIOUS' : 'DOWN'}</strong>`;
+    }
+    return html;
+  }
+
   /** @override */
   async _updateObject(event, formData) {
     // Ensure proper data synchronization when updating actor
@@ -155,18 +294,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           formData[key] = parseFloat(formData[key]) || 0;
         }
       }
-      
-      // Normalize initiative (MV) - integer only
-      let mv = formData["system.substats.initiative"];
-      if (Array.isArray(mv)) {
-        const nonEmpty = mv.filter(v => v !== '' && v !== null && v !== undefined);
-        mv = nonEmpty.length ? nonEmpty[nonEmpty.length - 1] : mv[mv.length - 1];
-      }
-      if (mv === '' || mv === null || mv === undefined) {
-        mv = this.actor.system?.substats?.initiative ?? 0;
-      }
-      const mvNum = Number.isFinite(Number(mv)) ? parseInt(mv, 10) : 0;
-      formData["system.substats.initiative"] = mvNum;
+      // Initiative Mod (MV) is intentionally NOT a named form field (see the
+      // data-name comment on its inputs in stats.hbs/mecha.hbs) -- it persists
+      // through its own dedicated handler instead, so there's nothing to
+      // normalize here anymore.
     } catch (e) {
       console.warn('mekton-fusion | Failed to normalize substats before update', e);
     }
@@ -281,12 +412,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       console.log('mekton-fusion | Initializing body locations for', this.actor.name);
       const defaultBody = {
         locations: {
-          head:   { label: "Head",   sp: 4, spMax: 4, hp: 4, hpMax: 4, ablates: true, itemId: null },
-          torso:  { label: "Torso",  sp: 10, spMax: 10, hp: 10, hpMax: 10, ablates: true, itemId: null },
-          rArm:   { label: "Right Arm", sp: 5, spMax: 5, hp: 5, hpMax: 5, ablates: true, itemId: null },
-          lArm:   { label: "Left Arm",  sp: 5, spMax: 5, hp: 5, hpMax: 5, ablates: true, itemId: null },
-          rLeg:   { label: "Right Leg", sp: 6, spMax: 6, hp: 6, hpMax: 6, ablates: true, itemId: null },
-          lLeg:   { label: "Left Leg",  sp: 6, spMax: 6, hp: 6, hpMax: 6, ablates: true, itemId: null }
+          head:   { label: "Head",   sp: 4, spMax: 4, hits: 4, hitsMax: 4, ablates: true, itemId: null },
+          torso:  { label: "Torso",  sp: 10, spMax: 10, hits: 10, hitsMax: 10, ablates: true, itemId: null },
+          rArm:   { label: "Right Arm", sp: 5, spMax: 5, hits: 5, hitsMax: 5, ablates: true, itemId: null },
+          lArm:   { label: "Left Arm",  sp: 5, spMax: 5, hits: 5, hitsMax: 5, ablates: true, itemId: null },
+          rLeg:   { label: "Right Leg", sp: 6, spMax: 6, hits: 6, hitsMax: 6, ablates: true, itemId: null },
+          lLeg:   { label: "Left Leg",  sp: 6, spMax: 6, hits: 6, hitsMax: 6, ablates: true, itemId: null }
         },
         notes: ""
       };
@@ -301,7 +432,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } else {
       console.log('mekton-fusion | Body locations found:', this.actor.system.body.locations);
     }
-    
+
+    // Migration: body.locations mektonHp/mektonHpMax (+ unused hp/hpMax) -> hits/hitsMax
+    await migrateActorBody(this.actor);
+    ctx.system = this.actor.system ?? {};
+
     // Debug: Always log body state before template render
     console.log('mekton-fusion | getData body check:', {
       hasBody: !!ctx.system.body,
@@ -611,21 +746,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const sdpInput = html.find('#mf-adjust-sdp');
       const sdpAdjust = parseInt(sdpInput.val()) || 0;
       if (sdpAdjust !== 0) {
-        // Default sdpMax per Mekton table (5-7 column) for reference/percent only
-        let defaultMax = 9;
-        if (loc === 'head') defaultMax = 6;
-        else if (loc === 'torso') defaultMax = 12;
-        const sdpMax = (data.mektonHpMax && data.mektonHpMax > 0) ? data.mektonHpMax : defaultMax;
-        // Allow SDP to exceed MaxSDP (no clamping)
-        const newSDP = (data.mektonHp ?? 0) + sdpAdjust;
-        console.log('mekton-fusion | SDP adjust (no clamp):', { loc, path, sdpAdjust, sdpMax, oldSDP: data.mektonHp, newSDP });
-        // Set SDP value directly in the input and trigger change event
-        const sdpInputField = html.find(`tr[data-loc="${loc}"] input[name="system.body.locations.${loc}.mektonHp"]`);
+        const hitsMax = data.hitsMax ?? 0;
+        // Heal (positive adjust) clamps at hitsMax; damage (negative) has no
+        // floor -- current wounds can go negative (BOD table's negative Hits tiers).
+        let newHits = (data.hits ?? 0) + sdpAdjust;
+        if (sdpAdjust > 0) newHits = Math.min(newHits, hitsMax);
+        console.log('mekton-fusion | Hits adjust:', { loc, path, sdpAdjust, hitsMax, oldHits: data.hits, newHits });
+        // Set the value directly in the input and trigger change event
+        const sdpInputField = html.find(`tr[data-loc="${loc}"] input[name="system.body.locations.${loc}.hits"]`);
         if (sdpInputField.length) {
-          sdpInputField.val(newSDP).trigger('change');
-          console.log('mekton-fusion | SDP input set and change triggered:', { loc, newSDP });
+          sdpInputField.val(newHits).trigger('change');
+          console.log('mekton-fusion | Hits input set and change triggered:', { loc, newHits });
         } else {
-          console.warn('mekton-fusion | SDP input not found for location:', loc);
+          console.warn('mekton-fusion | Hits input not found for location:', loc);
         }
         sdpInput.val('');
       }
@@ -770,10 +903,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Resource bars need custom handling for visual preview
     html.on('change input', '.resource-input', ev => this._queueSubstatChange(ev));
 
-    // Keep duplicate Initiative (MV) inputs across tabs in sync and persist via queued substat handler
-    html.on('change input', 'input[name="system.substats.initiative"]', ev => {
+    // Keep duplicate Initiative (MV) inputs across tabs (Stats + Mecha) in sync and
+    // persist via the queued substat handler. These inputs deliberately have no
+    // form `name` (see data-name instead): Foundry's submitOnChange independently
+    // submits the whole form on 'change', and with two same-named inputs it
+    // collects both into an array -- if that fires before the sync below has
+    // propagated the new value to the other duplicate, it can pick the stale one
+    // and silently revert the edit. Keeping this field out of Foundry's automatic
+    // form collection and persisting it solely through this debounced handler
+    // avoids that race entirely.
+    html.on('change input', 'input[data-name="system.substats.initiative"]', ev => {
       const val = ev.currentTarget.value;
-      html.find('input[name="system.substats.initiative"]').each((_, el) => {
+      html.find('input[data-name="system.substats.initiative"]').each((_, el) => {
         if (el !== ev.currentTarget) el.value = val;
       });
       this._queueSubstatChange?.(ev);
@@ -939,15 +1080,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /* ---------- Body tab actions ---------- */
-  _onRollHitLocation(ev) {
-    ev.preventDefault();
-    // Simple random pick among locations
-    const keys = Object.keys(this.actor.system?.body?.locations || {});
-    if (!keys.length) return ui.notifications.warn('No body locations defined');
-    const idx = Math.floor(Math.random() * keys.length);
-    const loc = keys[idx];
-    ui.notifications.info(`Hit location: ${this.actor.system.body.locations[loc].label}`);
-  }
 
   async _onBodyAblate(ev) {
     ev.preventDefault();
@@ -963,9 +1095,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
     try {
-      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hp ?? 0, 0);
-      const max = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hpMax ?? 0, 0);
-      await this.actor.update({ [`system.body.locations.${loc}.hp`]: Math.min(max, cur + amt) });
+      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hits ?? 0, 0);
+      const max = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hitsMax ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.hits`]: Math.min(max, cur + amt) });
       this.render(false);
     } catch (e) { console.error('mekton-fusion | Failed heal', e); }
   }
@@ -974,8 +1106,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
     try {
-      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hp ?? 0, 0);
-      await this.actor.update({ [`system.body.locations.${loc}.hp`]: Math.max(0, cur - amt) });
+      // No floor -- current wounds can go negative (BOD table's negative Hits tiers).
+      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.hits ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.hits`]: cur - amt });
       this.render(false);
     } catch (e) { console.error('mekton-fusion | Failed damage', e); }
   }
@@ -996,41 +1129,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (e) { console.error('mekton-fusion | Failed unequip', e); }
   }
 
-  // Sample hit location roller (customize to your table)
-  async _rollHitLocation() {
-    console.log('mekton-fusion | Rolling hit location...');
-    // Mekton Fusion hit location: 1d10 map
-    const map = { 1:'head', 2:'torso', 3:'torso', 4:'torso', 5:'rArm', 6:'lArm', 7:'rLeg', 8:'rLeg', 9:'lLeg', 10:'lLeg' };
-    const roll = new Roll('1d10');
-    await roll.evaluate();
-    const total = roll.total;
-    const loc = map[total] ?? 'torso';
-    
-    console.log('mekton-fusion | Hit location result:', { total, loc });
-    
-    // Show the roll in chat with proper label
-    const locLabel = {
-      head: 'Head',
-      torso: 'Torso',
-      rArm: 'Right Arm',
-      lArm: 'Left Arm',
-      rLeg: 'Right Leg',
-      lLeg: 'Left Leg'
-    }[loc] || loc;
-    
-    await roll.toMessage({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      flavor: `<strong>Hit Location: ${locLabel}</strong>`
-    });
-    
-    // Optional: flash that zone
-    const el = this.element.find(`.hit-zone.${loc}`);
-    if (el && el.length) {
-      el.addClass('active');
-      setTimeout(() => el.removeClass('active'), 500);
-    }
-  }
-
   /** Increment/decrement a substat by delta and persist immediately */
   async _onAdjustSubstat(ev, delta) {
     ev.preventDefault();
@@ -1048,7 +1146,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** Queue substat/resource input changes; debounced batch update for performance */
   _queueSubstatChange(ev) {
     const input = ev.currentTarget;
-    const name = input.name;
+    // Initiative Mod reads data-name instead of name (see the activateListeners
+    // comment on its change/input binding for why).
+    const name = input.name || input.dataset.name;
     if (!name) return;
     const m = name.match(/^system\.substats\.([\w-]+)$/);
     if (!m) return;
@@ -1707,7 +1807,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     await roll.toMessage({ speaker, flavor });
   }
 
-  /** Roll human hit location (1d10 vs the Human Random Hit Chart) */
+  /**
+   * Roll hit location (1d10 vs the Human Random Hit Chart, see static
+   * HIT_LOCATION_CHART / _rollHitLocationKey). Used by both the weapon row's
+   * hit-location button (tags the weapon name) and the Body tab's crosshairs
+   * button (generic, also flashes the rolled paperdoll zone).
+   */
   async _onRollHitLocation(ev) {
     ev.preventDefault();
     const button = ev.currentTarget;
@@ -1720,20 +1825,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (weapon) weaponLabel = ` (${weapon.system?.name || weapon.name})`;
     }
 
-    const roll = await new Roll("1d10").evaluate();
-    const result = roll.total;
-
-    let location;
-    if (result === 1)           location = "Head";
-    else if (result <= 4)       location = "Torso";
-    else if (result === 5)      location = "Right Arm";
-    else if (result === 6)      location = "Left Arm";
-    else if (result <= 8)       location = "Right Leg";
-    else                        location = "Left Leg";
+    const { key, label, roll } = await this.constructor._rollHitLocationKey();
 
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const flavor = `<strong>${this.actor.name}</strong> hit location${weaponLabel}: rolled <strong>${result}</strong> → <strong style="font-size: 1.1em;">${location}</strong>`;
+    const flavor = `<strong>${this.actor.name}</strong> hit location${weaponLabel}: rolled <strong>${roll.total}</strong> → <strong style="font-size: 1.1em;">${label}</strong>`;
     await roll.toMessage({ speaker, flavor });
+
+    // Flash the rolled zone on the Body tab's paperdoll, if visible.
+    const el = this.element.find(`.hit-zone.${key}`);
+    if (el && el.length) {
+      el.addClass('active');
+      setTimeout(() => el.removeClass('active'), 500);
+    }
   }
 
   /**
@@ -1816,7 +1919,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return this._rollWeaponItem(button);
   }
 
-  /** Roll a Combat tab weapon Item attack: 1d10 + skill + WA. */
+  /**
+   * Human-scale attack resolver (MZ core Interlock, not CP2020/IU): 1d10
+   * (exploding) + skillTotal + WA + rangeMod + aim + situational mods, vs an
+   * optional GM Difficulty. No fixed DV -- opposed Evade/Parry is deferred.
+   * On a hit (or no Difficulty given), continues in the SAME chat card: rolls
+   * hit location, rolls damage (+ BODY mod if the formula ends in "+"),
+   * applies armor/location/hits to the TARGETED token (never the attacker),
+   * and resolves a Stun/Shock save if warranted. The standalone
+   * .weapon-damage-roll / .weapon-hitloc-roll buttons remain as manual
+   * overrides for anything this dialog doesn't cover (e.g. opposed melee).
+   */
   async _rollWeaponItem(button) {
     const itemId = button.dataset.itemId;
     if (!itemId) return;
@@ -1824,47 +1937,181 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const weapon = this.actor.items.get(itemId);
     if (!weapon) return;
 
-    const skillName = weapon.system?.skill;
+    const weaponName = weapon.system?.name || weapon.name;
     const wa = MektonActorSheet._num(weapon.system?.wa, 0);
 
-    // Find the corresponding skill in the actor's items
-    let skillTotal = 0;
-    if (skillName) {
-      const skillMap = {
-        'automatic-weapon': 'Automatic Weapon',
-        'blade': 'Blade',
-        'handgun': 'Handgun',
-        'hand-to-hand': 'Hand to Hand',
-        'rifle': 'Rifle',
-        'whip': 'Whip'
-      };
-      
-      const skillDisplayName = skillMap[skillName];
-      const skill = this.actor.items.find(i => i.type === 'skill' && i.name === skillDisplayName);
-      
-      if (skill) {
-        const statVal = this.actor.system?.stats?.[skill.system?.stat?.toUpperCase()]?.value ?? 0;
-        const rank = MektonActorSheet._num(skill.system?.rank, 0);
-        skillTotal = statVal + rank;
+    // Resolve the mapped skill -- warn rather than silently treating the
+    // attacker as untrained, since a missing skill is very likely a data problem.
+    const skillKey = weapon.system?.skill;
+    const SKILL_MAP = {
+      'automatic-weapon': 'Automatic Weapon',
+      'blade': 'Blade',
+      'handgun': 'Handgun',
+      'hand-to-hand': 'Hand to Hand',
+      'rifle': 'Rifle',
+      'whip': 'Whip'
+    };
+    const skillDisplayName = skillKey ? (SKILL_MAP[skillKey] ?? skillKey) : null;
+    const skillItem = skillDisplayName ? this.actor.items.find(i => i.type === 'skill' && i.name === skillDisplayName) : null;
+    let statVal = 0, rank = 0;
+    if (skillItem) {
+      statVal = MektonActorSheet._num(this.actor.system?.stats?.[String(skillItem.system?.stat || '').toUpperCase()]?.value, 0);
+      rank = MektonActorSheet._num(skillItem.system?.rank, 0);
+    } else {
+      ui.notifications.warn(`${this.actor.name} has no "${skillDisplayName ?? 'matching'}" skill for ${weaponName} -- rolling with skill total 0.`);
+    }
+    const skillTotal = statVal + rank;
+
+    // MZ range is Combat-Max, not a DV ladder -- the dialog only needs to know
+    // which side of Combat Range applies; show the parsed numbers as a hint.
+    const rangeInfo = parseRange(weapon.system?.range);
+    const rangeHint = rangeInfo?.thrown ? 'Thrown'
+      : rangeInfo ? `Combat ${rangeInfo.combat} / Max ${rangeInfo.max}`
+      : 'No range data';
+
+    const COVER_MODS = [
+      { key: 'silhouetted', label: 'Silhouetted', mod: 2 },
+      { key: 'crouched', label: 'Crouched/Kneeling', mod: -1 },
+      { key: 'prone', label: 'Prone', mod: -2 },
+      { key: 'half', label: 'Half body visible', mod: -2 },
+      { key: 'headshoulders', label: 'Head + Shoulders only', mod: -3 },
+      { key: 'headonly', label: 'Head only', mod: -4 },
+      { key: 'behind', label: 'Behind someone', mod: -4 },
+      { key: 'blinded', label: 'Blinded', mod: -5 }
+    ];
+    const coverRows = COVER_MODS.map(c =>
+      `<label style="display:block;"><input type="checkbox" name="cvr_${c.key}"/> ${c.label} (${c.mod >= 0 ? '+' : ''}${c.mod})</label>`
+    ).join('');
+
+    let dlg;
+    try {
+      dlg = await Dialog.prompt({
+        title: `Attack: ${weaponName}`,
+        content: `
+          <form class="mf-attack-dialog">
+            <div class="form-group">
+              <label>Range</label>
+              <select name="rangeChoice" style="width:100%">
+                <option value="0">Combat range (+0)</option>
+                <option value="-4">Long / at max range (−4)</option>
+              </select>
+              <p style="font-size:0.8em; color:#666; margin:2px 0 8px;">${rangeHint}</p>
+            </div>
+            <div class="form-group">
+              <label>Aim (+1/action, max +4)</label>
+              <input type="number" name="aim" value="0" min="0" max="4" style="width:100%"/>
+            </div>
+            <fieldset style="margin:8px 0;">
+              <legend>Cover / LOS</legend>
+              ${coverRows}
+            </fieldset>
+            <div class="form-group">
+              <label>Other Modifier</label>
+              <input type="number" name="other" value="0" style="width:100%"/>
+            </div>
+            <div class="form-group">
+              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}</label>
+              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
+            </div>
+          </form>
+        `,
+        label: "Attack",
+        callback: html => {
+          const rangeMod = Number(html.find("[name='rangeChoice']").val()) || 0;
+          const aim = Math.max(0, Math.min(4, Number(html.find("[name='aim']").val()) || 0));
+          const other = Number(html.find("[name='other']").val()) || 0;
+          const diffRaw = html.find("[name='difficulty']").val();
+          const difficulty = diffRaw ? Number(diffRaw) : null;
+          let coverMod = 0;
+          for (const c of COVER_MODS) {
+            if (html.find(`[name='cvr_${c.key}']`).is(':checked')) coverMod += c.mod;
+          }
+          return { rangeMod, aim, coverMod, other, difficulty };
+        }
+      });
+    } catch (_) { return; } // dialog cancelled
+
+    const { rangeMod, aim, coverMod, other, difficulty } = dlg;
+    const mods = coverMod + other;
+
+    // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const attackTotal = base + skillTotal + wa + rangeMod + aim + mods;
+
+    const plusStr = plusDice.join(' + ');
+    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
+    const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
+
+    const modParts = [`(${plusStr}${minusStr})`, `Skill ${skillTotal}`, `WA ${wa}`];
+    if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
+    if (aim) modParts.push(`Aim +${aim}`);
+    if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
+
+    let success = null;
+    let resultTag = '';
+    if (difficulty !== null) {
+      success = attackTotal >= difficulty;
+      resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+    }
+
+    let flavor = `<strong>${this.actor.name}</strong> attacks with ${weaponName}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+
+    // --- On a hit (success !== false -- a miss is the only thing that skips this) ---
+    if (success !== false) {
+      const dmgFormulaRaw = (weapon.system?.damage ?? '').trim();
+      if (!dmgFormulaRaw) {
+        flavor += `<br><em style="font-size:0.85em; color:#999;">No damage formula set on ${weaponName}.</em>`;
+      } else {
+        // A trailing "+" means the BODY TYPE damage modifier applies, by the
+        // "+" marker -- not by weapon type or skill (ranged or melee alike).
+        const bodyModApplies = dmgFormulaRaw.endsWith('+');
+        const dmgFormula = bodyModApplies ? dmgFormulaRaw.slice(0, -1).trim() : dmgFormulaRaw;
+
+        let dmgRoll = null;
+        try {
+          dmgRoll = new Roll(dmgFormula || '0');
+          await dmgRoll.evaluate();
+        } catch (err) {
+          flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${dmgFormulaRaw}" for ${weaponName}.</em>`;
+        }
+
+        if (dmgRoll) {
+          let dmgTotal = dmgRoll.total;
+          let bodyModNote = '';
+          if (bodyModApplies) {
+            const dmgMod = this.actor.system?.derived?.dmg;
+            if (dmgMod?.type === 'flat' && dmgMod.value) {
+              dmgTotal += dmgMod.value;
+              bodyModNote = ` + BODY ${dmgMod.value >= 0 ? '+' : ''}${dmgMod.value}`;
+            } else if (dmgMod?.type === 'dice' && dmgMod.value) {
+              const bodyRoll = new Roll(dmgMod.value);
+              await bodyRoll.evaluate();
+              dmgTotal += bodyRoll.total;
+              bodyModNote = ` + BODY ${dmgMod.value} (${bodyRoll.total})`;
+            }
+          }
+
+          const { key, label: locLabel } = await this.constructor._rollHitLocationKey();
+          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+
+          // Apply to the TARGET only, never the attacker. Exactly one targeted
+          // token -> apply now; otherwise defer via the chat-card button.
+          const targets = Array.from(game.user.targets);
+          if (targets.length === 1 && targets[0].actor) {
+            const targetActor = targets[0].actor;
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
+            flavor += `<br>${targetActor.name}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
+          } else {
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}">Apply to targeted token</button>`;
+          }
+        }
       }
     }
 
-    const total = skillTotal + wa;
-    const { roll, total: baseTotal, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-
-    const rollTotal = baseTotal + total;
-    
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
-    const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
-    const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
-    const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
-    
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const weaponName = weapon.system?.name || weapon.name;
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName}${tag}${capTag} = (${plusStr}${minusStr}) + Skill ${skillTotal} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${rollTotal}</strong>`;
-
     await roll.toMessage({ speaker, flavor });
   }
 
