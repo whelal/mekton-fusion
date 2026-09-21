@@ -1,3 +1,9 @@
+## [0.2.1] - 2026-09-20
+### Added
+- Flight MA now pre-fills (all three configs) from the sum of the mech's thruster `targetMA` values whenever it's at its unset default (0) -- mirrors the existing Land MA hint. GES-type propulsion is excluded since it's priced as ground-hugging movement, not true flight. Still a plain manual/editable field afterward.
+### Changed
+- README overhauled to match actual project state: version banner, Current Feature Set, and Actor Data Schema now describe the real Mecha/Snaggletooth/Creature/Powerplant/Cost-engine system instead of the original v0.0.x stats-only scaffold. Roadmap table replaced with a "what's still ahead" list pointing at CHANGELOG.md, since development didn't follow the old linear phase table. Known Gaps and the Development Layout file tree updated to match the current `module/data/mecha-*.js` split.
+
 ## [0.2.0] - 2026-09-18
 ### Added
 - NPC/mook presets (`mecha-presets.js`): Vesper-class Skirmisher and Bulwark-class Assault mecha, plus a Dire Wolf creature. A "Load Preset" picker on the Mecha and Snaggletooth tabs stamps a preset's selection keys (servos/armament/shields/movement/powerplant) into that mech's arrays; the existing derive pipeline fills all computed cells. Overwrites the current loadout, so it's confirmed first.

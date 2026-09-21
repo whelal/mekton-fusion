@@ -645,12 +645,17 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
 
         // Movement systems: thruster/GES rows derive Spaces/CP (equal) from the
         // fuel-adjusted weight + targetMA. Loc stays manual, same as weapons.
+        // Thrusters are the only propulsion type that grants true flight (GES rides
+        // just above the surface, priced lower per MA in mecha-movement.js), so their
+        // targetMA values sum into a Flight MA hint below.
+        let flightMaHint = 0;
         for (const ms of mechaData.movementSystems ?? []) {
             if (!ms) continue;
             if (ms.type) {
                 const lift = propulsionLiftPoints(adjustedWeight, Number(ms.targetMA) || 0, ms.type);
                 ms.spc = lift;
                 ms.cp = lift;
+                if (ms.type === "thruster") flightMaHint += Number(ms.targetMA) || 0;
             }
             totalCost += Number(ms.cp) || 0;
             if (spaceByLocation[ms.loc]) spaceByLocation[ms.loc].space += Number(ms.spc) || 0;
@@ -658,10 +663,11 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
 
         // MEKTON STATS config rows: MV/MR are mech-wide and derived for all three.
         // Configuration name, Land MA, and Flight MA stay manual per config (a
-        // transforming mecha can walk in one mode and fly in another). Land MA is
-        // filled from the tonnage-only Ground MA hint whenever it's at its unset
-        // default (0) -- a starting suggestion the pilot can type over with any
-        // nonzero value, which then sticks (0 always re-suggests the hint).
+        // transforming mecha can walk in one mode and fly in another). Both are
+        // filled from a hint whenever at their unset default (0) -- a starting
+        // suggestion the pilot can type over with any nonzero value, which then
+        // sticks (0 always re-suggests the hint). Land MA uses the tonnage-only
+        // Ground MA band; Flight MA uses the summed thruster targetMA above.
         const cfg = mechaData.config;
         if (cfg) {
             cfg.mv = mv ?? 0;
@@ -673,6 +679,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             if (!cfg.landMA) cfg.landMA = groundMaHexes ?? 0;
             if (!cfg.landMA2) cfg.landMA2 = groundMaHexes ?? 0;
             if (!cfg.landMA3) cfg.landMA3 = groundMaHexes ?? 0;
+            if (!cfg.flightMA) cfg.flightMA = flightMaHint;
+            if (!cfg.flightMA2) cfg.flightMA2 = flightMaHint;
+            if (!cfg.flightMA3) cfg.flightMA3 = flightMaHint;
         }
 
         // Maneuver Pool keys off the Mecha Piloting (H) skill's total (stat + rank) --
@@ -718,6 +727,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             finalWeight: finalWt,
             adjustedWeight,
             groundMA: groundMaHexes,
+            flightMAHint: flightMaHint,
             maneuverValue: mv,
             mechaReflex: mr,
             powerplantSourceProvisional: ppMults.sourceContributionProvisional

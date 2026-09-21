@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills plus a Psionics scaffold. This system is **early stage (v0.0.x)** and APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a two-mech Mekton Zeta construction/combat system. Currently **v0.2.1** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -13,35 +13,53 @@ Built on inspirations from:
 The goal: Provide a **complete character sheet and rules support** for campaigns mixing **mecha and cyberpunk elements**.
 
 Core areas:
-- Character stats & skill checks (CP2020 style)
-- Psionics framework
-- Planned: Mecha design, vehicle frames, loadouts
+- Character stats, derived combat values, and skill checks (CP2020 style)
+- Mekton Zeta mecha construction, combat, and movement -- two independent mechs per actor
+- Psionics framework (stat/point tracking; advanced powers still planned)
 
 ---
 ## ✨ Current Feature Set
-- Uppercase stat block: `INT REF TECH COOL ATTR LUCK MA BODY EMP EDU`
-- Cyberpunk-style header & compact stat boxes with inline roll buttons
+**Character**
+- Uppercase stat block: `INT REF TECH COOL ATTR LUCK MA BODY EMP EDU PSI`
+- Cyberpunk-style sidebar header (portrait, vitals grid) & compact stat boxes with inline roll buttons
 - Bidirectional exploding d10 rolls (10 chains up, 1 chains down, capped extras, flags include raw dice)
-- Initiative: `1d10 + REF`
-- Skill seeding (auto on new actor + manual Add Skills button + world seeding macro)
-- Categorized skill display with favorites filter & sorting (name/stat/rank/total)
-- Hard skill markers `(H)` with localization support
-- DataModel-backed stats schema (Foundry VTT v13+)
+- Initiative: `1d10 + REF + Initiative Mod`
+- BOD-derived Stun Save, Lift, Throw, Dmg, EV, and per-location hit points (Head/Torso/Limbs)
+- MA-derived movement: Run, Walk, Leap, Running Jump, Anime Leap, Swim, and encumbrance-adjusted MA
+- Paperdoll body tab with hit-location rolls and a Creature section (Body Plan + Natural Armor + Natural Weapons) for non-mecha NPCs
+- Skill seeding (auto on new actor + manual Add Skills button + world seeding macro), categorized display with favorites filter & sorting
+- Hard skill markers `(H)`, i18n keys under `MF.*`
+- Personal & mecha weapon tables on the Combat tab with roll buttons
+
+**Mecha** (two independent mechs per actor: Mecha + Snaggletooth)
+- Per-location servo construction (Torso/Arm/Leg/Head/Wing/Tail/Pod), each with its own class/extremity/armor pickers deriving Kills/Space/Cost/Weight
+- Armament: two-level Category -> Weapon picker (Beam/Projectile/Missile/Melee/Energy Melee) deriving WA/Range/Damage/Shots/BV/Cost/Space/Weight, with a roll button (`1d10 + MR + Mecha skill + WA`)
+- Shields, two independent Sensor slots (Main + Backup), Cockpit, and 10 optional Subassemblies (Damage Control, Ejection Seat, Storage Module, Weapon Linkage, etc.), all deriving Cost/Space from picks
+- Movement Systems (Thruster/GES) deriving Spaces/CP from target MA; Powerplant (Charge + Source) deriving Explosion Save and a cost multiplier
+- Unified cost engine: Cost = Base (sum of every additive system) x (1 + sum of multiplier values)
+- Derived MEKTON PROFILE Weight (Final Weight = total Kills / 2, +10% with the Fuel toggle) and MEKTON STATS (MV/MR mass-derived; Land MA/Flight MA manual per config, pre-filled from tonnage/thruster hints)
+- Maneuver Pool derived from the Mecha Piloting (H) skill
+- NPC/mook presets (Vesper-class Skirmisher, Bulwark-class Assault, Dire Wolf) loadable via a picker, stamping selection keys into a mech's arrays for the derive pipeline to fill in
+
+**Engine**
+- DataModel-backed schema (Foundry VTT v13+) with `prepareDerivedData()` recomputing all of the above on every render
 - Migration logic for legacy `system.abilities` (WILL→COOL, MOVE→MA)
 - Centralized stat defaults (`module/data/defaults.js`)
-- Basic i18n keys (`lang/en.json`)
-- Manual & auto skill seeding; canonicalization of Mecha Gunnery variants
-- Actor meta fields: Role, Age, Points (header inputs)
 
 ---
 ## 🗺️ Roadmap
-| Phase | Goal | Status |
-|-------|------|--------|
-| 0.0.x | Core stats + skills seeding | In progress |
-| 0.1.0 | Derived values (HP calc, encumbrance stub) | Planned |
-| 0.2.0 | Vehicle & Mecha item types / sheets | Planned |
-| 0.3.0 | Psionics / advanced powers | Planned |
-| 0.4.0 | Expanded localization / community translation | Planned |
+Version-by-version detail lives in [CHANGELOG.md](CHANGELOG.md) -- development hasn't moved in the straight-line phase order this table used to imply, so it now only tracks what's still ahead.
+
+| Area | Goal | Status |
+|------|------|--------|
+| Mecha | Verify Powerplant Source cost contribution against a worked book example, then fold it into the cost engine | Open (currently computed but excluded from total Cost) |
+| Mecha | Transformation-form / stealth / other multiplier data for the cost engine | Planned (a manual "Other Mult." override covers it for now) |
+| Mecha | Weapon Linkage enforcement (same type/servo/target, one roll, per-shot hit locations) | Deferred (CP-only for now) |
+| Psionics | Advanced powers beyond point tracking | Planned |
+| Localization | Additional languages beyond English | Planned |
+| Testing | Automated test harness | Planned |
+
+Already shipped: BOD/MA-derived combat stats, full Mekton Zeta mecha construction (servos/armor/extremities per location, weapons, shields, sensors, cockpit, subassemblies, movement systems, powerplant), a unified cost engine, NPC/mook presets, and a two-mech (Mecha + Snaggletooth) actor layout.
 
 ---
 ## 📦 Installation (Development)
@@ -58,17 +76,23 @@ git clone https://github.com/whelal/mekton-fusion.git
 
 ---
 ## 🧬 Actor Data Schema (Simplified)
+The schema has grown well past a simple stat block -- `module/data/actor-data-model.js` is the authoritative source; this is just a shape overview:
 ```js
 system: {
-  meta: { role: string, age: number, points: number },
-  stats: {
-    INT:{value}, REF:{value}, TECH:{value}, COOL:{value}, ATTR:{value},
-    LUCK:{value}, MA:{value}, BODY:{value}, EMP:{value}, EDU:{value}
-  },
-  skills: { /* legacy inline map (deprecated) */ },
-  // Skills preferred as embedded Item documents
+  meta: { role, age, points },
+  stats: { INT, REF, TECH, COOL, ATTR, LUCK, MA, BODY, EMP, EDU, PSI },
+  substats: { /* derived: stun, lift, run, leap, swim, hp, initiative, ... */ },
+  body: { locations: { head, torso, rArm, lArm, rLeg, lLeg }, notes },
+  creature: { bodyPlan, armorSP, naturalWeapons },   // non-mecha NPCs
+  mecha: { /* full construction: servos, weapons, shields, sensors,
+             cockpit, subassemblies, movementSystems, powerplant, config */ },
+  snaggletooth: { /* identical shape -- a second, independent mech */ },
+  psi: { points, maxPoints },
+  equipment: { gear, totalWeight }
 }
 ```
+Values with no dedicated field (Throw, Dmg, EV, Walk, Running Jump, Anime Leap, skill point multiplier, per-mech cost/weight/space breakdowns) are recomputed each render under `system.derived`.
+
 Legacy `system.abilities` (lowercase) auto-migrates when opening actor sheets; WILL → COOL, MOVE → MA.
 
 ---
@@ -94,16 +118,23 @@ Legacy `system.abilities` (lowercase) auto-migrates when opening actor sheets; W
 ## 🛠️ Development Layout
 ```
 module/
-  data/ (defaults, skills, actor-data-model)
+  data/
+    defaults.js, skills.js, stats.js, item-data-model.js
+    actor-data-model.js (schema + prepareDerivedData)
+    body-values.js (BOD/MA tables, non-mecha enemy/creature helper)
+    mecha-construction.js, mecha-weapons.js, mecha-movement.js
+    mecha-options.js, mecha-powerplant.js, mecha-cost.js
+    mecha-presets.js (NPC/mook presets)
   seed.js (world + actor core item seeding)
-  settings.js (future system settings)
+  settings.js
   sheets/item-sheet.js
 scripts/sheets/
-  actor-sheet.js (sheet logic, rolls, UI state)
-  mekton-fusion.js (init hooks, sheet registration, initiative, auto-seed)
+  actor-sheet.js (sheet logic, rolls, preset loaders, UI state)
+  mekton-fusion.js (init hooks, Handlebars picker helpers, sheet registration)
 styles/ (CSS: mekton-fusion.css)
 templates/actor/
   actor-sheet.hbs (main sheet)
+  tabs/ (stats, combat, skills, body, mecha, snaggletooth, psi, equipment, notes)
 lang/en.json
 system.json
 ```
@@ -114,8 +145,9 @@ Add another language by copying `lang/en.json` to e.g. `lang/fr.json` and adding
 
 ---
 ## 🚧 Known Gaps
-- No derived HP / encumbrance formulas yet
-- No mecha sheet implementation (planned)
+- Powerplant Source cost contribution is unverified against a worked book example; computed but held out of total Cost until confirmed
+- Transformation-form and stealth/other multiplier systems aren't modeled yet (a manual "Other Mult." override covers them for now)
+- Weapon Linkage is charged (CP) but not enforced -- no linked-fire roll resolution yet
 - Limited validation on skill rank editing
 - No automated full migration script (opportunistic only)
 - Minimal test harness
