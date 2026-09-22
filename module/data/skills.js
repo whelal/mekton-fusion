@@ -43,6 +43,7 @@ export const CP2020_SKILLS = [
   { name: "Tactics", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
 
   // REF - Personal Combat
+  { name: "Archery", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Automatic Weapon", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Blade", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Dodge & Escape", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },

@@ -80,7 +80,7 @@
                   </div>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
-                  <input type="number" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots"/>
+                  <input type="text" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots" placeholder="e.g. 10, na, (2)"/>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
                   <input type="text" name="system.weapons.{{@index}}.bv" class="weapon-field" value="{{item.system.bv}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="bv" placeholder="—"/>
@@ -88,6 +88,7 @@
                 <td style="padding: 2px 4px;">
                   <select name="system.weapons.{{@index}}.skill" class="weapon-field" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="skill">
                     <option value="" {{#unless item.system.skill}}selected{{/unless}}>—</option>
+                    <option value="archery" {{#if (eq item.system.skill 'archery')}}selected{{/if}}>Archery</option>
                     <option value="automatic-weapon" {{#if (eq item.system.skill 'automatic-weapon')}}selected{{/if}}>Auto Weapon</option>
                     <option value="blade" {{#if (eq item.system.skill 'blade')}}selected{{/if}}>Blade</option>
                     <option value="handgun" {{#if (eq item.system.skill 'handgun')}}selected{{/if}}>Handgun</option>
@@ -187,7 +188,7 @@
                   <input type="text" name="system.weapons.{{@index}}.damage" class="weapon-field" value="{{item.system.damage}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="damage"/>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
-                  <input type="number" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots"/>
+                  <input type="text" name="system.weapons.{{@index}}.shots" class="weapon-field" value="{{item.system.shots}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="shots" placeholder="e.g. 10, na, (2)"/>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
                   <input type="text" name="system.weapons.{{@index}}.bv" class="weapon-field" value="{{item.system.bv}}" style="width: 100%; font-size: 0.75rem; padding: 1px 2px;" data-field="bv" placeholder="—"/>
@@ -195,6 +196,7 @@
                 <td style="padding: 2px 4px;">
                   <select name="system.weapons.{{@index}}.skill" class="weapon-field" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="skill">
                     <option value="" {{#unless item.system.skill}}selected{{/unless}}>—</option>
+                    <option value="archery" {{#if (eq item.system.skill 'archery')}}selected{{/if}}>Archery</option>
                     <option value="automatic-weapon" {{#if (eq item.system.skill 'automatic-weapon')}}selected{{/if}}>Auto Weapon</option>
                     <option value="blade" {{#if (eq item.system.skill 'blade')}}selected{{/if}}>Blade</option>
                     <option value="handgun" {{#if (eq item.system.skill 'handgun')}}selected{{/if}}>Handgun</option>

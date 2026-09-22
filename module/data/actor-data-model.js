@@ -19,6 +19,10 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
     static defineSchema() {
         const fields = foundry.data.fields;
     return {
+            // Reserved for the future scale-conversion system (human / roadstriker /
+            // mekton / corvette / starship). Costs nothing now -- just avoids a live
+            // migration once scales are built.
+            scale: new fields.StringField({ initial: "human" }),
             meta: new fields.SchemaField({
                 role: new fields.StringField({initial: ""}),
                 age: new fields.NumberField({initial: 25, min: 0, integer: true}),

@@ -1,0 +1,4 @@
+# Foundry compendium packs are LevelDB stores (binary key-value log/manifest
+# files), not text. Without this, Windows git's autocrlf would rewrite LF
+# bytes inside the binary data to CRLF on checkout and corrupt the store.
+packs/** -text

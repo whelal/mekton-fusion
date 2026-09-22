@@ -12,10 +12,17 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
 
   getData(options = {}) {
     const context = super.getData(options);
-    
+
+    // super.getData() doesn't flatten system data to context.system the way
+    // the template expects (same quirk actor-sheet.js works around) -- set
+    // it explicitly, or every {{system.*}} binding in item-sheet.html
+    // resolves to undefined regardless of the item's actual data.
+    context.system = this.object.system ?? {};
+
     // Add helper data to context
     context.isSkill = this.object.type === "skill";
     context.isCustom = this.object.system?.custom;
+    context.isWeapon = this.object.type === "weapon" || this.object.type === "mecha-weapon";
     
     // Debug logging
     console.log("mekton-fusion | Item sheet getData:", {

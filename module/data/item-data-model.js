@@ -17,11 +17,18 @@ export class WeaponDataModel extends ItemDataModel {
     return foundry.utils.mergeObject(parentSchema, {
       name: new fields.StringField({ initial: "" }),
       wa: new fields.NumberField({ initial: 0, integer: true }),
-      range: new fields.StringField({ initial: "" }),
-      damage: new fields.StringField({ initial: "" }),
-      shots: new fields.NumberField({ initial: 0, integer: true }),
+      range: new fields.StringField({ initial: "" }), // free text: "T", "28-400", a single number, etc. -- never coerced
+      damage: new fields.StringField({ initial: "" }), // free text: "2D6+", "1-4D6", "40D6", etc. -- never coerced
+      shots: new fields.StringField({ initial: "" }), // free text: "na", "10 turns", "(2)", a bare number -- never coerced
       bv: new fields.StringField({ initial: "" }),
-      skill: new fields.StringField({ initial: "" })
+      skill: new fields.StringField({ initial: "" }),
+      conc: new fields.StringField({ initial: "" }), // concealability: P/J/L/N
+      weight: new fields.NumberField({ initial: 0, min: 0 }), // kg
+      cost: new fields.NumberField({ initial: 0, min: 0 }), // eb/credits
+      ammoCost: new fields.NumberField({ initial: 0, min: 0 }), // cost per reload (generally per clip)
+      tl: new fields.NumberField({ initial: 0, min: 0, integer: true }), // tech level
+      damageNote: new fields.StringField({ initial: "" }), // [AP], *, etc. -- mirrors mecha-weapon damageNote
+      scale: new fields.StringField({ initial: "human" }) // reserved for the future scale system; unused for now
     });
   }
 }

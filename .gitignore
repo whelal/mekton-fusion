@@ -1,0 +1,4 @@
+# LevelDB runtime lock files -- exclusive-locked by Foundry while a compendium
+# pack is open, and meaningless outside that runtime (a fresh one is created
+# every time Foundry opens the store). Never meant to be version-controlled.
+packs/**/LOCK

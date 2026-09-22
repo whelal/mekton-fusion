@@ -1,42 +1,5 @@
 ﻿// module/script/sheets/actor-sheet.js
-import { STAT_DEFAULT_VALUES, applyStatDefaults } from "../../module/data/defaults.js";
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
-
-/**
- * One-time migration: body.locations used to carry hp/hpMax (unused) and
- * mektonHp/mektonHpMax (the actual SDP current/max) before the schema switched
- * to hits/hitsMax. The new schema no longer defines those old field names, so
- * they're unreachable through `actor.system` -- read them from the actor's
- * stored source data instead, then unset them once migrated.
- */
-async function migrateActorBody(actor) {
-  const locations = actor._source?.system?.body?.locations;
-  const update = {};
-  let needed = false;
-
-  for (const [key, loc] of Object.entries(locations ?? {})) {
-    if (!loc) continue;
-    if (loc.mektonHp === undefined && loc.mektonHpMax === undefined && loc.hp === undefined && loc.hpMax === undefined) continue;
-    needed = true;
-    const hitsMax = loc.mektonHpMax;
-    const hits = loc.mektonHp ?? loc.mektonHpMax ?? hitsMax;
-    update[`system.body.locations.${key}.hits`] = hits;
-    update[`system.body.locations.${key}.hitsMax`] = hitsMax;
-    update[`system.body.locations.${key}.-=mektonHp`] = null;
-    update[`system.body.locations.${key}.-=mektonHpMax`] = null;
-    update[`system.body.locations.${key}.-=hp`] = null;
-    update[`system.body.locations.${key}.-=hpMax`] = null;
-  }
-
-  if (actor._source?.system?.hp !== undefined) {
-    needed = true;
-    update["system.-=hp"] = null;
-  }
-
-  if (!needed) return;
-  console.warn("mekton-fusion | Migrating legacy body hit points (mektonHp/mektonHpMax -> hits/hitsMax) for", actor.name);
-  await actor.update(update);
-}
 
 /**
  * Parse a weapon's Range field. MZ range is Combat-Max (two numbers), a single
@@ -392,50 +355,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.system = this.actor.system ?? {};
     ctx.items = this.actor.items ?? [];
     ctx.editable = this.isEditable;
-
-    // Migration: legacy abilities -> stats
-    if (ctx.system.abilities && !ctx.system.stats) {
-      console.warn("mekton-fusion | Migrating legacy system.abilities -> system.stats (WILL->COOL, MOVE->MA).");
-      const abil = ctx.system.abilities; const migrated = {}; const map = { ref: "REF", int: "INT", body: "BODY", tech: "TECH", cool: "COOL", will: "COOL", luck: "LUCK", move: "MA", emp: "EMP", attr: "ATTR", edu: "EDU" };
-      for (const [k, data] of Object.entries(abil)) { const upperKey = map[k] || k.toUpperCase(); migrated[upperKey] = { value: this.constructor._num(data?.value, STAT_DEFAULT_VALUES[upperKey] ?? 5) }; }
-      ctx.system.stats = applyStatDefaults(migrated);
-    }
-
-    // With DataModel schema defining substats, manual seeding is no longer required. Keep a one-time
-    // migration path: if legacy actors lack substats container, ensure it's present, but do not write defaults.
-    if (!this.actor.system?.substats) {
-      await this.actor.update({ 'system.substats': {} });
-    }
-
-    // Ensure a body model exists for the paperdoll. If absent, seed with a minimal default structure.
-    if (!this.actor.system?.body || !this.actor.system?.body?.locations) {
-      console.log('mekton-fusion | Initializing body locations for', this.actor.name);
-      const defaultBody = {
-        locations: {
-          head:   { label: "Head",   sp: 4, spMax: 4, hits: 4, hitsMax: 4, ablates: true, itemId: null },
-          torso:  { label: "Torso",  sp: 10, spMax: 10, hits: 10, hitsMax: 10, ablates: true, itemId: null },
-          rArm:   { label: "Right Arm", sp: 5, spMax: 5, hits: 5, hitsMax: 5, ablates: true, itemId: null },
-          lArm:   { label: "Left Arm",  sp: 5, spMax: 5, hits: 5, hitsMax: 5, ablates: true, itemId: null },
-          rLeg:   { label: "Right Leg", sp: 6, spMax: 6, hits: 6, hitsMax: 6, ablates: true, itemId: null },
-          lLeg:   { label: "Left Leg",  sp: 6, spMax: 6, hits: 6, hitsMax: 6, ablates: true, itemId: null }
-        },
-        notes: ""
-      };
-      try {
-        await this.actor.update({ 'system.body': defaultBody });
-        console.log('mekton-fusion | Body locations initialized successfully');
-        // Refresh context after update
-        ctx.system = this.actor.system ?? {};
-      } catch (e) {
-        console.warn('mekton-fusion | Failed to initialize actor.body default', e);
-      }
-    } else {
-      console.log('mekton-fusion | Body locations found:', this.actor.system.body.locations);
-    }
-
-    // Migration: body.locations mektonHp/mektonHpMax (+ unused hp/hpMax) -> hits/hitsMax
-    await migrateActorBody(this.actor);
-    ctx.system = this.actor.system ?? {};
 
     // Debug: Always log body state before template render
     console.log('mekton-fusion | getData body check:', {
@@ -893,7 +812,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (sortableContainer) {
       sortableContainer.addEventListener('dragstart', this._onDragStart.bind(this));
       sortableContainer.addEventListener('dragover', this._onDragOver.bind(this));
-      sortableContainer.addEventListener('drop', this._onDrop.bind(this));
+      sortableContainer.addEventListener('drop', this._onPsiSkillDrop.bind(this));
       sortableContainer.addEventListener('dragend', this._onDragEnd.bind(this));
     }
     // Substat controls: +/- buttons and direct input changes
@@ -1405,7 +1324,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     container.insertBefore(dragging, nextSibling);
   }
 
-  _onDrop(ev) {
+  /**
+   * PSI skill row reordering (native HTML5 DnD, bound directly on
+   * .sortable-skills). Named to NOT shadow the base ActorSheet's own
+   * _onDrop(event, data) -- Foundry's core DragDrop system calls that method
+   * on every drop anywhere on the sheet to parse and dispatch to
+   * _onDropItem/_onDropActor/_onDropFolder; a same-named override here would
+   * swallow every one of those drops sheet-wide, not just PSI row reordering.
+   */
+  _onPsiSkillDrop(ev) {
     ev.preventDefault();
     // Order is handled by dragover, just need to save the new order
     this._savePsiSkillOrder();
@@ -1690,6 +1617,30 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     await roll.toMessage({ speaker, flavor });
   }
 
+  /**
+   * Drag-drop a weapon from the compendium (or anywhere else) onto the sheet.
+   * Foundry's default drop handling already creates the Item on the actor --
+   * this only forces isMecha:false so a dropped catalog weapon lands in the
+   * human Combat tab table, unless it's dropped directly over the mecha
+   * combat section (matches _onCreateWeapon's own section detection).
+   * Hand-made weapons via _onCreateWeapon are untouched by this override.
+   */
+  async _onDropItem(event, data) {
+    this._mfLastDropTarget = event?.target ?? null;
+    return super._onDropItem(event, data);
+  }
+
+  async _onDropItemCreate(itemData) {
+    const list = Array.isArray(itemData) ? itemData : [itemData];
+    const dropEl = this._mfLastDropTarget;
+    const overMecha = !!(dropEl && $(dropEl).closest('.mecha-combat').length);
+    for (const data of list) {
+      if (data.type !== 'weapon') continue;
+      data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
+    }
+    return super._onDropItemCreate(itemData);
+  }
+
   /** Create a new weapon item */
   async _onCreateWeapon(ev) {
     ev.preventDefault();
@@ -1706,7 +1657,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           wa: 0,
           range: "",
           damage: "",
-          shots: 0,
+          shots: "",
           bv: "",
           skill: "",
           isMecha: !!isMecha
@@ -1761,9 +1712,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!item) return;
 
     let val = input.value;
-    
-    // Parse numbers for numeric fields
-    if (['wa', 'shots'].includes(field)) {
+
+    // wa is the only numeric weapon field; shots/range/damage/bv stay strings
+    // so values like "na" / "10 turns" / "2D6+" survive edits untouched.
+    if (field === 'wa') {
       val = MektonActorSheet._num(val, 0);
     }
 
@@ -1944,6 +1896,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // attacker as untrained, since a missing skill is very likely a data problem.
     const skillKey = weapon.system?.skill;
     const SKILL_MAP = {
+      'archery': 'Archery',
       'automatic-weapon': 'Automatic Weapon',
       'blade': 'Blade',
       'handgun': 'Handgun',
