@@ -116,9 +116,11 @@ export const LOCATION_TABLES = {
 };
 
 // ARM extremities: Cost / Space / Damage(K) / Kills / manipulation / weight.
+// Verified against the book's ARM EXT. table -- Hand is the only one with
+// fine manipulation ("Yes"); Claw/Talon/Pincer are all "No".
 export const ARM_EXTREMITIES = {
   hand:   { label: "Hand",   abbr: "Hd", cost: 2, space: 1, damageK: 1, kills: 1, manipulation: true,  weightTons: 0.5 },
-  claw:   { label: "Claw",   abbr: "Cl", cost: 4, space: 1, damageK: 2, kills: 2, manipulation: true,  weightTons: 1   },
+  claw:   { label: "Claw",   abbr: "Cl", cost: 4, space: 1, damageK: 2, kills: 2, manipulation: false, weightTons: 1   },
   talon:  { label: "Talon",  abbr: "Tl", cost: 1, space: 1, damageK: 2, kills: 2, manipulation: false, weightTons: 1   },
   pincer: { label: "Pincer", abbr: "Pn", cost: 2, space: 1, damageK: 3, kills: 3, manipulation: false, weightTons: 1.5 },
 };

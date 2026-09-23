@@ -29,7 +29,18 @@ export class WeaponDataModel extends ItemDataModel {
       tl: new fields.NumberField({ initial: 0, min: 0, integer: true }), // tech level
       damageNote: new fields.StringField({ initial: "" }), // [AP], *, etc. -- mirrors mecha-weapon damageNote
       scale: new fields.StringField({ initial: "human" }), // reserved for the future scale system; unused for now
-      options: new fields.ArrayField(new fields.StringField(), { initial: [] }) // WEAPON_OPTIONS keys installed on this weapon
+      options: new fields.ArrayField(new fields.StringField(), { initial: [] }), // WEAPON_OPTIONS keys installed on this weapon
+      // Which Combat tab table this weapon renders in (combat.hbs branches on
+      // this) and its per-weapon freeform note (also combat.hbs). Both were
+      // read/written throughout the codebase (_onCreateWeapon,
+      // _onDropItemCreate's isMecha:overMecha merge, weapon-catalog.js) but
+      // were never actually declared here -- Foundry's DataModel silently
+      // drops any key not in the schema, so every weapon's isMecha/note
+      // always persisted as undefined regardless of what was set before
+      // creation. Declaring them now is what actually makes those existing
+      // call sites take effect.
+      isMecha: new fields.BooleanField({ initial: false }),
+      note: new fields.StringField({ initial: "" })
     });
   }
 }
@@ -67,6 +78,29 @@ export class ArmorDataModel extends ItemDataModel {
       weight: new fields.NumberField({ initial: 0, min: 0 }), // kg
       cost: new fields.NumberField({ initial: 0, min: 0 }),
       tl: new fields.NumberField({ initial: 0, min: 0, integer: true })
+    });
+  }
+}
+
+// Schema for mecha-loadout items: a whole mecha (or creature) build,
+// draggable from a compendium onto a character sheet to stamp it directly
+// onto that actor's system.mecha (or system.creature), same effect as the
+// Mecha/Body tabs' "Load Preset" pickers -- just sourced from a compendium
+// Item instead of the hardcoded MECHA_PRESETS/CREATURE_PRESETS list. Never
+// embedded as an inventory Item on the target actor (see
+// _onDropItemCreate/_applyMechaLoadout in actor-sheet.js).
+export class MechaLoadoutDataModel extends ItemDataModel {
+  static defineSchema() {
+    const fields = foundry.data.fields;
+    const parentSchema = super.defineSchema();
+    return foundry.utils.mergeObject(parentSchema, {
+      name: new fields.StringField({ initial: "" }),
+      kind: new fields.StringField({ initial: "mecha" }), // "mecha" | "creature" -- picks which preset builder/target fields to use
+      // The full MECHA_PRESETS/CREATURE_PRESETS entry shape (servos/weapons/
+      // shields/movement/powerplant, or bod/naturalWeapons/armorSP for a
+      // creature) -- opaque here, consumed by buildMechaPresetUpdate()/
+      // buildCreaturePresetUpdate() exactly as a hardcoded preset would be.
+      preset: new fields.ObjectField({ initial: {} })
     });
   }
 }

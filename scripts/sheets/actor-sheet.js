@@ -1738,16 +1738,84 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const list = Array.isArray(itemData) ? itemData : [itemData];
     const dropEl = this._mfLastDropTarget;
     const overMecha = !!(dropEl && $(dropEl).closest('.mecha-combat').length);
-    for (const data of list) {
+
+    // mecha-loadout drops stamp system.mecha/system.creature directly (same
+    // effect as the Mecha/Body tabs' "Load Preset" pickers) and are never
+    // embedded as an inventory Item -- pull them out before the rest go
+    // through the normal create pipeline below.
+    const loadouts = list.filter(d => d.type === 'mecha-loadout');
+    const rest = list.filter(d => d.type !== 'mecha-loadout');
+    for (const data of loadouts) {
+      await this._applyMechaLoadout(data.system?.preset, data.system?.kind, data.name);
+    }
+    if (!rest.length) return [];
+
+    for (const data of rest) {
       if (data.type !== 'weapon') continue;
       data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
     }
 
-    const created = await super._onDropItemCreate(itemData);
+    const created = await super._onDropItemCreate(rest);
     for (const item of Array.isArray(created) ? created : [created]) {
       if (item?.type === 'armor') await this._equipArmorToBody(item);
     }
     return created;
+  }
+
+  /**
+   * Apply a mecha-loadout Item's preset payload to this actor -- the same
+   * effect as the Mecha/Body tabs' "Load Preset" pickers
+   * (_onLoadMechaPreset/_onLoadCreaturePreset), just sourced from a dropped
+   * compendium Item's `system.preset` instead of MECHA_PRESETS/
+   * CREATURE_PRESETS[selectedId]. Overwrites the actor's current mecha (or
+   * creature) loadout, so confirm first, same as the picker does.
+   */
+  async _applyMechaLoadout(preset, kind, label) {
+    if (!preset || typeof preset !== 'object' || !Object.keys(preset).length) {
+      ui.notifications.warn(`${label ?? 'This mecha loadout'} has no preset data to apply.`);
+      return;
+    }
+
+    const isCreature = kind === 'creature';
+    const confirmed = await Dialog.confirm({
+      title: `Load ${label}?`,
+      content: isCreature
+        ? `<p>This overwrites BODY, natural armor SP, and natural weapons with <strong>${label}</strong>. Continue?</p>`
+        : `<p>This overwrites the current Servos, Armament, Shields, Movement Systems, and Powerplant on the <strong>Mecha</strong> tab with <strong>${label}</strong>. Continue?</p>`
+    });
+    if (!confirmed) return;
+
+    if (isCreature) {
+      const upd = buildCreaturePresetUpdate(preset);
+      const update = {
+        name: upd.name,
+        "system.stats.BODY.value": upd.bod,
+        "system.creature.bodyPlan": upd.bodyPlan,
+        "system.creature.armorSP": upd.armorSP,
+        "system.creature.naturalWeapons": upd.naturalWeapons
+      };
+      for (const [key, loc] of Object.entries(upd.locations)) {
+        update[`system.body.locations.${key}.sp`] = loc.sp;
+        update[`system.body.locations.${key}.spMax`] = loc.spMax;
+      }
+      await this.actor.update(update);
+      return;
+    }
+
+    const upd = buildMechaPresetUpdate(preset);
+    const update = {
+      "system.mecha.name": upd.name,
+      "system.mecha.servos": upd.servos,
+      "system.mecha.weapons": upd.weapons,
+      "system.mecha.shields": upd.shields,
+      "system.mecha.movementSystems": upd.movementSystems
+    };
+    if (upd.powerplant) {
+      update["system.mecha.powerplant.charge"] = upd.powerplant.charge;
+      update["system.mecha.powerplant.source"] = upd.powerplant.source;
+      update["system.mecha.powerplant.hot"] = upd.powerplant.hot;
+    }
+    await this.actor.update(update);
   }
 
   /**

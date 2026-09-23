@@ -32,7 +32,7 @@ export const PROJECTILE_WEAPONS = {
   mediumCannon:    { label: "Medium Cannon",    range: 7,  wa: 0,  damageK: 6,  kills: 6,  bv: null, shots: 10,          weightTons: 3,   spaces: 6,  cost: 6  },
   heavyCannon:     { label: "Heavy Cannon",     range: 9,  wa: 0,  damageK: 9,  kills: 9,  bv: null, shots: 10,          weightTons: 4.5, spaces: 9,  cost: 9  },
   giantCannon:     { label: "Giant Cannon",     range: 17, wa: 0,  damageK: 12, kills: 12, bv: null, shots: 10,          weightTons: 6,   spaces: 15, cost: 15 },
-  autocannon:      { label: "Autocannon",       range: 4,  wa: -2, damageK: 2,  kills: 2,  bv: 8,    shots: "10 bursts", weightTons: 1,   spaces: 5,  cost: 6  },
+  autocannon:      { label: "Autocannon",       range: 4,  wa: -2, damageK: 2,  kills: 2,  bv: 8,    shots: "10 bursts", weightTons: 1,   spaces: 6,  cost: 5  }, // cost/spaces were transposed (6/5) -- verified against a book worked example (Cost 5, Space 6)
   heavyAutocannon: { label: "Heavy Autocannon", range: 7,  wa: -1, damageK: 6,  kills: 6,  bv: 4,    shots: "10 bursts", weightTons: 3,   spaces: 10, cost: 13 },
   epoxyGun:        { label: "Epoxy Gun",        range: 5,  wa: 2,  damageK: 0,  kills: 6,  bv: null, shots: 3,           weightTons: 3,   spaces: 7,  cost: 12, damageNote: "no damage; grapples (Mecha Fighting vs 18 to escape)" },
 };

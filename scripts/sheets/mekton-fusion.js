@@ -2,7 +2,7 @@
 import { MektonActorSheet } from "./actor-sheet.js";
 import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
-import { WeaponDataModel, SkillDataModel, ArmorDataModel } from "../../module/data/item-data-model.js";
+import { WeaponDataModel, SkillDataModel, ArmorDataModel, MechaLoadoutDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
 import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
@@ -189,6 +189,7 @@ Hooks.once("init", () => {
   CONFIG.Item.dataModels.weapon = WeaponDataModel;
   CONFIG.Item.dataModels["mecha-weapon"] = WeaponDataModel;
   CONFIG.Item.dataModels.armor = ArmorDataModel;
+  CONFIG.Item.dataModels["mecha-loadout"] = MechaLoadoutDataModel;
 
   // Use namespaced DocumentSheetConfig (no deprecation warning)
   const DSC = foundry.applications.apps.DocumentSheetConfig;
@@ -205,7 +206,7 @@ Hooks.once("init", () => {
 
   // Register our item sheet
   DSC.registerSheet(Item, "mekton-fusion", MektonFusionItemSheet, {
-    types: ["skill", "weapon", "armor"], // handle skills, weapons, and armor
+    types: ["skill", "weapon", "armor", "mecha-loadout"], // handle skills, weapons, armor, and mecha loadouts
     makeDefault: true,
     label: "Mekton Item Sheet"
   });

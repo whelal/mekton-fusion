@@ -2,7 +2,7 @@
   "id": "mekton-fusion",
   "title": "Mekton Fusion",
   "description": "Fusion of Mekton with Cyberpunk 2020 stats/skills.",
-  "version": "0.3.3",
+  "version": "0.3.6",
   "compatibility": { "minimum": "13", "verified": "14" },
   "authors": [{ "name": "Wael Helal (whelal)" }],
   "url": "https://github.com/whelal/mekton-fusion",
@@ -19,7 +19,8 @@
   "styles": ["styles/mekton-fusion.css"],
   "packs": [
     { "name": "weapons-personal", "label": "Personal Weapons (MZ)", "path": "packs/weapons-personal", "type": "Item", "system": "mekton-fusion" },
-    { "name": "armor-personal", "label": "Personal Armor (MZ)", "path": "packs/armor-personal", "type": "Item", "system": "mekton-fusion" }
+    { "name": "armor-personal", "label": "Personal Armor (MZ)", "path": "packs/armor-personal", "type": "Item", "system": "mekton-fusion" },
+    { "name": "mecha-loadouts", "label": "Mecha Loadouts", "path": "packs/mecha-loadouts", "type": "Item", "system": "mekton-fusion" }
   ],
   "languages": [
     { "lang": "en", "name": "English", "path": "lang/en.json" }
@@ -33,7 +34,8 @@
       "skill": {},
       "weapon": {},
       "mecha-weapon": {},
-      "armor": {}
+      "armor": {},
+      "mecha-loadout": {}
     }
   },
   "initiative": "1d10 + @system.stats.REF.value + @system.substats.initiative",

@@ -7,8 +7,9 @@
  * modules, so a preset stays correct if any underlying value changes.
  *
  * These are ORIGINAL designs -- names and configurations chosen for this
- * module. They are not reproductions of any published mecha. Built from the
- * game's construction mechanics only.
+ * module. They are not reproductions of any published mecha (published
+ * mecha and their names are copyrighted; do NOT add transcriptions of
+ * them here). Built from the game's construction mechanics only.
  *
  * Preset shape:
  *   { id, label, kind: "mecha"|"creature", bodyPlan,
@@ -142,8 +143,12 @@ function servoRowIndex(location, side) {
   return SERVO_ROW_LOCATIONS.findIndex(r => r.key === key);
 }
 
+// Pads UP to len if the preset has fewer rows than the sheet's default slot
+// count -- never truncates. A preset legitimately needing more rows than the
+// default (e.g. 7 armament entries against a 4-slot default) keeps every row; ArrayFields here have no schema-enforced max
+// length, and the sheet's {{#each}} tables render however many rows exist.
 function padTo(arr, len, makeEmpty) {
-  const out = arr.slice(0, len);
+  const out = arr.slice();
   while (out.length < len) out.push(makeEmpty());
   return out;
 }

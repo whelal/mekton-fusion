@@ -27,6 +27,19 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
     context.isCustom = this.object.system?.custom;
     context.isWeapon = this.object.type === "weapon" || this.object.type === "mecha-weapon";
     context.isArmor = this.object.type === "armor";
+    context.isMechaLoadout = this.object.type === "mecha-loadout";
+
+    if (context.isMechaLoadout) {
+      const preset = context.system.preset ?? {};
+      context.loadoutSummary = {
+        kind: context.system.kind === 'creature' ? 'Creature' : 'Mecha',
+        servoCount: preset.servos?.length ?? 0,
+        weaponCount: preset.weapons?.length ?? 0,
+        shieldCount: preset.shields?.length ?? 0,
+        movementCount: preset.movement?.length ?? 0,
+        naturalWeaponCount: preset.naturalWeapons?.length ?? 0
+      };
+    }
 
     if (context.isArmor) {
       const currentCoverage = context.system.coverage || "vest";
