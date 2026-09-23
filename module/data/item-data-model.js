@@ -28,7 +28,8 @@ export class WeaponDataModel extends ItemDataModel {
       ammoCost: new fields.NumberField({ initial: 0, min: 0 }), // cost per reload (generally per clip)
       tl: new fields.NumberField({ initial: 0, min: 0, integer: true }), // tech level
       damageNote: new fields.StringField({ initial: "" }), // [AP], *, etc. -- mirrors mecha-weapon damageNote
-      scale: new fields.StringField({ initial: "human" }) // reserved for the future scale system; unused for now
+      scale: new fields.StringField({ initial: "human" }), // reserved for the future scale system; unused for now
+      options: new fields.ArrayField(new fields.StringField(), { initial: [] }) // WEAPON_OPTIONS keys installed on this weapon
     });
   }
 }
@@ -55,8 +56,17 @@ export class ArmorDataModel extends ItemDataModel {
     const fields = foundry.data.fields;
     const parentSchema = super.defineSchema();
     return foundry.utils.mergeObject(parentSchema, {
-      armorValue: new fields.NumberField({ initial: 0, integer: true }),
-      bodyLocation: new fields.StringField({ initial: "" })
+      name: new fields.StringField({ initial: "" }),
+      category: new fields.StringField({ initial: "" }), // e.g. "Ballistic Mesh", "Space Suit", "Other Armor"
+      sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Stopping Power
+      spNote: new fields.StringField({ initial: "" }), // e.g. "3D6" (Personal Force Screen) -- roll once, enter the result into sp above
+      // Garment shape (hat/vest/jacket/overcoat/pants/shorts/boots), plus
+      // "all"/"handheld" -- see module/data/armor-coverage.js (ARMOR_COVERAGE)
+      // for what hit-zone(s) each value actually covers.
+      coverage: new fields.StringField({ initial: "vest" }),
+      weight: new fields.NumberField({ initial: 0, min: 0 }), // kg
+      cost: new fields.NumberField({ initial: 0, min: 0 }),
+      tl: new fields.NumberField({ initial: 0, min: 0, integer: true })
     });
   }
 }

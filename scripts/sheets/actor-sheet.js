@@ -1,5 +1,7 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
+import { computeWeaponOptionsEffect } from "../../module/data/weapon-options.js";
+import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
 
 /**
  * Parse a weapon's Range field. MZ range is Combat-Max (two numbers), a single
@@ -151,6 +153,116 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     roll.flags ??= {};
     roll.flags['mekton-fusion'] = { plusDice: [...plusDice], minusDice: [...minusDice], capped };
     return { roll, total, plusDice, minusDice, capped, maxExtra: MAX_EXTRA };
+  }
+
+  // Basic Difficulty Levels (Interlock): named GM target numbers.
+  static DIFFICULTY_LEVELS = [
+    { label: 'Easy', value: 10 },
+    { label: 'Average', value: 15 },
+    { label: 'Difficult', value: 20 },
+    { label: 'Very Difficult', value: 25 },
+    { label: 'Nearly Impossible', value: 30 }
+  ];
+
+  // Some Situational Modifiers (Interlock): added ON TOP of a task's base
+  // Difficulty (preset or custom) -- not added to the roll itself, unlike
+  // the attack dialog's Cover/LOS modifiers.
+  static SITUATIONAL_MODIFIERS = [
+    { label: 'Complex repair', mod: 2 },
+    { label: 'Very complex repair', mod: 4 },
+    { label: "It's never been done before", mod: 6 },
+    { label: "Don't have the right parts", mod: 2 },
+    { label: "Don't have the right tools", mod: 3 },
+    { label: 'Unfamiliar tools, weapon, or vehicle', mod: 4 },
+    { label: 'Under attack or stress', mod: 3 },
+    { label: 'Wounded', mod: 2 },
+    { label: 'Drunk, drugged, or tired', mod: 4 },
+    { label: 'In a hostile environment', mod: 4 },
+    { label: 'Lack instructions for task', mod: 2 },
+    { label: 'Have never tried this before', mod: 1 },
+    { label: 'Difficult acrobatics involved', mod: 5 },
+    { label: 'Information hidden, secret, or obscure', mod: 3 },
+    { label: 'Well hidden clue, secret door, panel, etc.', mod: 3 },
+    { label: 'Very complex program', mod: 5 },
+    { label: 'Very complex lock', mod: 5 },
+    { label: 'Target on guard or alerted', mod: 3 },
+    { label: 'Trying to perform secretive task while under close observation', mod: 4 }
+  ];
+
+  /**
+   * A preset dropdown, a base-difficulty number input, and a collapsible
+   * Situational Modifiers checklist, as one self-contained block. The
+   * actual submitted value (a hidden `name="difficulty"` input) is always
+   * base + sum(checked modifiers), recomputed live by
+   * _bindDifficultyPresetListeners() -- callers MUST pass that as
+   * Dialog.prompt's `render` option for the checkboxes/preset to do
+   * anything; see that method's doc comment for why.
+   */
+  static _difficultyPresetHtml() {
+    const options = this.DIFFICULTY_LEVELS.map(l => `<option value="${l.value}">${l.label} (${l.value})</option>`).join('');
+    const modRows = this.SITUATIONAL_MODIFIERS.map(m =>
+      `<label style="display:block; font-weight:normal;"><input type="checkbox" class="mf-situational-mod" data-mod="${m.mod}"/> ${m.label} (+${m.mod})</label>`
+    ).join('');
+    return `
+      <div class="mf-difficulty-group form-group">
+        <label>Difficulty Preset</label>
+        <select class="mf-diff-preset" style="width:100%">
+          <option value="">-- Custom --</option>
+          ${options}
+        </select>
+        <label style="display:block; margin-top:6px;">${game.i18n.localize('MF.RollDifficultyPrompt')}</label>
+        <input type="number" class="mf-diff-base" placeholder="Optional" style="width:100%"/>
+        <details style="margin-top:6px;">
+          <summary style="cursor:pointer;">Situational Modifiers</summary>
+          <div style="margin-top:4px;">${modRows}</div>
+        </details>
+        <p class="mf-diff-total-display" style="margin:6px 0 0; font-size:0.85em; color:#666;"></p>
+        <input type="hidden" name="difficulty" class="mf-diff-final"/>
+      </div>
+    `;
+  }
+
+  /**
+   * Wires up the live recompute for _difficultyPresetHtml()'s markup:
+   * picking a preset fills the base-difficulty input, and checking any
+   * Situational Modifier adds its value on top of that base -- the hidden
+   * `name="difficulty"` input (what every dialog's callback actually reads)
+   * is kept in sync with base + checked modifiers on every change.
+   *
+   * Must run via Dialog.prompt's `render` option, not a callback that runs
+   * after the dialog resolves -- these listeners need to be live *while*
+   * the GM is still filling the dialog out. (This is also why the earlier
+   * preset-only version used an inline onchange scoped to `.mf-difficulty-group`
+   * instead of `closest('form')` -- Dialog.prompt's content isn't wrapped in
+   * a <form>. Using `render` here sidesteps that whole question by binding
+   * real jQuery listeners the normal way, same as activateListeners.)
+   */
+  static _bindDifficultyPresetListeners(html) {
+    const group = html.find('.mf-difficulty-group');
+    if (!group.length) return;
+    const presetSel = group.find('.mf-diff-preset');
+    const baseInput = group.find('.mf-diff-base');
+    const finalInput = group.find('.mf-diff-final');
+    const totalDisplay = group.find('.mf-diff-total-display');
+
+    const recompute = () => {
+      const base = baseInput.val() === '' ? null : Number(baseInput.val());
+      let modSum = 0;
+      group.find('.mf-situational-mod:checked').each((_, el) => { modSum += Number(el.dataset.mod) || 0; });
+
+      if (base === null && modSum === 0) {
+        finalInput.val('');
+        totalDisplay.text('');
+        return;
+      }
+      const total = (base ?? 0) + modSum;
+      finalInput.val(total);
+      totalDisplay.text(modSum ? `Total Difficulty: ${total} (${base ?? 0} base + ${modSum} situational)` : `Total Difficulty: ${total}`);
+    };
+
+    presetSel.on('change', () => { baseInput.val(presetSel.val()); recompute(); });
+    baseInput.on('input change', recompute);
+    group.find('.mf-situational-mod').on('change', recompute);
   }
 
   // Human Random Hit Chart (body.hbs): 1d10 -> body location key + label.
@@ -728,35 +840,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Keep other actions (roll-hitloc, ablate, heal1, dmg1, unequip, show-item) as before
 
-    // Drag armor item → slot
-    const zones = html.find('.hit-zone');
-    zones.on('dragover', ev => ev.preventDefault());
-    zones.on('drop', async ev => {
-      ev.preventDefault();
-      const loc = ev.currentTarget.dataset.loc;
-      const data = TextEditor.getDragEventData(ev);
+    // Armor equipping runs through _onDropItem/_onDropItemCreate below (the
+    // same pipeline that already creates the embedded Item) -- see the
+    // comment there for why a separate jQuery-bound drop listener here
+    // didn't work. Since armor equips by fixed `coverage` (not by which
+    // zone it's dropped on), it can be dropped anywhere on the sheet, same
+    // as a weapon -- no zone-specific dragover binding needed here anymore.
 
-      // Accept Items only
-      if (data?.type !== 'Item') return;
-
-      const item = await fromUuid(data.uuid);
-      if (!item || item.type !== 'armor') return;
-
-      // OPTIONAL: pull SP from item.system and set sp/spMax
-      const spVal = item.system?.sp ?? 0;
-      const path = `system.body.locations.${loc}`;
-      try {
-        await this.actor.update({
-          [`${path}.itemId`]: item.id,
-          [`${path}.sp`]: spVal,
-          [`${path}.spMax`]: Math.max(spVal, foundry.utils.getProperty(this.actor, `${path}.spMax`) ?? spVal)
-        });
-        // Refresh icons after equip
-        this._refreshBodyItemIcons();
-      } catch (err) {
-        console.warn('mekton-fusion | Failed equipping armor to body slot', err);
-      }
-    });
     // Input validation: prevent negative values and enforce max limits
     html.on("input", ".skill-rank, .skill-ip", ev => {
       const input = ev.currentTarget;
@@ -1479,12 +1569,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Modifier:</label>
               <input type="number" name="mod" value="0" style="width:100%"/>
             </div>
-            <div>
-              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
-              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
-            </div>
+            ${this.constructor._difficultyPresetHtml()}
           `,
           label: "Roll",
+          render: html => this.constructor._bindDifficultyPresetListeners(html),
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
@@ -1562,12 +1650,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Modifier:</label>
               <input type="number" name="mod" value="0" style="width:100%"/>
             </div>
-            <div>
-              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}:</label>
-              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
-            </div>
+            ${this.constructor._difficultyPresetHtml()}
           `,
           label: "Roll",
+          render: html => this.constructor._bindDifficultyPresetListeners(html),
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
@@ -1630,6 +1716,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return super._onDropItem(event, data);
   }
 
+  /**
+   * itemData here is plain creation data, not a Document yet -- created via
+   * super._onDropItemCreate() below, whose return value we then use for the
+   * armor-equip step (needs the created Item's id for body.locations.*.itemId).
+   *
+   * Armor equipping was originally its own dragover/drop listener bound
+   * directly to the paperdoll hit-zones and table rows, using
+   * TextEditor.getDragEventData(event) to read the drop payload. That never
+   * worked: those listeners were bound via jQuery's .on(), which wraps the
+   * native DragEvent in a jQuery Event that does NOT copy over
+   * .dataTransfer (jQuery only proxies a fixed allowlist of properties, and
+   * dataTransfer isn't in it) -- so getDragEventData's own
+   * `"dataTransfer" in event` check silently failed and it always returned
+   * {}, no error, no effect. Routing through _onDropItem/_onDropItemCreate
+   * instead reuses Foundry's own native-DragEvent dispatch (the same path
+   * that already reliably creates dropped weapon Items), sidestepping the
+   * jQuery wrapping issue entirely.
+   */
   async _onDropItemCreate(itemData) {
     const list = Array.isArray(itemData) ? itemData : [itemData];
     const dropEl = this._mfLastDropTarget;
@@ -1638,7 +1742,42 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (data.type !== 'weapon') continue;
       data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
     }
-    return super._onDropItemCreate(itemData);
+
+    const created = await super._onDropItemCreate(itemData);
+    for (const item of Array.isArray(created) ? created : [created]) {
+      if (item?.type === 'armor') await this._equipArmorToBody(item);
+    }
+    return created;
+  }
+
+  /**
+   * Stamp a just-created armor Item's SP onto the body paperdoll's hit-zone(s).
+   * Which zone(s) is fixed by the item's `coverage` (ARMOR_COVERAGE) --
+   * a Hat is always head-only, a Jacket is always torso+arms, etc, per the
+   * book's Sample Armor Coverage table -- so it doesn't matter where on the
+   * sheet the item was actually dropped.
+   */
+  async _equipArmorToBody(item) {
+    const coverage = ARMOR_COVERAGE[item.system?.coverage] ?? ARMOR_COVERAGE.vest;
+    if (!coverage.locations.length) {
+      ui.notifications.warn(`${item.name} is handheld armor -- it isn't equipped to a body location.`);
+      return;
+    }
+
+    const spVal = item.system?.sp ?? 0;
+    const updates = {};
+    for (const loc of coverage.locations) {
+      const path = `system.body.locations.${loc}`;
+      updates[`${path}.itemId`] = item.id;
+      updates[`${path}.sp`] = spVal;
+      updates[`${path}.spMax`] = Math.max(spVal, foundry.utils.getProperty(this.actor, `${path}.spMax`) ?? spVal);
+    }
+    try {
+      await this.actor.update(updates);
+      this._refreshBodyItemIcons();
+    } catch (err) {
+      console.warn('mekton-fusion | Failed equipping armor to body slot', err);
+    }
   }
 
   /** Create a new weapon item */
@@ -1892,6 +2031,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const weaponName = weapon.system?.name || weapon.name;
     const wa = MektonActorSheet._num(weapon.system?.wa, 0);
 
+    // Weapon Options (Lasersight, Optical Scope, Smartgun, etc.) modify the
+    // Combat Range WA and/or replace the default -4 Maximum Range penalty.
+    const optionsEffect = computeWeaponOptionsEffect(weapon.system?.options);
+    const maxRangePenalty = optionsEffect.maxRangeMod ?? -4;
+
     // Resolve the mapped skill -- warn rather than silently treating the
     // attacker as untrained, since a missing skill is very likely a data problem.
     const skillKey = weapon.system?.skill;
@@ -1946,7 +2090,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Range</label>
               <select name="rangeChoice" style="width:100%">
                 <option value="0">Combat range (+0)</option>
-                <option value="-4">Long / at max range (−4)</option>
+                <option value="${maxRangePenalty}">Long / at max range (${maxRangePenalty})</option>
               </select>
               <p style="font-size:0.8em; color:#666; margin:2px 0 8px;">${rangeHint}</p>
             </div>
@@ -1962,13 +2106,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Other Modifier</label>
               <input type="number" name="other" value="0" style="width:100%"/>
             </div>
-            <div class="form-group">
-              <label>${game.i18n.localize('MF.RollDifficultyPrompt')}</label>
-              <input type="number" name="difficulty" placeholder="Optional" style="width:100%"/>
-            </div>
+            ${this.constructor._difficultyPresetHtml()}
           </form>
         `,
         label: "Attack",
+        render: html => this.constructor._bindDifficultyPresetListeners(html),
         callback: html => {
           const rangeMod = Number(html.find("[name='rangeChoice']").val()) || 0;
           const aim = Math.max(0, Math.min(4, Number(html.find("[name='aim']").val()) || 0));
@@ -1987,9 +2129,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const { rangeMod, aim, coverMod, other, difficulty } = dlg;
     const mods = coverMod + other;
 
+    // Weapon Options' WA bonus (Lasersight/Smartgun +, Optical Scope -) only
+    // applies at Combat Range (rangeMod === 0), per the book -- the dropdown
+    // has already swapped in the option-adjusted Max Range penalty above.
+    const atCombatRange = rangeMod === 0;
+    const effectiveWa = wa + (atCombatRange ? optionsEffect.combatWaBonus : 0);
+
     // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const attackTotal = base + skillTotal + wa + rangeMod + aim + mods;
+    const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods;
 
     const plusStr = plusDice.join(' + ');
     const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
@@ -1998,7 +2146,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
 
-    const modParts = [`(${plusStr}${minusStr})`, `Skill ${skillTotal}`, `WA ${wa}`];
+    const waLabel = effectiveWa !== wa ? `WA ${effectiveWa} (${wa} ${optionsEffect.combatWaBonus >= 0 ? '+' : ''}${optionsEffect.combatWaBonus} options)` : `WA ${wa}`;
+    const modParts = [`(${plusStr}${minusStr})`, `Skill ${skillTotal}`, waLabel];
     if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
     if (aim) modParts.push(`Aim +${aim}`);
     if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
