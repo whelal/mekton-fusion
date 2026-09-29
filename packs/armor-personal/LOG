@@ -1,3 +1,5 @@
-2026/09/22-21:44:30.792 7460 Recovering log #4
-2026/09/22-21:44:30.800 7460 Delete type=0 #4
-2026/09/22-21:44:30.800 7460 Delete type=3 #2
+2026/09/23-11:43:50.434 8dec Recovering log #7
+2026/09/23-11:43:50.434 8dec Level-0 table #9: started
+2026/09/23-11:43:50.439 8dec Level-0 table #9: 2432 bytes OK
+2026/09/23-11:43:50.447 8dec Delete type=0 #7
+2026/09/23-11:43:50.448 8dec Delete type=3 #6

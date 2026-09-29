@@ -4,6 +4,8 @@ import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
 import { WeaponDataModel, SkillDataModel, ArmorDataModel, MechaLoadoutDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
+import { recomputeActorArmorSp } from "../../module/data/armor.js";
+import { weaponSupportsOptions } from "../../module/data/weapon-options.js";
 import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
 import { BODY_PLANS } from "../../module/data/body-values.js";
@@ -39,6 +41,15 @@ Hooks.once("init", () => {
       return a === b;
     });
     console.log('mekton-fusion | Handlebars helper "eq" registered');
+
+    // Weapon Options only apply to personal-scale ranged weapons (see weaponSupportsOptions).
+    Handlebars.registerHelper('weaponSupportsOptions', (item) => weaponSupportsOptions(item?.system, item?.type));
+
+    // Hexes -> meters (1 hex = 3 m in Mekton), 1 decimal, trailing .0 dropped.
+    Handlebars.registerHelper('hexToM', (hexes) => {
+      const m = Math.round((Number(hexes) || 0) * 3 * 10) / 10;
+      return String(m);
+    });
 
     Handlebars.registerHelper('concat', (...args) => {
       args.pop(); // drop the Handlebars options object
@@ -216,6 +227,35 @@ Hooks.once("init", () => {
     formula: "1d10 + @system.stats.REF.value + @system.substats.initiative",
     decimals: 0
   };
+});
+
+// Body-location armor SP is derived from the actor's armor Items (highest SP
+// covering a location wins) -- recompute on ANY armor change (drop, delete,
+// sheet edit, macro) rather than stamping SP from the equip code path. Only
+// the client that made the change runs it, or every connected client would
+// write the same update. `changes` for updateItem is the diff, so only an
+// sp/coverage edit triggers a recompute.
+for (const hook of ["createItem", "deleteItem", "updateItem"]) {
+  Hooks.on(hook, (item, ...args) => {
+    const actor = item.parent;
+    if (!actor || item.type !== "armor") return;
+    const userId = hook === "updateItem" ? args[2] : args[1];
+    if (userId !== game.user.id) return;
+    if (hook === "updateItem") {
+      const sys = args[0]?.system ?? {};
+      if (!("sp" in sys) && !("coverage" in sys)) return;
+    }
+    return recomputeActorArmorSp(actor, { excludeId: hook === "deleteItem" ? item.id : undefined });
+  });
+}
+
+// Incendiary burning: at each new combat round, every burning actor on the scene
+// takes half its previous round's damage (see MektonActorSheet.tickBurning). Only
+// the active GM's client runs it, and not when the tracker steps backwards.
+Hooks.on("updateCombat", (combat, changes, options) => {
+  if (!("round" in changes) || (options?.direction ?? 1) < 0) return;
+  if (!game.users.activeGM?.isSelf) return;
+  MektonActorSheet.tickBurning(combat);
 });
 
 // Auto-seed skills when actors are created

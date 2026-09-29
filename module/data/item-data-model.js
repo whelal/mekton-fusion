@@ -40,7 +40,13 @@ export class WeaponDataModel extends ItemDataModel {
       // creation. Declaring them now is what actually makes those existing
       // call sites take effect.
       isMecha: new fields.BooleanField({ initial: false }),
-      note: new fields.StringField({ initial: "" })
+      note: new fields.StringField({ initial: "" }),
+      // Area effect (grenades): radius in meters (0 = single target) and what the
+      // blast does to everything inside it -- "damage" (one damage roll, applied to
+      // each target), "perLocation" (separate damage roll to EVERY location of each
+      // target, e.g. incendiary), or "sleep" (Stun/Shock at -3 or fall asleep).
+      blastRadius: new fields.NumberField({ initial: 0, min: 0 }),
+      blastEffect: new fields.StringField({ initial: "" })
     });
   }
 }

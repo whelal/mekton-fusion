@@ -53,6 +53,70 @@ export const WEAPON_OPTIONS = {
   }
 };
 
+// Skills that mark a weapon as melee or thrown (see the skill mapping in weapon-catalog.js).
+// (athletics = thrown weapons, which also carry a "T" range)
+const MELEE_SKILLS = new Set(["blade", "whip", "hand-to-hand", "athletics"]);
+
+/**
+ * Weapon Options are ranged-weapon accessories (sights, silencers, magazines):
+ * personal-scale ranged weapons only. Not melee (melee skill, or a bare
+ * reach-1..2 range), not thrown ("T" range -- grenades, boomerangs), and not
+ * Mecha-scale weapons (mecha-weapon items or anything flagged isMecha).
+ * @param {object} system - weapon Item system data
+ * @param {string} [itemType] - the Item's type ("weapon" | "mecha-weapon")
+ */
+export function weaponSupportsOptions(system, itemType = "weapon") {
+  if (itemType === "mecha-weapon" || system?.isMecha) return false;
+  if (MELEE_SKILLS.has(String(system?.skill ?? "").toLowerCase())) return false;
+  const range = String(system?.range ?? "").trim().toUpperCase();
+  if (range === "T") return false;
+  if (/^\d+$/.test(range) && Number(range) <= 2) return false;
+  return true;
+}
+
+/** One-line human summary of an option's mechanical effect, for pickers. */
+export function summarizeWeaponOption(opt) {
+  const bits = [];
+  const sgn = n => (n >= 0 ? `+${n}` : `${n}`);
+  if (typeof opt.combatWaBonus === "number") bits.push(`WA ${sgn(opt.combatWaBonus)} at Combat Range`);
+  if (typeof opt.maxRangeMod === "number") bits.push(`Max Range ${sgn(opt.maxRangeMod)}`);
+  if (typeof opt.shotsMultiplier === "number") bits.push(`Shots x${opt.shotsMultiplier}`);
+  if (opt.concealabilityOverride) bits.push(`Conc ${opt.concealabilityOverride}`);
+  if (typeof opt.weightKg === "number") bits.push(`+${opt.weightKg} kg`);
+  if (typeof opt.weightPct === "number") bits.push(`+${Math.round(opt.weightPct * 100)}% weight`);
+  if (typeof opt.cost === "number") bits.push(`+${opt.cost} cost`);
+  if (typeof opt.costPct === "number") bits.push(`+${Math.round(opt.costPct * 100)}% cost`);
+  if (opt.note) bits.push(opt.note);
+  return bits.join("; ");
+}
+
+// Weapon Accuracy ceiling. Options can raise a weapon's WA up to this and no
+// further: 2 for projectile/energy/melee weapons, 3 for missiles. (Every
+// personal-scale catalog weapon is in the first group; the missile ceiling is
+// here for completeness.) Only the bonus is capped -- a weapon already above
+// the ceiling keeps its own WA, and penalties (Optical Scope) are never
+// raised back up by it.
+const WA_CAP_DEFAULT = 2;
+const WA_CAP_MISSILE = 3;
+
+export function weaponWaCap(system) {
+  return String(system?.skill ?? "").toLowerCase() === "missile" ? WA_CAP_MISSILE : WA_CAP_DEFAULT;
+}
+
+/**
+ * WA at Combat Range once installed options' WA bonus is applied, respecting
+ * the WA ceiling. e.g. Automag WA 1 + Smartgun +2 = 3, capped to 2.
+ * @returns {{wa:number, capped:boolean}}
+ */
+export function effectiveCombatWa(system, combatWaBonus) {
+  const base = Number(system?.wa) || 0;
+  const raw = base + (combatWaBonus || 0);
+  if (!(combatWaBonus > 0)) return { wa: raw, capped: false };
+  const cap = weaponWaCap(system);
+  const wa = Math.max(base, Math.min(raw, cap));
+  return { wa, capped: wa < raw };
+}
+
 /**
  * Combine a weapon's installed options into one effective-stats delta.
  * Pure function of the option keys -- doesn't touch the weapon Item; callers

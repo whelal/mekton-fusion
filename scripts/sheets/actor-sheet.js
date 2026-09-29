@@ -1,7 +1,8 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
-import { computeWeaponOptionsEffect } from "../../module/data/weapon-options.js";
+import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
+import { deriveArmorByLocation } from "../../module/data/armor.js";
 
 /**
  * Parse a weapon's Range field. MZ range is Combat-Max (two numbers), a single
@@ -316,11 +317,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * @param {Actor} targetActor
    * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
    * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
+   * @param {{ignoreSp?: boolean}} [opts] - ignoreSp: damage is already post-armor (burning)
    * @returns {{sp:number, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
    */
-  static async _applyLocationDamage(targetActor, key, dmgTotal) {
+  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
-    const sp = MektonActorSheet._num(loc?.sp, 0);
+    const sp = ignoreSp ? 0 : MektonActorSheet._num(loc?.sp, 0);
     const before = MektonActorSheet._num(loc?.hits, 0);
     const after = Math.max(0, dmgTotal - sp);
     const hitsNow = before - after;
@@ -368,6 +370,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         if (formData[key] !== undefined && formData[key] !== '') {
           formData[key] = parseFloat(formData[key]) || 0;
         }
+      }
+      // Current SP is hand-editable (ablation/repair) but can never exceed the
+      // armor-derived spMax. spMax itself isn't a form field anymore.
+      for (const locKey of Object.keys(this.actor.system?.body?.locations ?? {})) {
+        const spKey = `system.body.locations.${locKey}.sp`;
+        if (formData[spKey] === undefined || formData[spKey] === '') continue;
+        const max = Number(this.actor.system.body.locations[locKey].spMax) || 0;
+        formData[spKey] = Math.min(Math.max(Number(formData[spKey]) || 0, 0), max);
       }
       // Initiative Mod (MV) is intentionally NOT a named form field (see the
       // data-name comment on its inputs in stats.hbs/mecha.hbs) -- it persists
@@ -659,6 +669,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // ActorDataModel.prepareDerivedData -- templates read it directly rather than
     // through a shared context value, since MR is weight-dependent.
 
+    // Armor currently providing each body location's SP (highest wins), for the Body tab's Armor column.
+    ctx.armorByLoc = {};
+    for (const [loc, a] of Object.entries(deriveArmorByLocation(this.actor))) {
+      const item = a.itemId ? this.actor.items.get(a.itemId) : null;
+      if (item) ctx.armorByLoc[loc] = { id: item.id, name: item.name, sp: a.sp };
+    }
+
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
     ctx.creaturePresetOptions = Object.values(CREATURE_PRESETS).map(p => ({ id: p.id, label: p.label }));
@@ -750,6 +767,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (row && row.length) row[0].focus();
     });
 
+    html.on('click', '.mf-remove-armor', ev => this._onUnequipBodyItem(ev));
+
     // Quick actions for new single action row
     html.on('click', '#mf-btn-adjust-sp', async ev => {
       ev.preventDefault();
@@ -761,7 +780,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const spInput = html.find('#mf-adjust-sp');
       const spAdjust = parseInt(spInput.val()) || 0;
       if (spAdjust !== 0) {
-        const newSP = Math.max((data.sp ?? 0) + spAdjust, 0);
+        // current SP only: ablation/repair, clamped to the armor-derived spMax
+        const newSP = Math.min(Math.max((data.sp ?? 0) + spAdjust, 0), data.spMax ?? 0);
         await this.actor.update({ [`${path}.sp`]: newSP });
         spInput.val('');
         this.render(false);
@@ -934,6 +954,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
     html.on('click', '.weapon-roll, .mecha-weapon-roll', ev => this._onRollWeapon(ev));
     html.on('click', '.weapon-damage-roll', ev => this._onRollWeaponDamage(ev));
+    html.on('click', '.weapon-options', ev => this._onEditWeaponOptions(ev));
     html.on('click', '.weapon-hitloc-roll', ev => this._onRollHitLocation(ev));
     html.on('click', '.mf-roll-hitloc', ev => this._onRollHitLocation(ev));
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
@@ -1094,8 +1115,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
     try {
-      const cur = MektonActorSheet._num(this.actor.system?.body?.locations?.[loc]?.sp ?? 0, 0);
-      await this.actor.update({ [`system.body.locations.${loc}.sp`]: Math.max(0, cur - 1) });
+      const l = this.actor.system?.body?.locations?.[loc];
+      const cur = MektonActorSheet._num(l?.sp ?? 0, 0);
+      const max = MektonActorSheet._num(l?.spMax ?? 0, 0);
+      await this.actor.update({ [`system.body.locations.${loc}.sp`]: Math.min(max, Math.max(0, cur - 1)) });
       this.render(false);
     } catch (e) { console.error('mekton-fusion | Failed ablate', e); }
   }
@@ -1129,13 +1152,44 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (item) item.sheet?.render(true);
   }
 
+  /**
+   * Remove worn armor from a body location. SP is derived from armor Items
+   * (see module/data/armor.js), and one armor Item can cover several
+   * locations, so "unequip" means deleting the Item -- the deleteItem hook
+   * then recomputes every location. If several pieces cover this location,
+   * the user picks which.
+   */
   async _onUnequipBodyItem(ev) {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
     try {
-      await this.actor.update({ [`system.body.locations.${loc}.itemId`]: null });
-      this.render(false);
-    } catch (e) { console.error('mekton-fusion | Failed unequip', e); }
+      const covering = this.actor.items.filter(i =>
+        i.type === 'armor' && ARMOR_COVERAGE[i.system?.coverage]?.locations?.includes(loc));
+      if (!covering.length) return;
+
+      let target = covering[0];
+      if (covering.length > 1) {
+        const options = covering.map(i => `<option value="${i.id}">${foundry.utils.escapeHTML(i.name)} (SP ${i.system?.sp ?? 0})</option>`).join('');
+        const chosenId = await Dialog.prompt({
+          title: 'Remove which armor?',
+          content: `<div class="form-group"><label>Armor covering this location</label><select name="armorId" style="width:100%">${options}</select></div>`,
+          label: 'Remove',
+          callback: html => html.find("[name='armorId']").val(),
+          rejectClose: false
+        });
+        target = covering.find(i => i.id === chosenId);
+        if (!target) return;
+      }
+
+      const others = ARMOR_COVERAGE[target.system?.coverage]?.locations?.length > 1
+        ? ' It covers other locations too; they lose it as well.' : '';
+      const ok = await Dialog.confirm({
+        title: `Remove ${target.name}?`,
+        content: `<p>Deletes <strong>${foundry.utils.escapeHTML(target.name)}</strong> from this character.${others}</p>`
+      });
+      if (!ok) return;
+      await target.delete();
+    } catch (e) { console.error('mekton-fusion | Failed to remove armor', e); }
   }
 
   /** Increment/decrement a substat by delta and persist immediately */
@@ -1573,6 +1627,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           `,
           label: "Roll",
           render: html => this.constructor._bindDifficultyPresetListeners(html),
+          options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 380 },
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
@@ -1654,6 +1709,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           `,
           label: "Roll",
           render: html => this.constructor._bindDifficultyPresetListeners(html),
+          options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 380 },
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
@@ -1718,8 +1774,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * itemData here is plain creation data, not a Document yet -- created via
-   * super._onDropItemCreate() below, whose return value we then use for the
-   * armor-equip step (needs the created Item's id for body.locations.*.itemId).
+   * super._onDropItemCreate() below.
    *
    * Armor equipping was originally its own dragover/drop listener bound
    * directly to the paperdoll hit-zones and table rows, using
@@ -1755,9 +1810,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
     }
 
+    // Armor's body-location SP is derived from the actor's armor Items and
+    // recomputed by the createItem/deleteItem/updateItem hooks in
+    // mekton-fusion.js -- nothing to stamp here, just tell the user about
+    // handheld pieces that won't show up on any hit-zone.
     const created = await super._onDropItemCreate(rest);
     for (const item of Array.isArray(created) ? created : [created]) {
-      if (item?.type === 'armor') await this._equipArmorToBody(item);
+      if (item?.type === 'armor' && !ARMOR_COVERAGE[item.system?.coverage]?.locations?.length) {
+        ui.notifications.warn(`${item.name} is handheld armor -- it doesn't cover any body location.`);
+      }
     }
     return created;
   }
@@ -1819,33 +1880,37 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Stamp a just-created armor Item's SP onto the body paperdoll's hit-zone(s).
-   * Which zone(s) is fixed by the item's `coverage` (ARMOR_COVERAGE) --
-   * a Hat is always head-only, a Jacket is always torso+arms, etc, per the
-   * book's Sample Armor Coverage table -- so it doesn't matter where on the
-   * sheet the item was actually dropped.
+   * Pick the Weapon Options installed on an owned weapon. Options are
+   * ranged-only (see weaponSupportsOptions); checkbox state is written
+   * straight to the Item, same as the standalone Item sheet does.
    */
-  async _equipArmorToBody(item) {
-    const coverage = ARMOR_COVERAGE[item.system?.coverage] ?? ARMOR_COVERAGE.vest;
-    if (!coverage.locations.length) {
-      ui.notifications.warn(`${item.name} is handheld armor -- it isn't equipped to a body location.`);
+  async _onEditWeaponOptions(ev) {
+    ev.preventDefault();
+    const weapon = this.actor.items.get(ev.currentTarget.dataset.itemId);
+    if (!weapon) return;
+    if (!weaponSupportsOptions(weapon.system, weapon.type)) {
+      ui.notifications.warn(`${weapon.name} can't take weapon options (melee, thrown, and mecha weapons can't).`);
       return;
     }
+    const installed = new Set(weapon.system.options ?? []);
+    const rows = Object.entries(WEAPON_OPTIONS).map(([key, opt]) => {
+      const summary = summarizeWeaponOption(opt);
+      return `<label style="display:block; margin-bottom:4px;">
+        <input type="checkbox" name="opt_${key}" ${installed.has(key) ? 'checked' : ''}/> ${foundry.utils.escapeHTML(opt.label)}
+        <span style="color:#666; font-size:0.85em;">(${foundry.utils.escapeHTML(summary)})</span>
+      </label>`;
+    }).join('');
 
-    const spVal = item.system?.sp ?? 0;
-    const updates = {};
-    for (const loc of coverage.locations) {
-      const path = `system.body.locations.${loc}`;
-      updates[`${path}.itemId`] = item.id;
-      updates[`${path}.sp`] = spVal;
-      updates[`${path}.spMax`] = Math.max(spVal, foundry.utils.getProperty(this.actor, `${path}.spMax`) ?? spVal);
-    }
+    let keys;
     try {
-      await this.actor.update(updates);
-      this._refreshBodyItemIcons();
-    } catch (err) {
-      console.warn('mekton-fusion | Failed equipping armor to body slot', err);
-    }
+      keys = await Dialog.prompt({
+        title: `Options: ${weapon.name}`,
+        content: `<div style="margin-bottom:6px;">${rows}</div>`,
+        label: 'Save',
+        callback: html => Object.keys(WEAPON_OPTIONS).filter(k => html.find(`[name='opt_${k}']`).is(':checked'))
+      });
+    } catch (_) { return; } // dialog cancelled
+    await weapon.update({ 'system.options': keys });
   }
 
   /** Create a new weapon item */
@@ -1944,17 +2009,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const weapon = this.actor.items.get(itemId);
     if (!weapon) return;
 
+    // Area weapons (grenades) resolve their blast around the targeted token instead.
+    if (MektonActorSheet._blastOf(weapon)) {
+      const weaponLabel = weapon.system?.name || weapon.name;
+      const html = await this._resolveBlast(weapon, weaponLabel);
+      await ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        content: `<strong>${this.actor.name}</strong>: ${weaponLabel}${html}`
+      });
+      return;
+    }
+
     const formula = (weapon.system?.damage ?? '').trim();
     if (!formula) {
       ui.notifications.warn(`${weapon.name} has no damage formula set.`);
       return;
     }
 
-    // Validate formula before rolling
-    let roll;
+    // Validate formula before rolling (a trailing "+" is stripped and the BODY damage mod added)
+    let result;
     try {
-      roll = new Roll(formula);
-      await roll.evaluate();
+      result = await this._rollDamageFormula(formula);
     } catch (err) {
       ui.notifications.error(`Invalid damage formula "${formula}" for ${weapon.name}.`);
       return;
@@ -1962,8 +2037,198 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const weaponName = weapon.system?.name || weapon.name;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weaponName}</strong>: <em>${formula}</em> = <strong style="font-size: 1.2em; color: #c0392b;">${roll.total}</strong>`;
-    await roll.toMessage({ speaker, flavor });
+    const breakdown = result.bodyModNote ? ` = ${result.roll.total}${result.bodyModNote}` : '';
+    const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weaponName}</strong>: <em>${formula}</em>${breakdown} = <strong style="font-size: 1.2em; color: #c0392b;">${result.total}</strong>`;
+    await result.roll.toMessage({ speaker, flavor });
+  }
+
+  /**
+   * Roll a weapon damage string. A trailing "+" means the BODY TYPE damage
+   * modifier applies (flat or dice) -- by that marker, not by weapon type or
+   * skill, ranged or melee alike. Everything before it goes to Foundry's Roll,
+   * which rejects the "+" itself. Throws if the remainder isn't a valid formula.
+   * @param {string} raw - e.g. "2D10+", "1D6", "3D6/2+"
+   * @returns {Promise<{formula:string, roll:Roll, total:number, bodyModApplies:boolean, bodyModNote:string}>}
+   */
+  async _rollDamageFormula(raw) {
+    const bodyModApplies = raw.endsWith('+');
+    const formula = bodyModApplies ? raw.slice(0, -1).trim() : raw;
+    const roll = new Roll(formula || '0');
+    await roll.evaluate();
+
+    let total = roll.total;
+    let bodyModNote = '';
+    if (bodyModApplies) {
+      const dmgMod = this.actor.system?.derived?.dmg;
+      if (dmgMod?.type === 'flat' && dmgMod.value) {
+        total += dmgMod.value;
+        bodyModNote = ` + BODY ${dmgMod.value >= 0 ? '+' : ''}${dmgMod.value}`;
+      } else if (dmgMod?.type === 'dice' && dmgMod.value) {
+        const bodyRoll = new Roll(dmgMod.value);
+        await bodyRoll.evaluate();
+        total += bodyRoll.total;
+        bodyModNote = ` + BODY ${dmgMod.value} (${bodyRoll.total})`;
+      }
+    }
+    return { formula, roll, total, bodyModApplies, bodyModNote };
+  }
+
+  /**
+   * Set an actor burning after an incendiary: `burn` maps location -> the damage
+   * that location just took (post-armor). Each later round every burning
+   * location takes HALF of what it took the round before (rounded down), and
+   * stops burning once that would be under 1 (see tickBurning). Re-igniting
+   * keeps the higher value per location.
+   */
+  static async _igniteActor(actor, burn) {
+    const existing = actor.getFlag('mekton-fusion', 'burning') ?? {};
+    const merged = { ...existing };
+    for (const [loc, dmg] of Object.entries(burn)) merged[loc] = Math.max(Number(merged[loc]) || 0, dmg);
+    // unset first: setFlag deep-merges objects, which would resurrect locations dropped from `merged`
+    await actor.unsetFlag('mekton-fusion', 'burning');
+    await actor.setFlag('mekton-fusion', 'burning', merged);
+    try { await actor.toggleStatusEffect('burning', { active: true }); } catch (e) { /* visual aid only */ }
+  }
+
+  /**
+   * Advance every burning actor on the combat's scene by one round: each
+   * burning location takes half its previous damage (rounded down) straight to
+   * Hits -- it's already past armor -- and the actor stops burning when no
+   * location has 1+ left. Runs on the active GM's client at each new round
+   * (see the updateCombat hook in mekton-fusion.js).
+   */
+  static async tickBurning(combat) {
+    const scene = combat.scene ?? canvas.scene;
+    const actors = new Map();
+    for (const t of scene?.tokens ?? []) if (t.actor) actors.set(t.actor.uuid, t.actor);
+
+    const LABEL = { head: 'Head', torso: 'Torso', rArm: 'R Arm', lArm: 'L Arm', rLeg: 'R Leg', lLeg: 'L Leg' };
+    for (const actor of actors.values()) {
+      const burn = actor.getFlag('mekton-fusion', 'burning');
+      if (!burn) continue;
+
+      const next = {};
+      const lines = [];
+      for (const [loc, last] of Object.entries(burn)) {
+        const dmg = Math.floor((Number(last) || 0) / 2);
+        if (dmg < 1) continue;
+        const applied = await MektonActorSheet._applyLocationDamage(actor, loc, dmg, { ignoreSp: true });
+        const wound = applied.state !== 'ok' ? ` <strong style="color:#c0392b">${MektonActorSheet._woundStateLabel(applied.state)}</strong>` : '';
+        const stun = applied.stun ? ` [Stun ${applied.stun.total} vs ${applied.stun.stunVal}: ${applied.stun.conscious ? 'ok' : 'DOWN'}]` : '';
+        lines.push(`${LABEL[loc] ?? loc} ${dmg} (Hits ${applied.before} &rarr; ${applied.hitsNow})${wound}${stun}`);
+        if (Math.floor(dmg / 2) >= 1) next[loc] = dmg;
+      }
+
+      await actor.unsetFlag('mekton-fusion', 'burning');
+      const stillBurning = Object.keys(next).length > 0;
+      if (stillBurning) await actor.setFlag('mekton-fusion', 'burning', next);
+      else { try { await actor.toggleStatusEffect('burning', { active: false }); } catch (e) { /* visual aid only */ } }
+
+      if (lines.length) {
+        await ChatMessage.create({
+          speaker: ChatMessage.getSpeaker({ actor }),
+          content: `<strong>${foundry.utils.escapeHTML(actor.name)}</strong> is burning: ${lines.join(', ')}${stillBurning ? '' : ' &mdash; <em>the fire goes out.</em>'}`
+        });
+      }
+    }
+  }
+
+  /** {radius, effect} if the weapon is an area weapon (grenade), else null. */
+  static _blastOf(weapon) {
+    const radius = Number(weapon?.system?.blastRadius) || 0;
+    const effect = weapon?.system?.blastEffect || '';
+    return radius > 0 && effect ? { radius, effect } : null;
+  }
+
+  /**
+   * Resolve a grenade-style blast centred on the single targeted token: every
+   * token on the scene within `blastRadius` metres (measured centre to centre
+   * in scene units -- the scene's distance unit is expected to be metres) is
+   * affected, the thrower included if inside the radius.
+   *   damage       one damage roll for the whole blast; each target rolls its
+   *                own hit location and soaks it through that location's SP
+   *   perLocation  every target takes a SEPARATE damage roll on EACH of the six
+   *                locations (Incendiary), each soaking through that
+   *                location's SP
+   *   sleep        each target rolls a Stun/Shock save at -3 (1d10 <= stun - 3
+   *                keeps them awake); a failure falls asleep (core "sleep"
+   *                status)
+   * Returns chat HTML to append to the attack/damage card.
+   */
+  async _resolveBlast(weapon, weaponName) {
+    const { radius, effect } = MektonActorSheet._blastOf(weapon);
+    const targets = Array.from(game.user.targets);
+    if (targets.length !== 1) {
+      return `<br><em style="font-size:0.85em; color:#c0392b;">${weaponName} needs exactly one targeted token as the point of impact (${targets.length} targeted) -- no blast resolved.</em>`;
+    }
+    if (!canvas?.grid || !canvas.tokens) return '<br><em>No active scene to measure the blast on.</em>';
+
+    const center = targets[0].center;
+    const inBlast = canvas.tokens.placeables
+      .filter(t => t.actor && canvas.grid.measurePath([center, t.center]).distance <= radius + 1e-6)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    let html = `<br><strong>Blast</strong> (${radius}m around ${foundry.utils.escapeHTML(targets[0].name)}): ${inBlast.length} in radius`;
+    const unit = (canvas.scene?.grid?.units ?? '').trim().toLowerCase();
+    if (unit && !['m', 'meter', 'meters', 'metre', 'metres'].includes(unit)) {
+      html += ` <em style="font-size:0.85em; color:#c0392b;">(scene distance unit is "${foundry.utils.escapeHTML(unit)}", not metres -- radius measured in scene units)</em>`;
+    }
+
+    // One damage roll for the whole blast (damage effect only).
+    let shared = null;
+    if (effect === 'damage') {
+      try {
+        shared = await this._rollDamageFormula((weapon.system?.damage ?? '').trim());
+      } catch (err) {
+        return html + `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${foundry.utils.escapeHTML(weapon.system?.damage ?? '')}" for ${weaponName}.</em>`;
+      }
+      html += ` -- damage <strong style="color:#c0392b;">${shared.total}</strong>`;
+    }
+
+    const LOCS = ['head', 'torso', 'rArm', 'lArm', 'rLeg', 'lLeg'];
+    const LABEL = { head: 'Head', torso: 'Torso', rArm: 'R Arm', lArm: 'L Arm', rLeg: 'R Leg', lLeg: 'L Leg' };
+
+    for (const token of inBlast) {
+      const actor = token.actor;
+      html += `<br>&bull; <strong>${foundry.utils.escapeHTML(token.name)}</strong>: `;
+      try {
+        if (effect === 'damage') {
+          const { key, label } = await this.constructor._rollHitLocationKey();
+          const applied = await this.constructor._applyLocationDamage(actor, key, shared.total);
+          html += `${label} -- ${this.constructor._formatDamageAppliedHtml(applied)}`;
+        } else if (effect === 'perLocation') {
+          const parts = [];
+          const burn = {};
+          for (const key of LOCS) {
+            const r = await this._rollDamageFormula((weapon.system?.damage ?? '').trim());
+            const applied = await this.constructor._applyLocationDamage(actor, key, r.total);
+            if (Math.floor(applied.after / 2) >= 1) burn[key] = applied.after;
+            const wound = applied.state !== 'ok' ? ` <strong style="color:#c0392b">${this.constructor._woundStateLabel(applied.state)}</strong>` : '';
+            const stun = applied.stun ? ` [Stun ${applied.stun.total} vs ${applied.stun.stunVal}: ${applied.stun.conscious ? 'ok' : 'DOWN'}]` : '';
+            parts.push(`${LABEL[key]} ${r.total} (${applied.after} through)${wound}${stun}`);
+          }
+          html += parts.join(', ');
+          if (Object.keys(burn).length) {
+            await MektonActorSheet._igniteActor(actor, burn);
+            html += ` <em style="color:#c0392b;">-- BURNING (${Object.entries(burn).map(([k, v]) => `${LABEL[k]} next round ${Math.floor(v / 2)}`).join(', ')})</em>`;
+          }
+        } else if (effect === 'sleep') {
+          const stunVal = MektonActorSheet._num(actor.system?.substats?.stun, 0);
+          const threshold = stunVal - 3;
+          const save = new Roll('1d10');
+          await save.evaluate();
+          const awake = save.total <= threshold;
+          if (!awake) {
+            try { await actor.toggleStatusEffect('sleep', { active: true }); } catch (e) { /* status is a visual aid; the result below still stands */ }
+          }
+          html += `Stun/Shock (1d10 &le; ${stunVal} &minus; 3 = ${threshold}): rolled <strong>${save.total}</strong> &mdash; <strong style="color:${awake ? '#2a2' : '#c0392b'}">${awake ? 'STAYS AWAKE' : 'FALLS ASLEEP'}</strong>`;
+        }
+      } catch (err) {
+        console.error('mekton-fusion | Blast failed for', token.name, err);
+        html += `<em style="color:#c0392b;">could not be updated (no permission?) -- GM must apply this one manually</em>`;
+      }
+    }
+    return html;
   }
 
   /**
@@ -2101,7 +2366,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Weapon Options (Lasersight, Optical Scope, Smartgun, etc.) modify the
     // Combat Range WA and/or replace the default -4 Maximum Range penalty.
-    const optionsEffect = computeWeaponOptionsEffect(weapon.system?.options);
+    // Options only count on personal-scale ranged weapons (a weapon whose skill/range
+    // was changed to melee after options were installed ignores them).
+    const optionsEffect = computeWeaponOptionsEffect(
+      weaponSupportsOptions(weapon.system, weapon.type) ? weapon.system?.options : []);
     const maxRangePenalty = optionsEffect.maxRangeMod ?? -4;
 
     // Resolve the mapped skill -- warn rather than silently treating the
@@ -2109,6 +2377,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skillKey = weapon.system?.skill;
     const SKILL_MAP = {
       'archery': 'Archery',
+      'athletics': 'Athletics',
       'automatic-weapon': 'Automatic Weapon',
       'blade': 'Blade',
       'handgun': 'Handgun',
@@ -2179,6 +2448,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         `,
         label: "Attack",
         render: html => this.constructor._bindDifficultyPresetListeners(html),
+        options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
         callback: html => {
           const rangeMod = Number(html.find("[name='rangeChoice']").val()) || 0;
           const aim = Math.max(0, Math.min(4, Number(html.find("[name='aim']").val()) || 0));
@@ -2201,7 +2471,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // applies at Combat Range (rangeMod === 0), per the book -- the dropdown
     // has already swapped in the option-adjusted Max Range penalty above.
     const atCombatRange = rangeMod === 0;
-    const effectiveWa = wa + (atCombatRange ? optionsEffect.combatWaBonus : 0);
+    const waResult = atCombatRange ? effectiveCombatWa(weapon.system, optionsEffect.combatWaBonus) : { wa, capped: false };
+    const effectiveWa = waResult.wa;
 
     // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
@@ -2214,7 +2485,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
 
-    const waLabel = effectiveWa !== wa ? `WA ${effectiveWa} (${wa} ${optionsEffect.combatWaBonus >= 0 ? '+' : ''}${optionsEffect.combatWaBonus} options)` : `WA ${wa}`;
+    const waLabel = effectiveWa !== wa
+      ? `WA ${effectiveWa} (${wa} ${optionsEffect.combatWaBonus >= 0 ? '+' : ''}${optionsEffect.combatWaBonus} options${waResult.capped ? ', capped' : ''})`
+      : (waResult.capped ? `WA ${wa} (options capped)` : `WA ${wa}`);
     const modParts = [`(${plusStr}${minusStr})`, `Skill ${skillTotal}`, waLabel];
     if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
     if (aim) modParts.push(`Aim +${aim}`);
@@ -2230,39 +2503,23 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     let flavor = `<strong>${this.actor.name}</strong> attacks with ${weaponName}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
     // --- On a hit (success !== false -- a miss is the only thing that skips this) ---
-    if (success !== false) {
+    if (success !== false && MektonActorSheet._blastOf(weapon)) {
+      // A hit puts the explosion on the targeted token; a miss (success === false) skips it.
+      flavor += await this._resolveBlast(weapon, weaponName);
+    } else if (success !== false) {
       const dmgFormulaRaw = (weapon.system?.damage ?? '').trim();
       if (!dmgFormulaRaw) {
         flavor += `<br><em style="font-size:0.85em; color:#999;">No damage formula set on ${weaponName}.</em>`;
       } else {
-        // A trailing "+" means the BODY TYPE damage modifier applies, by the
-        // "+" marker -- not by weapon type or skill (ranged or melee alike).
-        const bodyModApplies = dmgFormulaRaw.endsWith('+');
-        const dmgFormula = bodyModApplies ? dmgFormulaRaw.slice(0, -1).trim() : dmgFormulaRaw;
-
-        let dmgRoll = null;
+        let dmg = null;
         try {
-          dmgRoll = new Roll(dmgFormula || '0');
-          await dmgRoll.evaluate();
+          dmg = await this._rollDamageFormula(dmgFormulaRaw);
         } catch (err) {
           flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${dmgFormulaRaw}" for ${weaponName}.</em>`;
         }
 
-        if (dmgRoll) {
-          let dmgTotal = dmgRoll.total;
-          let bodyModNote = '';
-          if (bodyModApplies) {
-            const dmgMod = this.actor.system?.derived?.dmg;
-            if (dmgMod?.type === 'flat' && dmgMod.value) {
-              dmgTotal += dmgMod.value;
-              bodyModNote = ` + BODY ${dmgMod.value >= 0 ? '+' : ''}${dmgMod.value}`;
-            } else if (dmgMod?.type === 'dice' && dmgMod.value) {
-              const bodyRoll = new Roll(dmgMod.value);
-              await bodyRoll.evaluate();
-              dmgTotal += bodyRoll.total;
-              bodyModNote = ` + BODY ${dmgMod.value} (${bodyRoll.total})`;
-            }
-          }
+        if (dmg) {
+          const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote } = dmg;
 
           const { key, label: locLabel } = await this.constructor._rollHitLocationKey();
           flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;

@@ -81,26 +81,46 @@
         <input type="text" name="system.note" value="{{system.note}}"/>
       </div>
       <div class="form-group">
+        <label>Blast Radius (m)</label>
+        <input type="number" name="system.blastRadius" value="{{system.blastRadius}}" min="0" step="0.5" title="0 = single target"/>
+      </div>
+      <div class="form-group">
+        <label>Blast Effect</label>
+        <select name="system.blastEffect">
+          <option value="" {{#unless system.blastEffect}}selected{{/unless}}>-- none --</option>
+          <option value="damage" {{#if (eq system.blastEffect 'damage')}}selected{{/if}}>Damage everything in radius</option>
+          <option value="perLocation" {{#if (eq system.blastEffect 'perLocation')}}selected{{/if}}>Damage every location of each target</option>
+          <option value="sleep" {{#if (eq system.blastEffect 'sleep')}}selected{{/if}}>Stun/Shock at -3 or fall asleep</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Mecha Weapon</label>
         <input type="checkbox" name="system.isMecha" {{#if system.isMecha}}checked{{/if}}/>
       </div>
 
+      {{#if supportsOptions}}
       <fieldset style="margin:8px 0;">
         <legend>Weapon Options</legend>
+        {{#if optionsReadOnly}}
+          <p style="margin:2px 0 6px; font-size:0.85em; color:#666;">Read-only here (locked compendium). Add this weapon to a character, then use its Options button on the Combat tab.</p>
+        {{/if}}
         {{#each weaponOptionsList}}
-          <label style="display:block; font-weight:normal;">
+          <label style="display:block; font-weight:normal;" title="{{summary}}">
             <input type="checkbox" class="mf-weapon-option" data-option-key="{{key}}" {{#if checked}}checked{{/if}}/>
-            {{label}}
+            {{label}} <span style="color:#666; font-size:0.85em;">({{summary}})</span>
           </label>
         {{/each}}
       </fieldset>
+      {{else}}
+      <p style="margin:8px 0; font-size:0.85em; color:#666;">Weapon Options apply to personal-scale ranged weapons only (not melee, thrown, or mecha weapons).</p>
+      {{/if}}
 
       {{#if effective.hasOptions}}
       <fieldset style="margin:8px 0; background:#f5f5f5;">
         <legend>Effective (with options)</legend>
         <div class="form-group">
           <label>WA at Combat Range</label>
-          <input type="text" value="{{effective.combatWa}}" readonly style="background:#e8e8e8;"/>
+          <input type="text" value="{{effective.combatWa}}" readonly style="background:#e8e8e8;" title="{{#if effective.combatWaCapped}}Capped: options can raise WA to 2 at most (3 for missiles){{else}}Base WA plus installed options{{/if}}"/>
         </div>
         <div class="form-group">
           <label>Max Range Penalty</label>

@@ -1,4 +1,4 @@
-import { WEAPON_OPTIONS, computeWeaponOptionsEffect } from "../data/weapon-options.js";
+import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../data/armor-coverage.js";
 
 export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
@@ -48,10 +48,16 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
       }));
     }
 
-    if (context.isWeapon) {
+    // Options are ranged-weapon accessories only (see weaponSupportsOptions).
+    context.supportsOptions = context.isWeapon && weaponSupportsOptions(context.system, this.object.type);
+    // A locked compendium (or a non-owner) renders every control disabled;
+    // options are configured on a character's own copy of the weapon.
+    context.optionsReadOnly = !this.isEditable;
+
+    if (context.supportsOptions) {
       const installedKeys = context.system.options ?? [];
       context.weaponOptionsList = Object.entries(WEAPON_OPTIONS).map(([key, opt]) => ({
-        key, label: opt.label, checked: installedKeys.includes(key)
+        key, label: opt.label, checked: installedKeys.includes(key), summary: summarizeWeaponOption(opt)
       }));
 
       const effect = computeWeaponOptionsEffect(installedKeys);
@@ -63,7 +69,8 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
 
       context.effective = {
         hasOptions: effect.installed.length > 0,
-        combatWa: baseWa + effect.combatWaBonus,
+        combatWa: effectiveCombatWa(context.system, effect.combatWaBonus).wa,
+        combatWaCapped: effectiveCombatWa(context.system, effect.combatWaBonus).capped,
         maxRangeMod: effect.maxRangeMod ?? -4,
         maxRangeIsDefault: effect.maxRangeMod === null,
         shots: Number.isFinite(baseShotsNum) ? String(baseShotsNum * effect.shotsMultiplier) : context.system.shots,

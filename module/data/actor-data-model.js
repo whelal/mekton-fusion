@@ -57,10 +57,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             // Unified substats container (replaces runtime seeding in sheet logic)
             substats: new fields.SchemaField({
                 stun: new fields.NumberField({initial: 0, min: 0, integer: true}),
-                death: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 bodyTypeMod: new fields.NumberField({initial: 0, integer: true}),
                 lift: new fields.NumberField({initial: 0, min: 0, integer: true}),
-                carry: new fields.NumberField({initial: 0, min: 0, integer: true}),
                 run: new fields.NumberField({initial: 0, min: 0, integer: false}),
                 leap: new fields.NumberField({initial: 0, min: 0, integer: false}),
                 swim: new fields.NumberField({initial: 0, min: 0, integer: false}),
@@ -308,6 +306,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         const ma = this.stats?.MA?.value ?? 5;
         const intVal = this.stats?.INT?.value ?? 5;
         const edu = this.stats?.EDU?.value ?? 5;
+        const cool = this.stats?.COOL?.value ?? 5;
 
         const body = getBodyValues(bod);
         // MA is keyed entirely off the MA stat -- BOD has no effect on movement.
@@ -350,6 +349,10 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 animeLeap: highMaMovement?.animeLeap ?? standardMovement.animeLeap,
                 source: highMaMovement ? "ma-table" : "ma-formula"
             },
+            // Stability: a Difficulty Number for how hard someone is to sway, frighten or
+            // befuddle -- COOL x 2.5, rounded down (Interrogation/Intimidation/Leadership/
+            // Seduction rolls are made against it; Persuasion is not).
+            stability: Math.floor(cool * 2.5),
             skillPointMultiplier: getSkillPointMultiplier(intVal, edu),
             encumberedMA: encumberedMA(this.equipment?.totalWeight ?? 0, bod, run),
             mecha: this._deriveMecha(this.mecha)

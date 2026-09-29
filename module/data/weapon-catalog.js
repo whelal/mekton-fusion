@@ -17,15 +17,24 @@
  *   Cost -> the book's "weapon/ammo" pair splits into two schema fields:
  *     `cost` (weapon price) and `ammoCost` (price per reload/clip).
  *   "[AP]" / "*" markers -> damageNote (mirrors mecha-weapon damageNote).
+ *   Grenades (blast radius 6m): the book's "/6m" damage suffix is stored as a plain
+ *     roll (Sleep Grenade: no damage). `blastRadius` (m) / `blastEffect` drive the
+ *     automated area effect (see _resolveBlast in actor-sheet.js); `note` repeats the
+ *     rule for reference.
+ *   The book's "2D10x2" (2-Barrel Shotgun: two rounds at the same target in one
+ *     action) is stored as plain "2D10" with the two-round rule in `note` --
+ *     in Foundry's dice notation "x2" means "explode on 2", so it would roll the wrong thing --
+ *     the shooter just rolls damage twice.
  *
  * Skill mapping (locked):
  *   MELEE section -> "blade", except Whip -> "whip". No per-item judgment.
+ *   THROWN weapons (range "T": Boomerang, Shuriken, all grenades) -> "athletics"
+ *     (Athletics is the thrown-weapon skill in MZ), overriding the melee-section rule.
  *   Archery (Bow/Compound Bow/Crossbow/Wrist-Crossbow) -> "archery"
  *   Handguns -> "handgun"   SMGs -> "automatic-weapon"   Rifles -> "rifle"
  *   Shotguns -> "rifle" (shoulder arm; MZ has no shotgun skill)
  *   Heavy weapons (human-scale only): Gatling Gun/Machinegun ->
- *     "automatic-weapon"; grenades are thrown/T range -- left skill:"" for
- *     GM call.
+ *     "automatic-weapon"; grenades are thrown -> "athletics" (see above).
  *   EXCLUDED entirely (Mekton-scale K-damage in human hands -- can't resolve
  *     against body.locations in hits until the scale system exists):
  *     Anti-Mecha Mine (10K), Anti-Mek Beamgun (6K), Anti-Mek Missile (8K),
@@ -41,19 +50,19 @@
  */
 
 /** Build one catalog entry; keeps the array below terse and reviewable. */
-function weapon(name, { wa, range, damage, damageNote = "", shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", img }) {
+function weapon(name, { wa, range, damage, damageNote = "", shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", blastRadius = 0, blastEffect = "", img }) {
   return {
     name,
     type: "weapon",
     img,
-    system: { name, wa, range, damage, damageNote, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note }
+    system: { name, wa, range, damage, damageNote, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note, blastRadius, blastEffect }
   };
 }
 
 export const WEAPON_CATALOG = [
   // --- MELEE WEAPONS -> "blade" except Whip -> "whip" ---
   weapon("Battleaxe",           { wa: -1, range: "2", damage: "2D10+", damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 3.5,   cost: 70,   tl: 2, skill: "blade", img: "icons/weapons/axes/axe-battle-simple.webp" }),
-  weapon("Boomerang",           { wa: -1, range: "T", damage: "1D6+",  shots: "na", bv: "na", conc: "L", weight: 0.6,   cost: 48,   tl: 2, skill: "blade", img: "icons/weapons/thrown/boomerang.webp" }),
+  weapon("Boomerang",           { wa: -1, range: "T", damage: "1D6+",  shots: "na", bv: "na", conc: "L", weight: 0.6,   cost: 48,   tl: 2, skill: "athletics", img: "icons/weapons/thrown/boomerang.webp" }),
   weapon("Broadsword",          { wa: 0,  range: "2", damage: "3D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 3.0,   cost: 84,   tl: 2, skill: "blade", img: "icons/weapons/swords/sword-broad-worn.webp" }),
   weapon("Chainsaw",            { wa: -1, range: "2", damage: "3D6+",  damageNote: "[AP]", shots: "10", bv: "na", conc: "N", weight: 3.0,   cost: 54,   tl: 5, skill: "blade", img: "icons/weapons/swords/machete.webp" }),
   weapon("Combat Knife",        { wa: 0,  range: "1", damage: "1D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "J", weight: 0.5,   cost: 50,   tl: 3, skill: "blade", img: "icons/weapons/daggers/knife-simple.webp" }),
@@ -67,7 +76,7 @@ export const WEAPON_CATALOG = [
   weapon("Nunchaku/Tonfa",      { wa: 0,  range: "2", damage: "1D10+", shots: "na", bv: "na", conc: "L", weight: 0.75,  cost: 105,  tl: 2, skill: "blade", img: "icons/weapons/misc/nunchaku.webp" }),
   weapon("Quarterstaff",        { wa: 2,  range: "4", damage: "1D6+",  shots: "na", bv: "na", conc: "N", weight: 1.0,   cost: 120,  tl: 1, skill: "blade", img: "icons/weapons/staves/staff-simple-brown.webp" }),
   weapon("Rapier",              { wa: 1,  range: "2", damage: "1D10+", damageNote: "[AP]", shots: "na", bv: "na", conc: "L", weight: 0.75,  cost: 75,   tl: 3, skill: "blade", img: "icons/weapons/swords/sword-simple-white.webp" }),
-  weapon("Shuriken",            { wa: 0,  range: "T", damage: "1D6/2+", damageNote: "[AP]", shots: "na", bv: "na", conc: "P", weight: 0.2,   cost: 21,   tl: 2, skill: "blade", img: "icons/weapons/thrown/shuriken-blue.webp" }),
+  weapon("Shuriken",            { wa: 0,  range: "T", damage: "1D6/2+", damageNote: "[AP]", shots: "na", bv: "na", conc: "P", weight: 0.2,   cost: 21,   tl: 2, skill: "athletics", img: "icons/weapons/thrown/shuriken-blue.webp" }),
   weapon("Spear",               { wa: 2,  range: "4", damage: "2D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 2.0,   cost: 120,  tl: 1, skill: "blade", img: "icons/weapons/polearms/spear-flared-steel.webp" }),
   weapon("Sword",               { wa: 1,  range: "2", damage: "2D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "L", weight: 1.0,   cost: 100,  tl: 2, skill: "blade", img: "icons/weapons/swords/sword-guard.webp" }),
   weapon("Whip",                { wa: -1, range: "4", damage: "1D6/2+", shots: "na", bv: "na", conc: "L", weight: 0.125, cost: 15,   tl: 2, skill: "whip", img: "icons/weapons/misc/whip-leather.webp" }),
@@ -102,7 +111,7 @@ export const WEAPON_CATALOG = [
   // --- SHOTGUNS -> "rifle" (shoulder arm; MZ has no shotgun skill) ---
   weapon("Auto Shotgun",     { wa: 0, range: "15-100", damage: "2D10",   shots: "10", bv: "3", conc: "N", weight: 2.5, cost: 1040, tl: 5, skill: "rifle", ammoCost: 52, img: "icons/weapons/guns/shotgun-tech-green-yellow.webp" }),
   weapon("Shotgun",          { wa: 0, range: "15-100", damage: "2D10",   shots: "6",  bv: "1", conc: "L", weight: 2.5, cost: 742,  tl: 4, skill: "rifle", ammoCost: 37, img: "icons/weapons/guns/shotgun-pump.webp" }),
-  weapon("2-Barrel Shotgun", { wa: 0, range: "10-50",  damage: "2D10x2", shots: "2",  bv: "(2)", conc: "J", weight: 2.5, cost: 286, tl: 5, skill: "rifle", ammoCost: 14, img: "icons/weapons/guns/gun-double-barrel.webp" }),
+  weapon("2-Barrel Shotgun", { wa: 0, range: "10-50",  damage: "2D10", note: "Fires both barrels: 2 rounds at the same target in one action (roll damage twice).", shots: "2",  bv: "(2)", conc: "J", weight: 2.5, cost: 286, tl: 5, skill: "rifle", ammoCost: 14, img: "icons/weapons/guns/gun-double-barrel.webp" }),
 
   // --- HEAVY WEAPONS (human-scale only) ---
   // Anti-Mecha Mine (10K), Anti-Mek Beamgun (6K), Anti-Mek Missile (8K), and
@@ -110,7 +119,7 @@ export const WEAPON_CATALOG = [
   // hands; they wait for the scale-conversion system.
   weapon("Gatling Gun", { wa: -1, range: "28-400", damage: "5D6", shots: "100", bv: "8", conc: "N", weight: 5.0, cost: 6336, tl: 4, skill: "automatic-weapon", ammoCost: 317, img: "icons/weapons/guns/gun-chain-gatling-heavy.webp" }),
   weapon("Machinegun",  { wa: 0,  range: "32-500", damage: "5D6", shots: "100", bv: "5", conc: "N", weight: 5.0, cost: 5040, tl: 5, skill: "automatic-weapon", ammoCost: 252, img: "icons/weapons/guns/machine-gun-silver.webp" }),
-  weapon("Frag Grenade",       { wa: 0, range: "T", damage: "5D6/6m",   shots: "1", bv: "na", conc: "P", weight: 0.25, cost: 50,  tl: 4, skill: "", img: "icons/weapons/thrown/grenade-frag-green.webp" }),
-  weapon("Incendiary Grenade", { wa: 0, range: "T", damage: "1D6/6m",   damageNote: "*", shots: "1", bv: "na", conc: "P", weight: 0.3,  cost: 100, tl: 4, skill: "", img: "icons/weapons/thrown/grenade-incendiary.webp" }),
-  weapon("Sleep Grenade",      { wa: 0, range: "T", damage: "-3/6m",    shots: "1", bv: "na", conc: "P", weight: 0.15, cost: 10,  tl: 4, skill: "", img: "icons/weapons/thrown/grenade-tech-stun-cannister.webp" })
+  weapon("Frag Grenade",       { wa: 0, range: "T", damage: "5D6",   note: "Blast: 6m radius. Normal damage to everything within it.", shots: "1", bv: "na", conc: "P", weight: 0.25, cost: 50,  tl: 4, blastRadius: 6, blastEffect: "damage", skill: "athletics", img: "icons/weapons/thrown/grenade-frag-green.webp" }),
+  weapon("Incendiary Grenade", { wa: 0, range: "T", damage: "1D6",   damageNote: "*", note: "Blast: 6m radius. 1D6 to EVERY location of every target within it (roll per location).", shots: "1", bv: "na", conc: "P", weight: 0.3,  cost: 100, tl: 4, blastRadius: 6, blastEffect: "perLocation", skill: "athletics", img: "icons/weapons/thrown/grenade-incendiary.webp" }),
+  weapon("Sleep Grenade",      { wa: 0, range: "T", damage: "",   note: "Blast: 6m radius. No damage: everyone within it makes a Stun/Shock roll at -3 or falls asleep.", shots: "1", bv: "na", conc: "P", weight: 0.15, cost: 10,  tl: 4, blastRadius: 6, blastEffect: "sleep", skill: "athletics", img: "icons/weapons/thrown/grenade-tech-stun-cannister.webp" })
 ];

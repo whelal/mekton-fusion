@@ -25,7 +25,7 @@
 
         <div class="mf-doll-help">
           <button type="button" class="mf-roll-hitloc" data-action="roll-hitloc">🎯 Roll Hit Location</button>
-          <div class="mf-drop-hint">Drag armor here to a slot</div>
+          <div class="mf-drop-hint">Drop armor anywhere on the sheet; it covers locations by its Coverage</div>
         </div>
         <!-- Hit Location Table -->
         <div class="mf-hitloc-table">
@@ -54,6 +54,7 @@
               <th>Location</th>
               <th>SP</th>
               <th>Max SP</th>
+              <th>Armor</th>
               <th>SDP</th>
               <th>Max SDP</th>
               <th>SP Bar</th>
@@ -64,8 +65,16 @@
             {{#each system.body.locations as |loc key|}}
               <tr data-loc="{{key}}">
                 <td><span class="mf-dot mf-{{key}}"></span>{{loc.label}}</td>
-                <td><input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" /></td>
-                <td><input type="number" name="system.body.locations.{{key}}.spMax" value="{{loc.spMax}}" min="0" /></td>
+                <td><input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" max="{{loc.spMax}}" title="Current SP (ablates); can't exceed Max SP" /></td>
+                <td><input class="derived-input" type="number" value="{{loc.spMax}}" readonly title="Derived: highest SP among worn armor covering this location" /></td>
+                <td>
+                  {{#with (lookup ../armorByLoc key) as |armor|}}
+                    <span class="mf-armor-name" title="{{armor.name}} (SP {{armor.sp}})">{{armor.name}}</span>
+                    <button type="button" class="icon-btn mf-remove-armor" data-loc="{{key}}" title="Remove armor covering this location">&times;</button>
+                  {{else}}
+                    <span class="mf-armor-none">&mdash;</span>
+                  {{/with}}
+                </td>
                 <td><input type="number" name="system.body.locations.{{key}}.hits" value="{{loc.hits}}" /> </td>
                 <td><input class="derived-input" type="number" value="{{loc.hitsMax}}" readonly title="Derived from BODY" /> </td>
                 <td><div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div></td>
