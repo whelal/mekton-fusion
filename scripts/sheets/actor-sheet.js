@@ -960,6 +960,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.item-delete', ev => this._onDeleteWeapon(ev));
     html.on('change', '.weapon-field', ev => this._onChangeWeaponField(ev));
 
+    // I.P. / Eurobucks ledgers (sidebar header receipt buttons).
+    html.on('click', '.meta-ledger-btn', ev => this._onOpenLedger(ev));
+
     // Preset loaders (Mecha tab + Body tab's Creature section).
     html.on('click', '.load-preset-btn', ev => this._onLoadMechaPreset(ev));
     html.on('click', '.load-creature-preset-btn', ev => this._onLoadCreaturePreset(ev));
@@ -1911,6 +1914,147 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
     } catch (_) { return; } // dialog cancelled
     await weapon.update({ 'system.options': keys });
+  }
+
+  /** Balance that existed before the ledger's first entry -- the fixed anchor point for recalculation. */
+  static _ledgerBaseline(transactions, fallback = 0) {
+    if (!transactions.length) return Number(fallback) || 0;
+    return Number(transactions[0].total || 0) - Number(transactions[0].delta || 0);
+  }
+
+  /** Recompute running totals for a ledger from a fixed baseline (must be captured before any mutation). */
+  static _recalcLedger(baseline, transactions) {
+    let running = baseline;
+    return transactions.map(t => {
+      running += Number(t.delta) || 0;
+      return { ...t, total: running };
+    });
+  }
+
+  /**
+   * Open a small ledger dialog for meta.points (I.P.) or meta.eurobucks (cash):
+   * shows history, lets you add/edit/delete entries. Each entry is a signed
+   * delta + a note; the running total is always recomputed from the ledger's
+   * baseline rather than trusted from storage, so edits/deletes mid-history
+   * stay consistent.
+   */
+  async _onOpenLedger(ev) {
+    ev.preventDefault();
+    const field = ev.currentTarget.dataset.field;
+    if (!["points", "eurobucks"].includes(field)) return;
+    const label = field === "points" ? "I.P." : "Eurobucks";
+    const allowNegative = field === "eurobucks";
+
+    const renderList = (transactions) => {
+      const entries = (Array.isArray(transactions) ? transactions : [])
+        .map((t, idx) => ({ t, idx }))
+        .reverse();
+      if (!entries.length) return `<p style="margin:4px 0;">No entries yet.</p>`;
+      return `<ul style="list-style:none;margin:0;padding:0;">` + entries.map(({ t, idx }) => {
+        const sign = t.delta >= 0 ? '+' : '';
+        const when = t.time ? new Date(t.time).toLocaleString() : '';
+        const noteText = foundry.utils.escapeHTML(t.note || '');
+        return `<li data-index="${idx}" style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid #eee;font-size:0.8rem;align-items:baseline;">
+          <span style="font-weight:700;white-space:nowrap;">${sign}${t.delta} &rarr; ${t.total}</span>
+          <span style="flex:1 1 auto;min-width:0;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${noteText}</span>
+          <span style="color:#999;font-size:0.7rem;white-space:nowrap;">${when}</span>
+          <button type="button" class="ledger-edit-btn" data-index="${idx}" title="Edit" style="width:20px;height:20px;padding:0;flex:0 0 auto;"><i class="fas fa-pencil-alt"></i></button>
+          <button type="button" class="ledger-delete-btn" data-index="${idx}" title="Delete" style="width:20px;height:20px;padding:0;flex:0 0 auto;"><i class="fas fa-trash"></i></button>
+        </li>`;
+      }).join('') + `</ul>`;
+    };
+
+    const buildContent = () => {
+      const current = this.actor.system?.meta?.[field] ?? { value: 0, transactions: [] };
+      return `
+        <div style="margin-bottom:8px;"><strong>Current ${label}: ${current.value}</strong></div>
+        <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px;">
+          <div style="flex:0 0 70px;"><label style="display:block;font-size:0.72rem;font-weight:700;">Delta</label><input type="number" name="delta" value="0" style="width:100%;box-sizing:border-box;"/></div>
+          <div style="flex:1 1 auto;min-width:0;"><label style="display:block;font-size:0.72rem;font-weight:700;">Note</label><input type="text" name="note" style="width:100%;box-sizing:border-box;" placeholder="Reason..."/></div>
+          <button type="button" name="addEntry" style="flex:0 0 auto;width:auto;white-space:nowrap;height:26px;padding:0 12px;">Add</button>
+        </div>
+        <div style="max-height:260px;overflow-y:auto;border-top:1px solid #999;padding-top:6px;">
+          ${renderList(current.transactions)}
+        </div>
+      `;
+    };
+
+    /** Apply an updated transactions array against a pre-mutation baseline: recalc totals, persist, refresh. */
+    const commit = async (baseline, transactions) => {
+      const recalced = this.constructor._recalcLedger(baseline, transactions);
+      const finalValue = recalced.length ? recalced[recalced.length - 1].total : baseline;
+      const clampedValue = allowNegative ? finalValue : Math.max(0, finalValue);
+      await this.actor.update({
+        [`system.meta.${field}.value`]: clampedValue,
+        [`system.meta.${field}.transactions`]: recalced
+      });
+      dlg.data.content = buildContent();
+      dlg.render(true);
+    };
+
+    const dlg = new Dialog({
+      title: `${label} Log`,
+      content: buildContent(),
+      buttons: { close: { label: "Close" } },
+      default: "close",
+      render: (html) => {
+        html.find('[name="addEntry"]').on('click', async () => {
+          const deltaVal = Number(html.find('[name="delta"]').val()) || 0;
+          const noteVal = String(html.find('[name="note"]').val() || '').trim();
+          if (!deltaVal) return;
+          const current = this.actor.system?.meta?.[field] ?? { value: 0, transactions: [] };
+          const transactions = Array.isArray(current.transactions) ? current.transactions : [];
+          const baseline = this.constructor._ledgerBaseline(transactions, current.value);
+          const entry = { delta: deltaVal, total: 0, note: noteVal, time: Date.now() };
+          await commit(baseline, [...transactions, entry]);
+        });
+
+        html.find('.ledger-edit-btn').on('click', async (clickEv) => {
+          const idx = Number(clickEv.currentTarget.dataset.index);
+          const current = this.actor.system?.meta?.[field] ?? { value: 0, transactions: [] };
+          const transactions = Array.isArray(current.transactions) ? current.transactions : [];
+          const entry = transactions[idx];
+          if (!entry) return;
+
+          const result = await Dialog.prompt({
+            title: `Edit ${label} Entry`,
+            content: `
+              <div style="margin-bottom:8px;"><label style="display:block;font-size:0.72rem;font-weight:700;">Delta</label><input type="number" name="delta" value="${entry.delta}" style="width:100%;box-sizing:border-box;"/></div>
+              <div><label style="display:block;font-size:0.72rem;font-weight:700;">Note</label><input type="text" name="note" value="${foundry.utils.escapeHTML(entry.note || '')}" style="width:100%;box-sizing:border-box;"/></div>
+            `,
+            label: "Save",
+            callback: (h) => ({
+              delta: Number(h.find('[name="delta"]').val()) || 0,
+              note: String(h.find('[name="note"]').val() || '').trim()
+            })
+          }).catch(() => null);
+          if (!result) return;
+
+          const baseline = this.constructor._ledgerBaseline(transactions, current.value);
+          const updated = [...transactions];
+          updated[idx] = { ...entry, delta: result.delta, note: result.note };
+          await commit(baseline, updated);
+        });
+
+        html.find('.ledger-delete-btn').on('click', async (clickEv) => {
+          const idx = Number(clickEv.currentTarget.dataset.index);
+          const current = this.actor.system?.meta?.[field] ?? { value: 0, transactions: [] };
+          const transactions = Array.isArray(current.transactions) ? current.transactions : [];
+          if (!transactions[idx]) return;
+          const confirmed = await Dialog.confirm({
+            title: "Delete Entry",
+            content: `<p>Delete this ${label} log entry?</p>`,
+            yes: () => true,
+            no: () => false
+          });
+          if (!confirmed) return;
+          const baseline = this.constructor._ledgerBaseline(transactions, current.value);
+          const updated = transactions.filter((_, i) => i !== idx);
+          await commit(baseline, updated);
+        });
+      }
+    }, { width: 460 });
+    dlg.render(true);
   }
 
   /** Create a new weapon item */

@@ -25,14 +25,24 @@
       </div>
     </div>
 
-    <div class="header-stats flexrow">
+    <div class="header-stats">
       <div class="header-field">
         <label>AGE</label>
         <input name="system.meta.age" type="number" value="{{system.meta.age}}" placeholder="35"/>
       </div>
       <div class="header-field">
         <label>POINTS</label>
-        <input name="system.meta.points" type="number" value="{{system.meta.points}}" placeholder="75"/>
+        <span class="header-field-ledger">
+          <input name="system.meta.points.value" type="number" min="0" value="{{system.meta.points.value}}" placeholder="75"/>
+          <button type="button" class="meta-ledger-btn" data-field="points" title="View/Add I.P. Log"><i class="fas fa-receipt"></i></button>
+        </span>
+      </div>
+      <div class="header-field header-field-wide">
+        <label>EUROBUCKS</label>
+        <span class="header-field-ledger">
+          <input name="system.meta.eurobucks.value" type="number" value="{{system.meta.eurobucks.value}}" placeholder="0"/>
+          <button type="button" class="meta-ledger-btn" data-field="eurobucks" title="View/Add Eurobucks Log"><i class="fas fa-receipt"></i></button>
+        </span>
       </div>
     </div>
 

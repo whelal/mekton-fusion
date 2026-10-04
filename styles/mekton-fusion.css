@@ -1049,7 +1049,11 @@ html.theme-dark .mekton-fusion {
   font-weight: 700; font-size: inherit; color: var(--mf-text);
 }
 
-.mekton-fusion.sheet.actor .header-stats { gap: 0.5rem; }
+.mekton-fusion.sheet.actor .header-stats {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;
+}
+.mekton-fusion.sheet.actor .header-stats .header-field { min-width: 0; box-sizing: border-box; width: 100%; }
+.mekton-fusion.sheet.actor .header-stats .header-field-wide { grid-column: 1 / -1; }
 
 .mekton-fusion.sheet.actor .link-token-button {
   background: transparent; color: var(--mf-text); border: 1px solid var(--mf-border);
@@ -1081,6 +1085,15 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion.sheet.actor .header-field label { font-size: 0.7rem; font-weight: bold; margin: 0; }
 .mekton-fusion.sheet.actor .header-field input {
   background: transparent; border: none; text-align: center; font-weight: bold; font-size: 0.9rem; width: 100%;
+}
+.mekton-fusion.sheet.actor .header-field-ledger {
+  display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-width: 0; box-sizing: border-box;
+}
+.mekton-fusion.sheet.actor .header-field-ledger input { width: auto; flex: 1 1 auto; min-width: 0; }
+.mekton-fusion.sheet.actor .meta-ledger-btn {
+  flex: 0 0 auto; width: 18px; height: 18px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; line-height: 1;
 }
 
 /* Sidebar: Profile box (appearance & values) */

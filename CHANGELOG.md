@@ -1,3 +1,12 @@
+## [0.3.10] - 2026-10-03
+### Added
+- I.P. and Eurobucks ledgers in the sidebar header: `system.meta.points` (I.P.) and a new `system.meta.eurobucks` (cash, starts at 0) are now `{value, transactions[]}` instead of a bare number. A receipt-icon button next to each opens a log dialog -- add a signed delta with a note, edit or delete any past entry, and the running total always recalculates from a fixed baseline rather than trusting stored totals. Existing actors' flat `meta.points` values upgrade automatically (via `migrateData`) into a ledger with no history, starting from the old number. Ported from the maintainer's other system, long-drift (github.com/whelal/long-drift), adapted to this project's `TypeDataModel`/`foundry.utils.escapeHTML` conventions.
+- 7 new CP2020 skills: Endurance (BODY -- new category, first BODY-stat skill in the list), Oratory (COOL), EW/Electronic Warfare and Hacking (H) (INT), Fencing (H) and Martial Art (H) (REF:Combat), Demolitions (H) (TECH). Forgery and Tactics were already in the list (non-Hard) and were left as-is rather than duplicated. ECM/ECCM (book text frames them as EW specialties) and description text were intentionally left out per the maintainer.
+### Changed
+- Combat tab's Human and Mecha combat skill rows are more compact: smaller label and total text, tighter row padding, and a narrower roll button.
+### Fixed
+- Sidebar header AGE/POINTS/EUROBUCKS row overflowed the sidebar (boxes sat in a single flex row, so the right edge clipped and spacing was uneven). The row is now a two-column grid with EUROBUCKS full width underneath.
+
 ## [0.3.7] - 2026-09-29
 ### Changed
 - Body-location armor SP is now DERIVED from the actor's armor Items instead of stamped at equip time (`module/data/armor.js`). A location's `spMax` is the highest `sp` among owned armor whose coverage includes it -- highest wins, no stacking (MZ default; proportional layering is a later change to one comparison in `deriveArmorByLocation`). Current `sp` ablates down from `spMax` and can't exceed it. `createItem`/`deleteItem`/`updateItem` hooks (only on the client that made the change; `updateItem` only for `sp`/`coverage` edits) recompute every location; intact armor (sp == old max) tracks the new ceiling, already-ablated armor keeps its damage clamped under it. Owning an armor Item = wearing it (no equipped flag in v1). Removed `_equipArmorToBody`. Per-location `itemId` is now just the paperdoll icon, set to the highest-SP contributor.

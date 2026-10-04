@@ -16,8 +16,33 @@ function formatInfinite(v) {
 }
 
 export class ActorDataModel extends foundry.abstract.TypeDataModel {
+    // meta.points used to be a flat number. It's now {value, transactions} so
+    // changes can be logged (I.P. Log) instead of just overwritten -- same
+    // upgrade path as meta.eurobucks below, which is brand new and has no old
+    // shape to migrate from.
+    static migrateData(source, ...args) {
+        const entry = source?.meta?.points;
+        if (entry !== null && entry !== undefined && typeof entry !== "object") {
+            source.meta.points = { value: Number(entry) || 0, transactions: [] };
+        }
+        return super.migrateData(source, ...args);
+    }
+
     static defineSchema() {
         const fields = foundry.data.fields;
+        // meta.points (I.P.) / meta.eurobucks (cash): a running total plus a dated
+        // history of deltas, instead of a bare overwritable number -- lets a GM add
+        // an entry ("+5 I.P., session reward") rather than hand-computing the new
+        // total. See _onOpenLedger/_recalcLedger/_ledgerBaseline in actor-sheet.js.
+        const ledgerField = (initialValue, { allowNegative = false } = {}) => new fields.SchemaField({
+            value: new fields.NumberField({ initial: initialValue, integer: true, ...(allowNegative ? {} : { min: 0 }) }),
+            transactions: new fields.ArrayField(new fields.SchemaField({
+                delta: new fields.NumberField({ initial: 0, integer: true }),
+                total: new fields.NumberField({ initial: 0, integer: true }),
+                note: new fields.StringField({ initial: "" }),
+                time: new fields.NumberField({ initial: 0 })
+            }), { initial: [] })
+        });
     return {
             // Reserved for the future scale-conversion system (human / roadstriker /
             // mekton / corvette / starship). Costs nothing now -- just avoids a live
@@ -26,7 +51,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             meta: new fields.SchemaField({
                 role: new fields.StringField({initial: ""}),
                 age: new fields.NumberField({initial: 25, min: 0, integer: true}),
-                points: new fields.NumberField({initial: 0, min: 0, integer: true})
+                points: ledgerField(0),
+                eurobucks: ledgerField(0, { allowNegative: true })
             }),
             // Player profile / appearance & personal hooks
             profile: new fields.SchemaField({

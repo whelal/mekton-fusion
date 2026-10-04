@@ -3,7 +3,11 @@ export const CP2020_SKILLS = [
   { name: "Personal Grooming", type: "skill", system: { stat: "ATTR", category: "ATTR", rank: 0, favorite: false, ip: 0 } },
   { name: "Wardrobe & Style", type: "skill", system: { stat: "ATTR", category: "ATTR", rank: 0, favorite: false, ip: 0 } },
 
+  // BODY (Physical Resilience)
+  { name: "Endurance", type: "skill", system: { stat: "BODY", category: "BODY", rank: 0, favorite: false, ip: 0 } },
+
   // COOL (Social / Mental Resilience)
+  { name: "Oratory", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0 } },
   { name: "Interrogation (H)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Intimidate (H)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Persuasion and Fast Talk (H)", type: "skill", system: { stat: "COOL", category: "COOL", rank: 0, favorite: false, ip: 0, hard: true } },
@@ -28,6 +32,7 @@ export const CP2020_SKILLS = [
   { name: "Disguise", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Expert", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Gamble (H)", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0, hard: true } },
+  { name: "Hacking (H)", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Know Language", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Programming (H)", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Shadowing/Avoid Pursuit (H)", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0, hard: true } },
@@ -41,14 +46,17 @@ export const CP2020_SKILLS = [
   { name: "Expert: Navigation", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Education/General", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
   { name: "Tactics", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
+  { name: "EW/Electronic Warfare", type: "skill", system: { stat: "INT", category: "INT", rank: 0, favorite: false, ip: 0 } },
 
   // REF - Personal Combat
   { name: "Archery", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Automatic Weapon", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Blade", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Dodge & Escape", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
+  { name: "Fencing (H)", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Handgun", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Hand to Hand", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
+  { name: "Martial Art (H)", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "Rifle", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
   { name: "Whip", type: "skill", system: { stat: "REF", category: "REF:Combat", rank: 0, favorite: false, ip: 0 } },
 
@@ -70,6 +78,7 @@ export const CP2020_SKILLS = [
 
   // TECH
   { name: "Basic Repair", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0 } },
+  { name: "Demolitions (H)", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0, hard: true } },
   { name: "First Aid", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0 } },
   { name: "Jury Rig", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0 } },
   { name: "Mecha Design (H)", type: "skill", system: { stat: "TECH", category: "TECH", rank: 0, favorite: false, ip: 0, hard: true } },
