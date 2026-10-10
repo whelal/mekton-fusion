@@ -3,6 +3,9 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
 import { deriveArmorByLocation } from "../../module/data/armor.js";
+import { resolveMechaHit, burstHitCount, resolveMeleeParry, resolveEmwParry } from "../../module/data/mecha-damage.js";
+import { rollMechaHitLocation } from "../../module/data/mecha-hit-table.js";
+import { escapeHtml } from "../../module/util/escape.js";
 
 /**
  * Parse a weapon's Range field. MZ range is Combat-Max (two numbers), a single
@@ -57,6 +60,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       psi: { favOnly: false, sortBy: 'name', dir: 'asc' }
     };
     this._viewStateLoaded = false;
+    this._mechaMode = 'play';
   }
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -685,6 +689,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx._skillViewStateSkills = vsSkills;
     ctx._skillViewStatePsi = vsPsi;
 
+    ctx.mechaMode = this._mechaMode;
+
     // Pre-render tab templates to avoid partial-registration timing issues.
     try {
   ctx._tabStatsHtml = await renderTemplate("systems/mekton-fusion/templates/actor/tabs/stats.hbs", ctx);
@@ -966,6 +972,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Preset loaders (Mecha tab + Body tab's Creature section).
     html.on('click', '.load-preset-btn', ev => this._onLoadMechaPreset(ev));
     html.on('click', '.load-creature-preset-btn', ev => this._onLoadCreaturePreset(ev));
+
+    // Mecha Play/Build toggle + play-state controls.
+    html.on('click', '.mecha-mode-toggle', ev => {
+      ev.preventDefault();
+      this._mechaMode = this._mechaMode === 'play' ? 'build' : 'play';
+      html.find('.tab.mecha')
+        .toggleClass('mf-mode-play', this._mechaMode === 'play')
+        .toggleClass('mf-mode-build', this._mechaMode === 'build');
+    });
+    // -/+ steppers write to a named input, then trigger change so submitOnChange persists it.
+    html.on('click', '.mp-step', ev => {
+      ev.preventDefault();
+      const btn = ev.currentTarget;
+      const input = html.find(`input[name="${btn.dataset.target}"]`);
+      if (!input.length) return;
+      input.val(Math.max(0, (Number(input.val()) || 0) + Number(btn.dataset.delta))).trigger('change');
+    });
+    html.on('click', '.mp-repair-all', ev => this._onMechaRepairAll(ev));
+    html.on('click', '.mp-apply-hit', ev => this._onMechaApplyHit(ev));
+    html.on('click', '.mecha-weapon-burst', ev => this._onMechaBurst(ev));
+    html.on('click', '.mp-parry', ev => this._onMechaParry(ev));
 
     // (Category collapse feature removed)
     // Refresh body item icons now that listeners are attached
@@ -2442,6 +2469,62 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     await this.actor.update(update);
   }
 
+  /** Clear all servo damage and refill ammo. Read-modify-write on _source so no loadout field is lost. */
+  async _onMechaRepairAll(ev) {
+    ev.preventDefault();
+    const ok = await Dialog.confirm({ title: 'Repair & Reload', content: '<p>Clear all servo damage and refill all ammo?</p>' });
+    if (!ok) return;
+    const src = this.actor._source.system.mecha;
+    const damage = Object.fromEntries(Object.keys(src.damage ?? {}).map(k => [k, { kills: 0, sp: 0 }]));
+    const weapons = foundry.utils.deepClone(src.weapons ?? []).map(w => ({ ...w, shotsUsed: 0, killsUsed: 0 }));
+    await this.actor.update({ 'system.mecha.damage': damage, 'system.mecha.weapons': weapons });
+  }
+
+  /**
+   * Apply one attack of `damage` Kills to `actor`'s mecha at servo location `loc`.
+   * `damage` is a SchemaField keyed by location, so this partial update is safe.
+   */
+  static async _applyMechaHit(actor, loc, damage) {
+    const servo = actor.system.mecha?.servos?.find(s => s?.locKey === loc);
+    if (!servo || !servo.hits) {
+      ui.notifications.warn(`${actor.name}: no servo at ${loc}.`);
+      return null;
+    }
+    const r = resolveMechaHit({
+      damage, spMax: servo.sp, spDamage: servo.dmgSp,
+      killsMax: servo.hits, killsDamage: servo.dmgKills
+    });
+    await actor.update({
+      [`system.mecha.damage.${loc}.sp`]: r.spDamage,
+      [`system.mecha.damage.${loc}.kills`]: r.killsDamage
+    });
+    const parts = [`SP ${r.spBefore} → ${r.spAfter}`, `${r.penetrating}K penetrate`, `Kills ${r.killsAfter}/${servo.hits}`];
+    if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
+    if (r.excess) parts.push(`${r.excess}K excess`);
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      content: `<strong>${escapeHtml(actor.system.mecha.name || actor.name)}</strong> — ${servo.servo} takes ${damage}K: ${parts.join(' · ')}`
+    });
+    return r;
+  }
+
+  /** Sheet button: prompt for one attack's damage and apply it to this mech. */
+  async _onMechaApplyHit(ev) {
+    ev.preventDefault();
+    const loc = ev.currentTarget.dataset.loc;
+    let damage;
+    try {
+      damage = await Dialog.prompt({
+        title: 'Apply Hit',
+        content: `<p>Damage from one attack (Kills):</p><input type="number" name="dmg" min="0" value="0" style="width:100%" autofocus/>`,
+        label: 'Apply',
+        callback: html => Number(html.find("[name='dmg']").val()) || 0
+      });
+    } catch (_) { return; }
+    if (!damage) return;
+    await MektonActorSheet._applyMechaHit(this.actor, loc, damage);
+  }
+
   /**
    * Load a creature preset (CREATURE_PRESETS) into the Body tab's Creature
    * section. Uses the character body-plan/enemy model (BODY + naturalWeapons),
@@ -2686,6 +2769,130 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     await roll.toMessage({ speaker, flavor });
   }
 
+  /** Spend 1 ammo for an attack (single or burst). Returns false if empty. Untracked (∞) always succeeds. */
+  async _spendMechaAmmo(idx) {
+    const row = this.actor.system.mecha?.weapons?.[idx];
+    if (!row || row.shotsMax === null) return true;
+    if (row.shotsLeft < 1) { ui.notifications.warn(`${row.name}: out of ammo.`); return false; }
+    const weapons = foundry.utils.deepClone(this.actor._source.system.mecha.weapons);
+    weapons[idx].shotsUsed = (Number(weapons[idx].shotsUsed) || 0) + 1;
+    await this.actor.update({ 'system.mecha.weapons': weapons });
+    return true;
+  }
+
+  /** Burst: attack roll, spend 1 ammo, hits = min(attack - defense, BV), each hit rolled on the Mecha hit chart. */
+  async _onMechaBurst(ev) {
+    ev.preventDefault();
+    const idx = Number(ev.currentTarget.dataset.idx);
+    const row = this.actor.system?.mecha?.weapons?.[idx];
+    if (!row?.weaponKey) return;
+    if (!(await this._spendMechaAmmo(idx))) return;
+
+    // Same attack math as _rollMechaArmamentRow: 1d10(exploding) + MR + skill rank + WA.
+    const CATEGORY_SKILL = { beam: 'Mecha Gunnery (H)', projectile: 'Mecha Gunnery (H)', missile: 'Mecha Missiles (H)', melee: 'Mecha Melee (H)', energyMelee: 'Mecha Melee (H)' };
+    const skill = this.actor.items.find(i => i.type === 'skill' && i.name === CATEGORY_SKILL[row.category]);
+    const rank = MektonActorSheet._num(skill?.system?.rank, 0);
+    const mr = Number(this.actor.system?.mecha?.config?.mr ?? 0);
+    const wa = MektonActorSheet._num(row.wa, 0);
+    const { roll, total: base } = await this.constructor._rollBidirectionalExplodingD10();
+    const attack = base + mr + rank + wa;
+
+    // INTERIM: defense total entered manually. Opposed-roll handshake is deferred.
+    let defense;
+    try {
+      defense = await Dialog.prompt({
+        title: `${row.name} burst — attack ${attack}`,
+        content: `<p>Attack total: <strong>${attack}</strong>. Defender's Evade/Defense total:</p><input type="number" name="def" value="0" style="width:100%" autofocus/>`,
+        label: 'Resolve',
+        callback: html => Number(html.find("[name='def']").val()) || 0
+      });
+    } catch (_) { return; }
+
+    const hits = burstHitCount(attack, defense, row.bv);
+    const dmg = Number(row.damage) || 0;
+    const lines = [];
+    for (let i = 0; i < hits; i++) {
+      const h = await rollMechaHitLocation();
+      lines.push(h.key
+        ? `<li>Hit ${i + 1}: ${h.label} (d10 ${h.roll}) <button type="button" class="mf-apply-mecha-hit" data-loc="${h.key}" data-dmg="${dmg}">Apply ${dmg}K</button></li>`
+        : `<li>Hit ${i + 1}: ${h.special} (resolve manually)</li>`);
+    }
+    const content = `<strong>${escapeHtml(this.actor.name)}</strong> bursts ${row.name} (BV ${row.bv}): attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>`
+      + (lines.length ? `<ul>${lines.join('')}</ul>` : '');
+    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this.actor }), content, rolls: [roll] });
+  }
+
+  /** Read-modify-write one field on one weapons[] row (ArrayField -- never send a partial array). */
+  async _setMechaWeaponField(idx, field, value) {
+    const weapons = foundry.utils.deepClone(this.actor._source.system.mecha.weapons);
+    if (!weapons[idx]) return;
+    weapons[idx][field] = value;
+    await this.actor.update({ 'system.mecha.weapons': weapons });
+  }
+
+  /**
+   * Declare a parry against one incoming attack, with a shield or a melee/EMW
+   * weapon (`.mp-parry` button, data-kind "shield"|"weapon"). Per the book:
+   * shields parry any attack; melee weapons and EMWs may only parry melee/EMW
+   * attacks (not exclusive -- either can parry the other). Melee weapons spend
+   * 1 of their own Kills per successful parry regardless of damage; EMWs don't
+   * deplete, but an attack whose damage exceeds the EMW's own Damage rating
+   * isn't stopped at all.
+   */
+  async _onMechaParry(ev) {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    const kind = btn.dataset.kind;
+    const idx = Number(btn.dataset.idx);
+    const row = kind === 'shield' ? this.actor.system?.mecha?.shields?.[idx] : this.actor.system?.mecha?.weapons?.[idx];
+    if (!row) return;
+    const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+
+    if (kind === 'shield') {
+      const confirmed = await Dialog.confirm({
+        title: `Parry with ${row.name}`,
+        content: `<p>Shields parry any attack. Arc reminder (not enforced): <strong>${row.arcLabel || 'front + flank matching the mounting arm'}</strong>.</p>`
+      });
+      if (!confirmed) return;
+      await ChatMessage.create({
+        speaker,
+        content: `<strong>${escapeHtml(this.actor.name)}</strong> parries with ${row.name} (${row.arcLabel}) — <strong>stopped</strong>.`
+      });
+      return;
+    }
+
+    if (!row.canParry) { ui.notifications.warn(`${row.name || 'This weapon'} can't parry -- melee weapons and EMWs only.`); return; }
+    if (row.parryDestroyed) { ui.notifications.warn(`${row.name}: no Kills left -- it's destroyed.`); return; }
+
+    let form;
+    try {
+      form = await Dialog.prompt({
+        title: `Parry with ${row.name}`,
+        content: `<p>Incoming attack's damage (Kills):</p><input type="number" name="dmg" min="0" value="0" style="width:100%" autofocus/>`
+          + `<p><label><input type="checkbox" name="melee" checked/> Incoming attack is itself melee or an EMW (required — can't parry a ranged attack with this)</label></p>`,
+        label: 'Resolve',
+        callback: html => ({ dmg: Number(html.find("[name='dmg']").val()) || 0, melee: html.find("[name='melee']").is(':checked') })
+      });
+    } catch (_) { return; }
+    if (!form.melee) { ui.notifications.warn(`${row.name} can only parry melee weapons and EMWs.`); return; }
+
+    if (row.category === 'energyMelee') {
+      const r = resolveEmwParry({ emwDamage: row.damage, attackDamage: form.dmg });
+      const content = r.ok
+        ? `<strong>${escapeHtml(this.actor.name)}</strong> parries with ${row.name}: attack (${form.dmg}K) ≤ its Damage (${row.damage}K) — <strong>stopped</strong>.`
+        : `<strong>${escapeHtml(this.actor.name)}</strong> tries to parry with ${row.name}: attack (${form.dmg}K) exceeds its Damage (${row.damage}K) — <strong>breezes through, not stopped</strong>.`;
+      await ChatMessage.create({ speaker, content });
+      return;
+    }
+
+    const r = resolveMeleeParry({ killsMax: row.hits, killsUsed: row.killsUsed });
+    if (!r.ok) { ui.notifications.warn(`${row.name}: no Kills left to parry with.`); return; }
+    await this._setMechaWeaponField(idx, 'killsUsed', r.killsUsed);
+    const parts = [`Kills ${r.killsBefore} → ${r.killsAfter}`];
+    if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
+    await ChatMessage.create({ speaker, content: `<strong>${escapeHtml(this.actor.name)}</strong> parries with ${row.name}: ${parts.join(' · ')}` });
+  }
+
   /**
    * Roll a Mecha tab Armament row: 1d10 + MR + Mecha skill (by weapon category) + WA.
    * Reads the row's derived data directly (system.mecha.weapons[idx]) rather than an
@@ -2699,6 +2906,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.warn('Pick a weapon before rolling.');
       return;
     }
+    if (!(await this._spendMechaAmmo(idx))) return;
 
     // Weapon category -> the Mecha Combat Skill that attack rolls with it.
     const CATEGORY_SKILL = {

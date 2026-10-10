@@ -1,4 +1,4 @@
-<div class="tab mecha" data-tab="mecha">
+<div class="tab mecha mf-mode-{{mechaMode}}" data-tab="mecha">
   <style>
     /* Inline override to force Mecha stats layout (cache-bust / immediate) */
     .tab.mecha .mecha-stats-table { display: table !important; table-layout: fixed !important; width: 100% !important; border-collapse: collapse !important; font-size: 0.85rem !important; }
@@ -22,6 +22,92 @@
   .tab.mecha .mecha-stats-table td:nth-child(4) input[type="number"] { width: 98% !important; max-width: 98% !important; }
   .tab.mecha .mecha-stats-table td:nth-child(5) input[type="number"] { width: 90% !important; max-width: 90% !important; }
   </style>
+
+  <div class="mecha-mode-bar">
+    <button type="button" class="mecha-mode-toggle">Play / Build</button>
+    <button type="button" class="mp-repair-all">Repair &amp; Reload</button>
+  </div>
+
+  <section class="mecha-play">
+    <header class="mp-header">
+      <strong>{{system.mecha.name}}</strong>
+      <span>MV {{system.mecha.config.mv}}</span>
+      <span>MR {{system.mecha.config.mr}}</span>
+      <span>MA {{system.mecha.config.landMAEff}}{{#if system.mecha.config.flightMAEff}} &middot; Fly {{system.mecha.config.flightMAEff}}{{/if}}</span>
+      <span>Pool {{system.mecha.maneuverPool}}</span>
+      {{#if system.mecha.powerplant.explosionSave}}<span>Explode &le;{{system.mecha.powerplant.explosionSave}}</span>{{/if}}
+    </header>
+
+    <table class="mp-servos">
+      <thead><tr><th></th><th>Servo</th><th>SP</th><th>Kills</th></tr></thead>
+      <tbody>
+        {{#each system.mecha.servos as |s|}}{{#if s.level}}
+        <tr class="{{#if s.destroyed}}destroyed{{/if}}">
+          <td><button type="button" class="mp-apply-hit" data-loc="{{s.locKey}}" title="Apply one attack (staged penetration)"><i class="fas fa-crosshairs"></i></button></td>
+          <td>{{s.servo}}</td>
+          <td>
+            <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.sp" data-delta="1">&minus;</button>
+            {{s.spLeft}}/{{s.sp}}
+            <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.sp" data-delta="-1">+</button>
+            <input type="number" class="mp-dmg" name="system.mecha.damage.{{s.locKey}}.sp" value="{{s.dmgSp}}" min="0" title="SP ablated"/>
+          </td>
+          <td>
+            <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="1">&minus;</button>
+            {{s.killsLeft}}/{{s.hits}}
+            <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="-1">+</button>
+            <input type="number" class="mp-dmg" name="system.mecha.damage.{{s.locKey}}.kills" value="{{s.dmgKills}}" min="0" title="Kills taken"/>
+          </td>
+        </tr>
+        {{/if}}{{/each}}
+      </tbody>
+    </table>
+
+    <table class="mp-weapons">
+      <thead><tr><th></th><th>Weapon</th><th>WA</th><th>Rng</th><th>Dmg</th><th>BV</th><th>Ammo</th><th>Loc</th></tr></thead>
+      <tbody>
+        {{#each system.mecha.weapons as |w idx|}}{{#if w.weaponKey}}
+        <tr class="{{#if w.offline}}destroyed{{/if}}">
+          <td>
+            <button type="button" class="mecha-weapon-roll" data-idx="{{idx}}" data-mech="mecha" title="Single shot"><i class="fas fa-dice-d20"></i></button>
+            {{#if w.bv}}<button type="button" class="mecha-weapon-burst" data-idx="{{idx}}" title="Burst (BV {{w.bv}})"><i class="fas fa-bullseye"></i></button>{{/if}}
+            {{#if w.canParry}}<button type="button" class="mp-parry" data-kind="weapon" data-idx="{{idx}}" title="Parry a melee/EMW attack" {{#if w.parryDestroyed}}disabled{{/if}}><i class="fas fa-shield-alt"></i></button>{{/if}}
+          </td>
+          <td>
+            {{w.name}}{{#if w.damageNote}} <small>{{w.damageNote}}</small>{{/if}}
+            {{#if w.canParry}}<br/><small>Parry Kills {{w.parryKillsLeft}}/{{w.hits}}</small><input type="hidden" name="system.mecha.weapons.{{idx}}.killsUsed" value="{{w.killsUsed}}"/>{{/if}}
+          </td>
+          <td>{{w.wa}}</td><td>{{w.range}}</td><td>{{w.damage}}K</td><td>{{w.bv}}</td>
+          <td>
+            {{#if w.shotsMax}}
+              <button type="button" class="mp-step" data-target="system.mecha.weapons.{{idx}}.shotsUsed" data-delta="1">&minus;</button>
+              {{w.shotsLeft}}/{{w.shotsMax}}
+              <button type="button" class="mp-step" data-target="system.mecha.weapons.{{idx}}.shotsUsed" data-delta="-1">+</button>
+            {{else}}{{w.shots}}{{/if}}
+            <input type="hidden" name="system.mecha.weapons.{{idx}}.shotsUsed" value="{{w.shotsUsed}}"/>
+          </td>
+          <td>{{w.loc}}</td>
+        </tr>
+        {{/if}}{{/each}}
+      </tbody>
+    </table>
+
+    <table class="mp-shields">
+      <thead><tr><th></th><th>Shield</th><th>DA</th><th>SP</th><th>Parries</th></tr></thead>
+      <tbody>
+        {{#each system.mecha.shields as |sh idx|}}{{#if sh.key}}
+        <tr>
+          <td><button type="button" class="mp-parry" data-kind="shield" data-idx="{{idx}}" title="Declare a parry (stops any attack)"><i class="fas fa-shield-alt"></i></button></td>
+          <td>{{sh.name}}</td>
+          <td>{{sh.da}}</td>
+          <td>{{sh.sp}}</td>
+          <td>{{sh.arcLabel}}</td>
+        </tr>
+        {{/if}}{{/each}}
+      </tbody>
+    </table>
+  </section>
+
+  <div class="mecha-build">
   <!-- Preset Loader -->
   <div class="preset-loader-row">
     <label>Load Preset</label>
@@ -61,22 +147,22 @@
               <td><input name="system.mecha.config.name" type="text" value="{{system.mecha.config.name}}" placeholder="Config 1"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mv}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mr}}" readonly title="Derived from REF + Maneuver Value"/></td>
-              <td><input name="system.mecha.config.landMA" type="number" value="{{system.mecha.config.landMA}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
-              <td><input name="system.mecha.config.flightMA" type="number" value="{{system.mecha.config.flightMA}}" title="Manual -- suggested from thruster Target MA total: {{system.derived.mecha.flightMAHint}}"/></td>
+              <td><input name="system.mecha.config.landMA" type="number" value="{{#if system.mecha.config.landMA}}{{system.mecha.config.landMA}}{{/if}}" placeholder="{{system.derived.mecha.groundMA}}" title="Blank = book baseline (tonnage only)"/></td>
+              <td><input name="system.mecha.config.flightMA" type="number" value="{{#if system.mecha.config.flightMA}}{{system.mecha.config.flightMA}}{{/if}}" placeholder="{{system.derived.mecha.flightMAHint}}" title="Blank = suggested from thruster Target MA total"/></td>
             </tr>
             <tr class="config-row" data-config="2">
               <td><input name="system.mecha.config.name2" type="text" value="{{system.mecha.config.name2}}" placeholder="Config 2"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mv2}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mr2}}" readonly title="Derived from REF + Maneuver Value"/></td>
-              <td><input name="system.mecha.config.landMA2" type="number" value="{{system.mecha.config.landMA2}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
-              <td><input name="system.mecha.config.flightMA2" type="number" value="{{system.mecha.config.flightMA2}}" title="Manual -- suggested from thruster Target MA total: {{system.derived.mecha.flightMAHint}}"/></td>
+              <td><input name="system.mecha.config.landMA2" type="number" value="{{#if system.mecha.config.landMA2}}{{system.mecha.config.landMA2}}{{/if}}" placeholder="{{system.derived.mecha.groundMA}}" title="Blank = book baseline (tonnage only)"/></td>
+              <td><input name="system.mecha.config.flightMA2" type="number" value="{{#if system.mecha.config.flightMA2}}{{system.mecha.config.flightMA2}}{{/if}}" placeholder="{{system.derived.mecha.flightMAHint}}" title="Blank = suggested from thruster Target MA total"/></td>
             </tr>
             <tr class="config-row" data-config="3">
               <td><input name="system.mecha.config.name3" type="text" value="{{system.mecha.config.name3}}" placeholder="Config 3"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mv3}}" readonly title="Derived from total Kills (Maneuver Value)"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.config.mr3}}" readonly title="Derived from REF + Maneuver Value"/></td>
-              <td><input name="system.mecha.config.landMA3" type="number" value="{{system.mecha.config.landMA3}}" title="Manual -- book baseline (tonnage only): {{system.derived.mecha.groundMA}} hexes"/></td>
-              <td><input name="system.mecha.config.flightMA3" type="number" value="{{system.mecha.config.flightMA3}}" title="Manual -- suggested from thruster Target MA total: {{system.derived.mecha.flightMAHint}}"/></td>
+              <td><input name="system.mecha.config.landMA3" type="number" value="{{#if system.mecha.config.landMA3}}{{system.mecha.config.landMA3}}{{/if}}" placeholder="{{system.derived.mecha.groundMA}}" title="Blank = book baseline (tonnage only)"/></td>
+              <td><input name="system.mecha.config.flightMA3" type="number" value="{{#if system.mecha.config.flightMA3}}{{system.mecha.config.flightMA3}}{{/if}}" placeholder="{{system.derived.mecha.flightMAHint}}" title="Blank = suggested from thruster Target MA total"/></td>
             </tr>
           </tbody>
         </table>
@@ -503,4 +589,5 @@
       </tbody>
     </table>
   </section>
+  </div>
 </div>

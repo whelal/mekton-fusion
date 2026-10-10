@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.11** -- APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.12** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -40,6 +40,7 @@ Core areas:
 - Derived MEKTON PROFILE Weight (Final Weight = total Kills / 2, +10% with the Fuel toggle) and MEKTON STATS (MV/MR mass-derived; Land MA/Flight MA manual per config, pre-filled from tonnage/thruster hints)
 - Maneuver Pool derived from the Mecha Piloting (H) skill
 - NPC/mook presets (Vesper-class Skirmisher, Bulwark-class Assault, Dire Wolf) loadable via a picker, stamping selection keys into a mech's arrays for the derive pipeline to fill in
+- Play/Build toggle: a compact Play view tracks per-servo armor SP/Kills (staged penetration), weapon ammo, burst fire (hits per the Mecha Random Hit Chart), and Parry (shields stop any attack; melee weapons/EMWs only parry melee/EMW attacks, spending Kills or checking their Damage rating respectively) during a session, without exposing the full construction worksheet; a Repair & Reload button clears all damage and refills ammo
 
 **Engine**
 - DataModel-backed schema (Foundry VTT v13+) with `prepareDerivedData()` recomputing all of the above on every render

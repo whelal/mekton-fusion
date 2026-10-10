@@ -11,11 +11,9 @@ import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
 import { BODY_PLANS } from "../../module/data/body-values.js";
 import { OPTIONS } from "../../module/data/mecha-options.js";
 import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant.js";
+import { escapeHtml } from "../../module/util/escape.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 function buildOptions(entries, current) {
   let html = '<option value="">—</option>';
   for (const { value, label } of entries) {
@@ -513,6 +511,26 @@ Hooks.once("ready", () => {
     const speaker = ChatMessage.getSpeaker({ actor: targetActor });
     const content = `Applied <strong>${dmgTotal}</strong> damage to <strong>${targetActor.name}'s ${locLabel}</strong>: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
     await ChatMessage.create({ speaker, content });
+  });
+
+  // Mecha burst-fire chat card: each hit gets its own "Apply" button, targeting
+  // the mech the same way .mf-apply-damage does (exactly one targeted token).
+  $(document).on('click', '.mf-apply-mecha-hit', async ev => {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    if (btn.disabled) return;
+    const targets = Array.from(game.user.targets);
+    if (targets.length !== 1 || !targets[0].actor) {
+      ui.notifications.warn('Target exactly one mech token before applying.');
+      return;
+    }
+    const actor = targets[0].actor;
+    if (!actor.isOwner) {
+      ui.notifications.warn("Only the GM or the target's owner can apply damage.");
+      return;
+    }
+    btn.disabled = true;
+    await MektonActorSheet._applyMechaHit(actor, btn.dataset.loc, Number(btn.dataset.dmg) || 0);
   });
 
   // Override Combat.rollInitiative to use exploding dice

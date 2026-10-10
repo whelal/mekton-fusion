@@ -750,6 +750,21 @@
   padding: 0 0.25rem; margin-bottom: 0.15rem;
 }
 
+/* Mecha Play/Build mode toggle: both views render in the same form (so the
+   fixed-length servos/weapons ArrayFields never lose data on submit); CSS
+   just hides whichever one isn't active. */
+.mekton-fusion .tab.mecha.mf-mode-play .mecha-build { display: none; }
+.mekton-fusion .tab.mecha.mf-mode-build .mecha-play { display: none; }
+.mekton-fusion .tab.mecha .mecha-mode-bar { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.mekton-fusion .tab.mecha .mecha-play .mp-header { display: flex; gap: 1rem; flex-wrap: wrap; align-items: baseline; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.mekton-fusion .tab.mecha .mecha-play table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.85rem; }
+.mekton-fusion .tab.mecha .mecha-play th, .mekton-fusion .tab.mecha .mecha-play td { border: 1px solid #bbb; padding: 0.2rem 0.4rem; }
+.mekton-fusion .tab.mecha .mecha-play th { background: #000; color: #fff; }
+.mekton-fusion .tab.mecha .mecha-play tr.destroyed { opacity: 0.45; text-decoration: line-through; }
+.mekton-fusion .tab.mecha .mecha-play .mp-dmg { width: 3em; }
+.mekton-fusion .tab.mecha .mecha-play .mp-step { width: 1.4em; }
+.mekton-fusion .tab.mecha .mecha-play .mp-parry:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* Responsive adjustments: stack to single column on narrower viewports */
 @media (max-width: 900px) {
   .mekton-fusion .tab.mecha .mecha-columns {

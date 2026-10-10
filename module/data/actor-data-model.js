@@ -236,9 +236,19 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     weightTons: new fields.NumberField({ initial: 0, min: 0 }),
-                    notes: new fields.StringField({ initial: "" })
+                    notes: new fields.StringField({ initial: "" }),
+                    shotsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                    killsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }) // Kills spent parrying with THIS weapon (melee/EMW only; see resolveMeleeParry)
                 }), { initial: [{},{},{},{}] }),
-                imageUrl: new fields.StringField({ initial: "" })
+                imageUrl: new fields.StringField({ initial: "" }),
+                // Play state: damage TAKEN per servo location (current = derived max - damage).
+                // kills = Kills taken; sp = SP ablated (count of >=1K attacks, capped at SP).
+                damage: new fields.SchemaField(Object.fromEntries(
+                    ["head", "torso", "rArm", "lArm", "rLeg", "lLeg"].map(k => [k, new fields.SchemaField({
+                        kills: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+                        sp: new fields.NumberField({ initial: 0, min: 0, integer: true })
+                    })])
+                ))
             }),
             /* Body model for paperdoll locations */
             body: new fields.SchemaField({
@@ -427,6 +437,16 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.armorCost = armor?.cost ?? 0;
             row.armorWeightTons = armor?.weightTons ?? 0;
 
+            // Play state: current SP/Kills are derived from damage TAKEN, never stored
+            // directly, so re-picking a servo class/armor can't desync them.
+            const dmg = mechaData.damage?.[locDef.key] ?? {};
+            row.locKey = locDef.key;
+            row.dmgKills = Number(dmg.kills) || 0;
+            row.dmgSp = Number(dmg.sp) || 0;
+            row.killsLeft = Math.max(0, row.hits - row.dmgKills);
+            row.spLeft = Math.max(0, row.sp - row.dmgSp);
+            row.destroyed = row.hits > 0 && row.killsLeft === 0;
+
             totalCost += row.cost + row.armorCost;
             spaceByLocation[locDef.key].space += (Number(row.space) || 0) + (Number(row.extremitySpace) || 0);
             structuralKills += Number(row.hits) || 0;
@@ -452,6 +472,18 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             } else {
                 row.weightTons = row.weightTons || 0;
             }
+            // Ammo: 1 per attack (single or burst). Numeric shots ("12", "10 bursts") tracked; "∞"/blank not.
+            const maxShots = parseInt(row.shots, 10);
+            row.shotsMax = Number.isFinite(maxShots) ? maxShots : null;
+            row.shotsLeft = row.shotsMax === null ? null : Math.max(0, row.shotsMax - (Number(row.shotsUsed) || 0));
+            row.offline = !!servos.find(s => s?.locKey === row.loc && s.destroyed); // ASSUMPTION: systems in a destroyed servo are lost
+            // Parry: melee weapons and EMWs may parry melee/EMW attacks (not shields' "any attack").
+            // Melee weapons spend 1 of their own Kills per successful parry, regardless of damage;
+            // EMWs don't deplete (see resolveMeleeParry/resolveEmwParry in mecha-damage.js).
+            row.canParry = row.category === 'melee' || row.category === 'energyMelee';
+            row.killsUsed = Number(row.killsUsed) || 0;
+            row.parryKillsLeft = Math.max(0, row.hits - row.killsUsed);
+            row.parryDestroyed = row.hits > 0 && row.parryKillsLeft === 0;
             totalCost += Number(row.cost) || 0;
             if (spaceByLocation[row.loc]) spaceByLocation[row.loc].space += Number(row.space) || 0;
             structuralKills += Number(row.hits) || 0;
@@ -471,6 +503,12 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             } else {
                 row.weightTons = row.weightTons || 0;
             }
+            // Parry arc (book): a shield mounted on the right arm covers the front arc plus
+            // the right flank; left arm covers front plus left flank. Display-only reminder --
+            // this system doesn't track token facing, so the arc itself isn't enforced.
+            row.arcLabel = row.loc === 'rArm' ? 'Front + R flank'
+                : row.loc === 'lArm' ? 'Front + L flank'
+                : row.loc ? 'Arc n/a (not arm-mounted)' : '';
             totalCost += Number(row.cost) || 0;
             if (spaceByLocation[row.loc]) spaceByLocation[row.loc].space += Number(row.space) || 0;
         });
@@ -558,11 +596,12 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
 
         // MEKTON STATS config rows: MV/MR are mech-wide and derived for all three.
         // Configuration name, Land MA, and Flight MA stay manual per config (a
-        // transforming mecha can walk in one mode and fly in another). Both are
-        // filled from a hint whenever at their unset default (0) -- a starting
-        // suggestion the pilot can type over with any nonzero value, which then
-        // sticks (0 always re-suggests the hint). Land MA uses the tonnage-only
-        // Ground MA band; Flight MA uses the summed thruster targetMA above.
+        // transforming mecha can walk in one mode and fly in another). The stored
+        // value (cfg.landMA etc.) is never overwritten -- only the *Eff fields used
+        // for display/derivation fall back to a hint when the stored value is 0,
+        // so submitOnChange can't persist the hint as if the pilot had typed it.
+        // Land MA uses the tonnage-only Ground MA band; Flight MA uses the summed
+        // thruster targetMA above.
         const cfg = mechaData.config;
         if (cfg) {
             cfg.mv = mv ?? 0;
@@ -571,12 +610,12 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             cfg.mr2 = mr;
             cfg.mv3 = mv ?? 0;
             cfg.mr3 = mr;
-            if (!cfg.landMA) cfg.landMA = groundMaHexes ?? 0;
-            if (!cfg.landMA2) cfg.landMA2 = groundMaHexes ?? 0;
-            if (!cfg.landMA3) cfg.landMA3 = groundMaHexes ?? 0;
-            if (!cfg.flightMA) cfg.flightMA = flightMaHint;
-            if (!cfg.flightMA2) cfg.flightMA2 = flightMaHint;
-            if (!cfg.flightMA3) cfg.flightMA3 = flightMaHint;
+            cfg.landMAEff    = cfg.landMA    || (groundMaHexes ?? 0);
+            cfg.landMA2Eff   = cfg.landMA2   || (groundMaHexes ?? 0);
+            cfg.landMA3Eff   = cfg.landMA3   || (groundMaHexes ?? 0);
+            cfg.flightMAEff  = cfg.flightMA  || flightMaHint;
+            cfg.flightMA2Eff = cfg.flightMA2 || flightMaHint;
+            cfg.flightMA3Eff = cfg.flightMA3 || flightMaHint;
         }
 
         // Maneuver Pool keys off the Mecha Piloting (H) skill's total (stat + rank) --
