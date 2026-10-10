@@ -1,3 +1,9 @@
+## [0.3.11] - 2026-10-05
+### Added
+- Update Characters macro (`macros/update-characters.macro.js`, GM only, logic in `module/migrate-actors.js`): brings every character and NPC in the world up to date. It adds CP2020 skills added since the actor was created (existing ranks untouched), sets the skill on owned weapons whose name matches a catalog entry (e.g. thrown weapons -> Athletics), and recomputes body-location armor SP from worn armor. Creatures with natural armor SP are skipped for the armor step. Safe to re-run.
+### Changed
+- Body locations with no worn armor now read 0 SP after the update (previously the schema default of 10 showed on every location).
+
 ## [0.3.10] - 2026-10-03
 ### Added
 - I.P. and Eurobucks ledgers in the sidebar header: `system.meta.points` (I.P.) and a new `system.meta.eurobucks` (cash, starts at 0) are now `{value, transactions[]}` instead of a bare number. A receipt-icon button next to each opens a log dialog -- add a signed delta with a note, edit or delete any past entry, and the running total always recalculates from a fixed baseline rather than trusting stored totals. Existing actors' flat `meta.points` values upgrade automatically (via `migrateData`) into a ledger with no history, starting from the old number. Ported from the maintainer's other system, long-drift (github.com/whelal/long-drift), adapted to this project's `TypeDataModel`/`foundry.utils.escapeHTML` conventions.
