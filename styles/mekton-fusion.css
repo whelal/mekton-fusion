@@ -763,7 +763,8 @@
 .mekton-fusion .tab.mecha .mecha-play tr.destroyed { opacity: 0.45; text-decoration: line-through; }
 .mekton-fusion .tab.mecha .mecha-play .mp-dmg { width: 3em; }
 .mekton-fusion .tab.mecha .mecha-play .mp-step { width: 1.4em; }
-.mekton-fusion .tab.mecha .mecha-play .mp-parry:disabled { opacity: 0.4; cursor: not-allowed; }
+.mekton-fusion .tab.mecha .mecha-play .mp-parry:disabled,
+.mekton-fusion .tab.mecha .mecha-play .mp-reload:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* Responsive adjustments: stack to single column on narrower viewports */
 @media (max-width: 900px) {

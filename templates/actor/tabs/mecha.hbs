@@ -25,7 +25,7 @@
 
   <div class="mecha-mode-bar">
     <button type="button" class="mecha-mode-toggle">Play / Build</button>
-    <button type="button" class="mp-repair-all">Repair &amp; Reload</button>
+    <button type="button" class="mp-repair-all" title="Full repair, rearm and restock -- not available in the field">Depot Maintenance</button>
   </div>
 
   <section class="mecha-play">
@@ -82,8 +82,12 @@
               <button type="button" class="mp-step" data-target="system.mecha.weapons.{{idx}}.shotsUsed" data-delta="1">&minus;</button>
               {{w.shotsLeft}}/{{w.shotsMax}}
               <button type="button" class="mp-step" data-target="system.mecha.weapons.{{idx}}.shotsUsed" data-delta="-1">+</button>
+              <br/><small>Spares {{w.fullSparesLeft}}/{{w.clips}}{{#if w.partials.length}} &middot; partial {{w.partialClips}}{{/if}}</small>
+              <button type="button" class="mp-reload" data-idx="{{idx}}" title="Reload (1 Action)" {{#unless w.canReload}}disabled{{/unless}}><i class="fas fa-sync-alt"></i></button>
             {{else}}{{w.shots}}{{/if}}
             <input type="hidden" name="system.mecha.weapons.{{idx}}.shotsUsed" value="{{w.shotsUsed}}"/>
+            <input type="hidden" name="system.mecha.weapons.{{idx}}.clipsUsed" value="{{w.clipsUsed}}"/>
+            <input type="hidden" name="system.mecha.weapons.{{idx}}.partialClips" value="{{w.partialClips}}"/>
           </td>
           <td>{{w.loc}}</td>
         </tr>
@@ -95,11 +99,11 @@
       <thead><tr><th></th><th>Shield</th><th>DA</th><th>SP</th><th>Parries</th></tr></thead>
       <tbody>
         {{#each system.mecha.shields as |sh idx|}}{{#if sh.key}}
-        <tr>
-          <td><button type="button" class="mp-parry" data-kind="shield" data-idx="{{idx}}" title="Declare a parry (stops any attack)"><i class="fas fa-shield-alt"></i></button></td>
+        <tr class="{{#if sh.parryDestroyed}}destroyed{{/if}}">
+          <td><button type="button" class="mp-parry" data-kind="shield" data-idx="{{idx}}" title="Declare a parry (stops any attack)" {{#if sh.parryDestroyed}}disabled{{/if}}><i class="fas fa-shield-alt"></i></button></td>
           <td>{{sh.name}}</td>
           <td>{{sh.da}}</td>
-          <td>{{sh.sp}}</td>
+          <td>{{sh.spLeft}}/{{sh.sp}}<input type="hidden" name="system.mecha.shields.{{idx}}.spUsed" value="{{sh.spUsed}}"/></td>
           <td>{{sh.arcLabel}}</td>
         </tr>
         {{/if}}{{/each}}
@@ -555,14 +559,14 @@
     <h3>ARMAMENT</h3>
     <table class="armament-table">
       <colgroup>
-        <col style="width: 3%" /><col style="width: 8%" /><col style="width: 18%" />
+        <col style="width: 3%" /><col style="width: 8%" /><col style="width: 17%" />
         <col style="width: 5%" /><col style="width: 6%" /><col style="width: 7%" />
-        <col style="width: 7%" /><col style="width: 4%" /><col style="width: 4%" />
-        <col style="width: 6%" /><col style="width: 5%" /><col style="width: 5%" />
-        <col style="width: 6%" /><col style="width: 16%" />
+        <col style="width: 7%" /><col style="width: 5%" /><col style="width: 4%" />
+        <col style="width: 4%" /><col style="width: 6%" /><col style="width: 5%" />
+        <col style="width: 5%" /><col style="width: 6%" /><col style="width: 12%" />
       </colgroup>
       <thead>
-        <tr><th>Roll</th><th>Category</th><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>K</th><th>BV</th><th>Loc</th><th>Cost</th><th>Space</th><th>Weight</th><th>Notes</th></tr>
+        <tr><th>Roll</th><th>Category</th><th>Weapon</th><th>WA</th><th>Range</th><th>Damage</th><th>Shots</th><th>Clips</th><th>K</th><th>BV</th><th>Loc</th><th>Cost</th><th>Space</th><th>Weight</th><th>Notes</th></tr>
       </thead>
       <tbody>
         {{#each system.mecha.weapons as |weapon idx|}}
@@ -574,6 +578,7 @@
           <td><input class="derived-input" type="text" value="{{weapon.range}}" readonly title="Derived from weapon"/></td>
           <td><input class="derived-input" type="text" value="{{weapon.damage}}" readonly title="Derived from weapon (Kills)"/></td>
           <td><input class="derived-input" type="text" value="{{weapon.shots}}" readonly title="Derived from weapon"/></td>
+          <td>{{#if weapon.shotsMax}}<input type="number" name="system.mecha.weapons.{{idx}}.clips" value="{{weapon.clips}}" min="0" title="Spare clips carried"/>{{/if}}</td>
           <td><input class="derived-input" type="number" value="{{weapon.hits}}" readonly title="Derived from weapon"/></td>
           <td><input class="derived-input" type="text" value="{{weapon.bv}}" readonly title="Burst value, derived from weapon"/></td>
           <td>{{mechaLocationSelect (concat "system.mecha.weapons." idx ".loc") weapon.loc}}</td>

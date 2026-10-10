@@ -219,7 +219,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     loc: new fields.StringField({ initial: "" }),
                     space: new fields.NumberField({ initial: 0, min: 0 }),
                     cost: new fields.NumberField({ initial: 0, min: 0 }),
-                    weightTons: new fields.NumberField({ initial: 0, min: 0 })
+                    weightTons: new fields.NumberField({ initial: 0, min: 0 }),
+                    spUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }) // SP lost to successful parries (1 per parry, any damage)
                 }), { initial: [{},{}] }),
                 weapons: new fields.ArrayField(new fields.SchemaField({
                     category: new fields.StringField({ initial: "" }), // WEAPON_CATEGORIES key (beam/projectile/missile/melee/energyMelee)
@@ -238,7 +239,10 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     weightTons: new fields.NumberField({ initial: 0, min: 0 }),
                     notes: new fields.StringField({ initial: "" }),
                     shotsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                    killsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }) // Kills spent parrying with THIS weapon (melee/EMW only; see resolveMeleeParry)
+                    killsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Kills spent parrying with THIS weapon (melee/EMW only; see resolveMeleeParry)
+                    clips: new fields.NumberField({ initial: 0, min: 0, integer: true }),       // spare clips when stocked (Build view)
+                    clipsUsed: new fields.NumberField({ initial: 0, min: 0, integer: true }),   // FULL spares taken out of stock (Play)
+                    partialClips: new fields.StringField({ initial: "" })                       // shots left in each pulled partial clip, e.g. "4,7" (Play)
                 }), { initial: [{},{},{},{}] }),
                 imageUrl: new fields.StringField({ initial: "" }),
                 // Play state: damage TAKEN per servo location (current = derived max - damage).
@@ -476,6 +480,16 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             const maxShots = parseInt(row.shots, 10);
             row.shotsMax = Number.isFinite(maxShots) ? maxShots : null;
             row.shotsLeft = row.shotsMax === null ? null : Math.max(0, row.shotsMax - (Number(row.shotsUsed) || 0));
+            // Clips: spare clips (Build-set count) minus full spares already pulled, plus any
+            // partially-used clips kept from earlier reloads (comma string, since partialClips
+            // isn't an ArrayField and needs to survive a whole-form submit via one hidden input).
+            row.clips = Number(row.clips) || 0;
+            row.clipsUsed = Number(row.clipsUsed) || 0;
+            row.partials = String(row.partialClips || '').split(',').map(n => parseInt(n, 10)).filter(n => n > 0);
+            row.fullSparesLeft = row.shotsMax === null ? null : Math.max(0, row.clips - row.clipsUsed);
+            // Only worth an Action if it actually gets you more shots than what's loaded.
+            row.canReload = row.shotsMax !== null && (Number(row.shotsUsed) || 0) > 0
+                && (row.fullSparesLeft > 0 || row.partials.some(n => n > row.shotsLeft));
             row.offline = !!servos.find(s => s?.locKey === row.loc && s.destroyed); // ASSUMPTION: systems in a destroyed servo are lost
             // Parry: melee weapons and EMWs may parry melee/EMW attacks (not shields' "any attack").
             // Melee weapons spend 1 of their own Kills per successful parry, regardless of damage;
@@ -509,6 +523,11 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.arcLabel = row.loc === 'rArm' ? 'Front + R flank'
                 : row.loc === 'lArm' ? 'Front + L flank'
                 : row.loc ? 'Arc n/a (not arm-mounted)' : '';
+            // Parry wear: a shield loses 1 SP per successful parry, any damage (same math as a
+            // melee weapon's Kills -- see resolveMeleeParry in mecha-damage.js).
+            row.spUsed = Number(row.spUsed) || 0;
+            row.spLeft = Math.max(0, (Number(row.sp) || 0) - row.spUsed);
+            row.parryDestroyed = (Number(row.sp) || 0) > 0 && row.spLeft === 0;
             totalCost += Number(row.cost) || 0;
             if (spaceByLocation[row.loc]) spaceByLocation[row.loc].space += Number(row.space) || 0;
         });

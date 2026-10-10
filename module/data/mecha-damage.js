@@ -50,3 +50,8 @@ export function resolveMeleeParry({ killsMax, killsUsed }) {
 export function resolveEmwParry({ emwDamage, attackDamage }) {
   return { ok: Number(attackDamage) <= Number(emwDamage), emwDamage: Number(emwDamage), attackDamage: Number(attackDamage) };
 }
+
+/** Parry Roll vs attack. ASSUMPTION: same tie rule as Evade (parry total >= attack total succeeds). */
+export function parrySucceeds(parryTotal, attackTotal) {
+  return Number(parryTotal) >= Number(attackTotal);
+}

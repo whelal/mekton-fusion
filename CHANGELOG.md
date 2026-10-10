@@ -1,3 +1,12 @@
+## [0.3.13] - 2026-10-10
+### Fixed
+- Parry was resolving as an automatic stop. It's now a Parry Roll (core p.92-93): 1D10 + Mecha Reflex + Mecha Melee + DA, vs the attack total (ties succeed, same assumption as Evade) -- a failed roll means the target takes the hit. Shields use their own DA; melee weapons and EMWs use their WA as DA. Shields now lose 1 SP per successful parry, the same "no matter the damage" rule as a melee weapon's Kills, and are destroyed at 0 SP -- this reading of the shield rule (p.92) is NOT yet book-confirmed by the maintainer, flagged in code and here. Non-melee weapons parrying a melee attack at DA -2, and knockback from a parried attack (one level less, p.100), are both out of scope and not implemented.
+- A burst spent its ammo even when the defense-total dialog was cancelled (nothing was actually fired). Ammo now only spends after the dialog resolves. An empty weapon (single shot or burst) now refuses to roll at all, with a message pointing at Reload when it has spares.
+### Added
+- Spare clips per weapon (Build view only, `system.mecha.weapons[].clips`): a counted number of full reloads bought at construction. Reload (`.mp-reload`, 1 Action, announced in chat, not tracked by the sheet) swaps in a full spare clip, or else the largest partially-used clip on hand -- the clip just pulled is kept as a partial, never discarded, and persists even on a destroyed mech until Depot or salvage. The Reload button disables once reloading wouldn't add any shots.
+### Changed
+- "Repair & Reload" is renamed **Depot Maintenance** and is explicitly framed as the only full reset (not a field action): it now also restocks every weapon's spare clips and clears partials, and restores shield parry SP, alongside the existing servo-damage and ammo reset.
+
 ## [0.3.12] - 2026-10-10
 ### Added
 - Mecha tab Play/Build toggle (`.mecha-mode-toggle`): the Play view is a compact combat tracker -- per-servo SP/Kills remaining with +/- steppers and a direct "Apply Hit" button, and per-weapon ammo remaining with a single-shot or burst roll button -- instead of the full ~230-cell construction worksheet. A Repair & Reload button clears all servo damage and refills every weapon's ammo. Both views render in the same form (Build hidden via CSS, not `disabled`) so the fixed-length servos/weapons arrays never lose data when only one view is visible.
