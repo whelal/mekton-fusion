@@ -202,7 +202,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         crew: new fields.NumberField({ initial: 1, min: 0, integer: true }),
                         options: new fields.StringField({ initial: "" }),
                         space: new fields.NumberField({ initial: 0, min: 0 }),
-                        cp: new fields.NumberField({ initial: 0, min: 0 })
+                        cp: new fields.NumberField({ initial: 0, min: 0 }),
+                        loc: new fields.StringField({ initial: "torso" }) // servo id holding the cockpit; destroying it triggers an Emergency Ejection warning
                     }),
                     items: new fields.ArrayField(new fields.SchemaField({
                         key: new fields.StringField({ initial: "" }), // OPTIONS picker key; derives name/cost/space
@@ -248,14 +249,15 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     partialClips: new fields.StringField({ initial: "" })                       // shots left in each pulled partial clip, e.g. "4,7" (Play)
                 }), { initial: [{},{},{},{}] }),
                 imageUrl: new fields.StringField({ initial: "" }),
-                // Play state: damage TAKEN per servo location (current = derived max - damage).
-                // kills = Kills taken; sp = SP ablated (count of >=1K attacks, capped at SP).
-                damage: new fields.SchemaField(Object.fromEntries(
-                    ["head", "torso", "rArm", "lArm", "rLeg", "lLeg"].map(k => [k, new fields.SchemaField({
-                        kills: new fields.NumberField({ initial: 0, min: 0, integer: true }),
-                        sp: new fields.NumberField({ initial: 0, min: 0, integer: true })
-                    })])
-                ))
+                // Play state: damage TAKEN per servo id (current = derived max - taken).
+                // { <servoId>: { kills, sp } } -- kills = Kills taken; sp = SP ablated
+                // (count of >=1K hits, capped at SP). An ObjectField rather than a fixed-key
+                // SchemaField so any servo id (including one added past the default 6) can
+                // take damage; entries for a since-deleted servo are just never read again
+                // (orphaned, not cleaned up). The default humanoid's 6 servo ids equal the
+                // schema's old fixed keys (head/torso/rArm/lArm/rLeg/lLeg), so existing
+                // actors' stored damage carries over with no migration.
+                damage: new fields.ObjectField({ initial: {} })
             }),
             /* Body model for paperdoll locations */
             body: new fields.SchemaField({
@@ -454,21 +456,20 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.armorCost = armor?.cost ?? 0;
             row.armorWeightTons = armor?.weightTons ?? 0;
 
-            // Play state: current SP/Kills are derived from damage TAKEN, never stored
-            // directly, so re-picking a servo class/armor can't desync them. `locKey` is
-            // kept as an alias for `id` -- the default 6 rows' ids equal the old fixed
-            // location keys, so system.mecha.damage (still a fixed 6-key SchemaField),
-            // the weapon offline check, and the Play view's named inputs all keep working
-            // unchanged for them. A servo added beyond the default 6 derives fine, but has
-            // no matching damage slot -- its damage edits won't persist until a later phase
-            // widens system.mecha.damage to be dynamic (tracked as a known gap).
+            // Play state: current SP/Kills are derived from damage TAKEN (system.mecha.damage,
+            // keyed by servo id -- see applyHit() in mecha-damage.js for the hit math), never
+            // stored directly, so re-picking a servo class/armor can't desync them. `locKey` is
+            // kept as an alias for `id` for existing consumers (weapon offline check, Play view
+            // named inputs).
             row.locKey = row.id;
             const dmg = mechaData.damage?.[row.id] ?? {};
             row.dmgKills = Number(dmg.kills) || 0;
             row.dmgSp = Number(dmg.sp) || 0;
             row.killsLeft = Math.max(0, row.hits - row.dmgKills);
             row.spLeft = Math.max(0, row.sp - row.dmgSp);
-            row.destroyed = row.hits > 0 && row.killsLeft === 0;
+            // Pods (and any 0-Kills component) have no real Kills pool, so the first
+            // penetrating hit (applyHit records it as dmgKills > 0) destroys them outright.
+            row.destroyed = (row.hits > 0 && row.killsLeft === 0) || (row.kind === "pod" && row.dmgKills > 0);
 
             totalCost += row.cost + row.armorCost;
             spaceByLocation[row.id].space += (Number(row.space) || 0) + (Number(row.extremitySpace) || 0);

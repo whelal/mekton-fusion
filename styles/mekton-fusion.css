@@ -766,7 +766,7 @@
 .mekton-fusion .tab.mecha .mecha-play table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.85rem; }
 .mekton-fusion .tab.mecha .mecha-play th, .mekton-fusion .tab.mecha .mecha-play td { border: 1px solid #bbb; padding: 0.2rem 0.4rem; }
 .mekton-fusion .tab.mecha .mecha-play th { background: #000; color: #fff; }
-.mekton-fusion .tab.mecha .mecha-play tr.destroyed { opacity: 0.45; text-decoration: line-through; }
+.mekton-fusion .tab.mecha .mecha-play tr.destroyed { opacity: 0.6; text-decoration: line-through; color: #a33; }
 .mekton-fusion .tab.mecha .mecha-play .mp-dmg { width: 3em; }
 .mekton-fusion .tab.mecha .mecha-play .mp-step { width: 1.4em; }
 .mekton-fusion .tab.mecha .mecha-play .mp-parry:disabled,

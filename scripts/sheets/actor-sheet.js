@@ -3,7 +3,7 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
 import { deriveArmorByLocation } from "../../module/data/armor.js";
-import { resolveMechaHit, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds } from "../../module/data/mecha-damage.js";
+import { applyHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds } from "../../module/data/mecha-damage.js";
 import { rollMechaHitLocation } from "../../module/data/mecha-hit-table.js";
 import { escapeHtml } from "../../module/util/escape.js";
 
@@ -2526,29 +2526,33 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Apply one attack of `damage` Kills to `actor`'s mecha at servo location `loc`.
-   * `damage` is a SchemaField keyed by location, so this partial update is safe.
+   * Apply one hit of `kills` damage to `actor`'s mecha at servo `loc` (its `id`,
+   * aliased via `locKey`). Staged penetration math lives in applyHit()
+   * (mecha-damage.js, shared with the multi-hit salvo flow); this just reads
+   * the servo's current damage-taken entry, applies one hit, and writes it back.
    */
-  static async _applyMechaHit(actor, loc, damage) {
+  static async _applyMechaHit(actor, loc, kills, { megaCrit = false } = {}) {
     const servo = actor.system.mecha?.servos?.find(s => s?.locKey === loc);
-    if (!servo || !servo.hits) {
+    if (!servo) {
       ui.notifications.warn(`${actor.name}: no servo at ${loc}.`);
       return null;
     }
-    const r = resolveMechaHit({
-      damage, spMax: servo.sp, spDamage: servo.dmgSp,
-      killsMax: servo.hits, killsDamage: servo.dmgKills
-    });
+    const r = applyHit({ maxKills: servo.hits, maxSP: servo.sp, taken: { kills: servo.dmgKills, sp: servo.dmgSp } }, kills, { megaCrit });
+    const speaker = ChatMessage.getSpeaker({ actor });
+    const mechName = escapeHtml(actor.system.mecha.name || actor.name);
+    if (r.wasDestroyed) {
+      await ChatMessage.create({ speaker, content: `<strong>${mechName}</strong> — ${servo.servo} is already destroyed, hit has no effect.` });
+      return r;
+    }
     await actor.update({
-      [`system.mecha.damage.${loc}.sp`]: r.spDamage,
-      [`system.mecha.damage.${loc}.kills`]: r.killsDamage
+      [`system.mecha.damage.${loc}.sp`]: r.taken.sp,
+      [`system.mecha.damage.${loc}.kills`]: r.taken.kills
     });
-    const parts = [`SP ${r.spBefore} → ${r.spAfter}`, `${r.penetrating}K penetrate`, `Kills ${r.killsAfter}/${servo.hits}`];
+    const parts = [`${r.through}K through`, r.ablated ? 'SP -1' : 'SP unaffected'];
     if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
-    if (r.excess) parts.push(`${r.excess}K excess`);
     await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor }),
-      content: `<strong>${escapeHtml(actor.system.mecha.name || actor.name)}</strong> — ${servo.servo} takes ${damage}K: ${parts.join(' · ')}`
+      speaker,
+      content: `<strong>${mechName}</strong> — ${servo.servo} takes ${kills}K${megaCrit ? ' (Mega-Crit)' : ''}: ${parts.join(' · ')}`
     });
     return r;
   }
@@ -2557,17 +2561,86 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   async _onMechaApplyHit(ev) {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset.loc;
-    let damage;
+    let form;
     try {
-      damage = await Dialog.prompt({
+      form = await Dialog.prompt({
         title: 'Apply Hit',
-        content: `<p>Damage from one attack (Kills):</p><input type="number" name="dmg" min="0" value="0" style="width:100%" autofocus/>`,
+        content: `<p>Damage from one attack (Kills):</p><input type="number" name="dmg" min="0" value="0" style="width:100%" autofocus/>`
+          + `<p><label><input type="checkbox" name="mega"/> Mega-Crit (bypasses armor entirely, no ablation)</label></p>`,
         label: 'Apply',
-        callback: html => Number(html.find("[name='dmg']").val()) || 0
+        callback: html => ({ dmg: Number(html.find("[name='dmg']").val()) || 0, megaCrit: html.find("[name='mega']").is(':checked') })
       });
     } catch (_) { return; }
-    if (!damage) return;
-    await MektonActorSheet._applyMechaHit(this.actor, loc, damage);
+    if (!form.dmg) return;
+    await MektonActorSheet._applyMechaHit(this.actor, loc, form.dmg, { megaCrit: form.megaCrit });
+  }
+
+  /**
+   * Apply a salvo of `hits` attacks of `kills` damage each to `actor`'s mecha,
+   * rolling hit location per the Hit Location Chart (locationFromRoll,
+   * mecha-damage.js) unless `servoId` pins an aimed shot. Hits in the same
+   * salvo stack sequentially on a working copy of damage-taken, so an earlier
+   * hit's ablation/Kills affect how a later hit in the same salvo resolves.
+   * One actor.update; one chat card listing every hit's d10 roll and outcome.
+   */
+  static async _applyMechaSalvo(actor, { kills, hits = 1, megaCrit = false, servoId = null } = {}) {
+    const servos = (actor.system.mecha?.servos ?? []).filter(s => s?.id);
+    if (!servos.length) { ui.notifications.warn(`${actor.name}: no servos to hit.`); return null; }
+    const servoById = Object.fromEntries(servos.map(s => [s.id, s]));
+
+    // Running damage-taken per servo, seeded from current state, mutated hit by
+    // hit so later hits in this salvo see earlier ones' effects.
+    const working = {};
+    const takenFor = id => working[id] ?? (working[id] = { kills: servoById[id].dmgKills, sp: servoById[id].dmgSp });
+
+    const rand = n => Math.floor(Math.random() * n);
+    const rolls = [];
+    const lines = [];
+    let ejectWarning = false;
+
+    for (let i = 1; i <= hits; i++) {
+      let loc, roll, attempts = 0;
+      do {
+        roll = await new Roll('1d10').evaluate();
+        rolls.push(roll);
+        loc = servoId ? { servoId, special: false, reroll: false } : locationFromRoll(roll.total, servos, rand);
+        attempts++;
+      } while (loc.reroll && attempts < 20);
+
+      if (loc.special) {
+        lines.push(`<li>Hit ${i}: d10 ${roll.total} → <strong>Special hit</strong> -- resolve on the Special chart.</li>`);
+        continue;
+      }
+      const servo = loc.servoId ? servoById[loc.servoId] : null;
+      if (!servo) {
+        lines.push(`<li>Hit ${i}: d10 ${roll.total} → no servo there.</li>`);
+        continue;
+      }
+      const r = applyHit({ maxKills: servo.hits, maxSP: servo.sp, taken: takenFor(servo.id) }, kills, { megaCrit });
+      working[servo.id] = r.taken;
+
+      if (r.wasDestroyed) {
+        lines.push(`<li>Hit ${i}: d10 ${roll.total} → ${escapeHtml(servo.servo)} -- already destroyed, no effect.</li>`);
+        continue;
+      }
+      const parts = [`${r.through}K through`, r.ablated ? 'SP -1' : 'SP unaffected'];
+      if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
+      lines.push(`<li>Hit ${i}: d10 ${roll.total} → <strong>${escapeHtml(servo.servo)}</strong>${megaCrit ? ' (Mega-Crit)' : ''}: ${parts.join(' · ')}</li>`);
+
+      if (r.destroyed && actor.system.mecha?.subassemblies?.cockpit?.loc === servo.id) ejectWarning = true;
+    }
+
+    const update = {};
+    for (const [id, t] of Object.entries(working)) {
+      update[`system.mecha.damage.${id}.sp`] = t.sp;
+      update[`system.mecha.damage.${id}.kills`] = t.kills;
+    }
+    if (Object.keys(update).length) await actor.update(update);
+
+    let content = `<strong>${escapeHtml(actor.system.mecha.name || actor.name)}</strong> takes ${hits} hit${hits === 1 ? '' : 's'} of ${kills}K:<ul>${lines.join('')}</ul>`;
+    if (ejectWarning) content += `<p><strong>Pilot must make an Emergency Ejection roll.</strong></p>`;
+    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }), content, rolls });
+    return { taken: working, rolls };
   }
 
   /**
@@ -3039,7 +3112,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const damageStr = (row.damage !== undefined && row.damage !== '') ? `${row.damage}K${row.damageNote ? ` (${row.damageNote})` : ''}` : '—';
     const shotsStr = row.shots || '—';
     const locStr = row.loc || 'unassigned';
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>`;
+    const dmgNum = Number(row.damage) || 0;
+    const applyBtn = dmgNum > 0 ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmgNum}" title="GM: roll hit location(s) and apply damage to the targeted mech">Apply hit</button>` : '';
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
 
     await roll.toMessage({ speaker, flavor });
   }

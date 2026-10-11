@@ -545,6 +545,49 @@ Hooks.once("ready", () => {
     await MektonActorSheet._applyMechaHit(actor, btn.dataset.loc, Number(btn.dataset.dmg) || 0);
   });
 
+  // Mecha "Apply hit" button (posted on every damaging Armament roll): GM rolls
+  // hit location(s) per the Hit Location Chart and applies staged-penetration
+  // damage to the targeted mech in one go. GM-only -- this system has no socket
+  // to relay a player's apply request, so a player applying to someone else's
+  // mech can't be done safely here.
+  $(document).on('click', '.mf-apply-mecha-salvo', async ev => {
+    ev.preventDefault();
+    const btn = ev.currentTarget;
+    if (btn.disabled) return;
+    if (!game.user.isGM) {
+      ui.notifications.warn('Only the GM can apply mecha hits.');
+      return;
+    }
+    const targets = Array.from(game.user.targets);
+    const actor = targets.length === 1 ? targets[0].actor : null;
+    const servos = (actor?.system?.mecha?.servos ?? []).filter(s => s?.id);
+    if (!actor || !servos.length) {
+      ui.notifications.warn('Target exactly one mech token (with servos) before applying.');
+      return;
+    }
+
+    let form;
+    try {
+      form = await Dialog.prompt({
+        title: 'Apply Mecha Hit',
+        content: `<p>Hits (a resolved burst = margin capped at BV):</p><input type="number" name="hits" value="1" min="1" style="width:100%" autofocus/>`
+          + `<p><label><input type="checkbox" name="mega"/> Mega-Crit (margin ≥10: bypasses armor, no ablation)</label></p>`
+          + `<p>Location:</p><select name="loc" style="width:100%"><option value="">Random (Hit Location Chart)</option>`
+          + servos.map(s => `<option value="${s.id}">${escapeHtml(s.servo || s.id)}</option>`).join('')
+          + `</select>`,
+        label: 'Apply',
+        callback: html => ({
+          hits: Math.max(1, Number(html.find("[name='hits']").val()) || 1),
+          megaCrit: html.find("[name='mega']").is(':checked'),
+          servoId: html.find("[name='loc']").val() || null
+        })
+      });
+    } catch (_) { return; }
+
+    btn.disabled = true;
+    await MektonActorSheet._applyMechaSalvo(actor, { kills: Number(btn.dataset.kills) || 0, hits: form.hits, megaCrit: form.megaCrit, servoId: form.servoId });
+  });
+
   // Override Combat.rollInitiative to use exploding dice
   if (CONFIG.Combat.documentClass) {
     const originalCombatRollInitiative = CONFIG.Combat.documentClass.prototype.rollInitiative;

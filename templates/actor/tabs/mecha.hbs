@@ -53,9 +53,9 @@
           </td>
           <td>
             <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="1">&minus;</button>
-            {{s.killsLeft}}/{{s.hits}}
+            {{#if s.hits}}{{s.killsLeft}}/{{s.hits}}{{else}}{{#if s.destroyed}}Destroyed{{else}}Intact{{/if}}{{/if}}
             <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="-1">+</button>
-            <input type="number" class="mp-dmg" name="system.mecha.damage.{{s.locKey}}.kills" value="{{s.dmgKills}}" min="0" title="Kills taken"/>
+            <input type="number" class="mp-dmg" name="system.mecha.damage.{{s.locKey}}.kills" value="{{s.dmgKills}}" min="0" title="Kills taken (0-Kills components like pods: any value >0 destroys it)"/>
           </td>
         </tr>
         {{/if}}{{/each}}
@@ -368,13 +368,14 @@
         <h3>SUBASSEMBLIES</h3>
         <table class="cockpit-table">
           <thead>
-            <tr><th>Cockpit</th><th># Crew</th><th>Options</th><th>Space</th><th>CP</th></tr>
+            <tr><th>Cockpit</th><th># Crew</th><th>Options</th><th>Loc</th><th>Space</th><th>CP</th></tr>
           </thead>
           <tbody>
             <tr>
               <td>{{cockpitTypeSelect "system.mecha.subassemblies.cockpit.type" system.mecha.subassemblies.cockpit.type}}</td>
               <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.crew}}" readonly title="Derived from cockpit type"/></td>
               <td><input name="system.mecha.subassemblies.cockpit.options" type="text" value="{{system.mecha.subassemblies.cockpit.options}}"/></td>
+              <td>{{mechaLocationSelect "system.mecha.subassemblies.cockpit.loc" system.mecha.subassemblies.cockpit.loc system.mecha.servos}}</td>
               <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.space}}" readonly title="Derived from cockpit type"/></td>
               <td><input class="derived-input" type="number" value="{{system.mecha.subassemblies.cockpit.cp}}" readonly title="Derived from cockpit type"/></td>
             </tr>
