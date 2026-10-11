@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.13** -- APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.14** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -40,6 +40,7 @@ Core areas:
 - Derived MEKTON PROFILE Weight (Final Weight = total Kills / 2, +10% with the Fuel toggle) and MEKTON STATS (MV/MR mass-derived; Land MA/Flight MA manual per config, pre-filled from tonnage/thruster hints)
 - Maneuver Pool derived from the Mecha Piloting (H) skill
 - NPC/mook presets (Vesper-class Skirmisher, Bulwark-class Assault, Dire Wolf) loadable via a picker, stamping selection keys into a mech's arrays for the derive pipeline to fill in
+- Servos are an identified list, not a fixed 6-slot array: add/remove a servo (arm/leg/head/wing/tail/pod, any side) beyond the default humanoid torso, with labels derived automatically ("R Arm 2") and every Loc picker (weapons/shields/sensors/movement/subassemblies) picking it up immediately
 - Play/Build toggle: a compact Play view tracks per-servo armor SP/Kills (staged penetration), weapon ammo with spare clips and reloading, burst fire (hits per the Mecha Random Hit Chart), and a Parry Roll (1D10 + MR + Mecha Melee + DA vs the attack total; shields spend SP, melee weapons spend Kills, EMWs check their Damage rating) during a session, without exposing the full construction worksheet; Depot Maintenance is the only full reset of damage, ammo, clips, and parry wear
 
 **Engine**

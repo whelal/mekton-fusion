@@ -1,5 +1,5 @@
 import { getBodyValues, getMovementAllowance, getStandardMovement, getSkillPointMultiplier, encumberedMA } from "./body-values.js";
-import { deriveServo, deriveArmor, SENSORS, COCKPIT, SERVO_ROW_LOCATIONS } from "./mecha-construction.js";
+import { deriveServo, deriveArmor, SENSORS, COCKPIT, DEFAULT_SERVO_ROWS, servoMeta, servoLabels } from "./mecha-construction.js";
 import { getWeapon, SHIELDS } from "./mecha-weapons.js";
 import { OPTIONS, optionCost } from "./mecha-options.js";
 import { finalWeight, propulsionLiftPoints, groundMA, maneuverValue, mechaReflex, maneuverPool } from "./mecha-movement.js";
@@ -159,6 +159,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     mpMod: new fields.NumberField({ initial: 0 }) // derived combat modifier (Maneuver Pool); reference only, not yet applied
                 }),
                 servos: new fields.ArrayField(new fields.SchemaField({
+                    id: new fields.StringField({ initial: "" }), // opaque identity; stable across class/armor edits (see servoMeta)
+                    kind: new fields.StringField({ initial: "" }), // head|torso|arm|leg|wing|tail|pod; selects the construction table
+                    side: new fields.StringField({ initial: "c" }), // r|l|c; drives the label prefix and parry-arc
                     sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // derived from armor (ARMOR table)
                     hits: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                     servo: new fields.StringField({ initial: "" }),
@@ -171,7 +174,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     armor: new fields.StringField({ initial: "" }), // ARMOR class key (reused field); derives sp/armorCost/armorWeightTons
                     armorCost: new fields.NumberField({ initial: 0, min: 0 }),
                     armorWeightTons: new fields.NumberField({ initial: 0, min: 0 })
-                }), { initial: [{},{},{},{},{},{}] }),
+                }), { initial: DEFAULT_SERVO_ROWS.map(r => ({ ...r })) }),
                 movementSystems: new fields.ArrayField(new fields.SchemaField({
                     system: new fields.StringField({ initial: "" }), // free-text label (e.g. "Left Leg Thruster"), stays manual
                     type: new fields.StringField({ initial: "" }), // "thruster"/"ges"; with targetMA, derives spc/cp (equal)
@@ -406,9 +409,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
      * Mutates `mechaData` in place (same pattern as the BODY/MA overwrites above).
      */
     _deriveMecha(mechaData) {
-        const spaceByLocation = {};
-        for (const loc of SERVO_ROW_LOCATIONS) spaceByLocation[loc.key] = { label: loc.label, space: 0 };
-        if (!mechaData) return { totalCost: 0, weight: 0, spaceByLocation };
+        if (!mechaData) return { totalCost: 0, weight: 0, spaceByLocation: {} };
 
         let totalCost = 0;
         // Final Weight = total Kills across the whole mecha / 2 -- every component with a
@@ -416,16 +417,28 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         // Shields have no Kills stat in this data, so they never contribute.
         let structuralKills = 0;
 
-        // Servos: 6 fixed rows, mapped onto SERVO_ROW_LOCATIONS by index. Each location
-        // (torso/arm/leg/head) has its own construction table -- deriveServo needs the
-        // row's real location, not a shared one, or the numbers are wrong.
+        // Servos are an identified list (id/kind/side), not 6 fixed index-mapped slots --
+        // resolve identity for the whole list first (old actors fall back to the default
+        // humanoid layout by index; see servoMeta), then compute labels together, since an
+        // ordinal ("R Arm 2") depends on sibling rows sharing the same (side, kind).
         const servos = mechaData.servos ?? [];
-        servos.forEach((row, i) => {
-            const locDef = SERVO_ROW_LOCATIONS[i];
-            if (!row || !locDef) return;
+        servos.forEach((row, i) => row && Object.assign(row, servoMeta(row, i)));
+        const labels = servoLabels(servos);
+        servos.forEach((row, i) => { if (row) row.servo = labels[i]; });
+
+        // spaceByLocation is keyed by servo id now (was the fixed location key).
+        const spaceByLocation = {};
+        for (const row of servos) {
+            if (row) spaceByLocation[row.id] = { label: row.servo, space: 0 };
+        }
+
+        // Each location kind (torso/arm/leg/head/wing/tail/pod) has its own construction
+        // table -- deriveServo needs the row's real kind, not a shared one, or the numbers
+        // are wrong. Pod uses POD_SERVO (0 Kills); wing/tail share HEAD_WING_TAIL_SERVO.
+        servos.forEach(row => {
+            if (!row) return;
             const classKey = row.level; // reused field: stores the servo class key, not free text
-            const derived = classKey ? deriveServo(classKey, locDef.kind, row.extremityKey) : null;
-            row.servo = locDef.label;
+            const derived = classKey ? deriveServo(classKey, row.kind, row.extremityKey) : null;
             row.hits = derived?.kills ?? 0;
             row.space = derived?.space ?? 0;
             row.cost = derived?.cost ?? 0;
@@ -442,9 +455,15 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.armorWeightTons = armor?.weightTons ?? 0;
 
             // Play state: current SP/Kills are derived from damage TAKEN, never stored
-            // directly, so re-picking a servo class/armor can't desync them.
-            const dmg = mechaData.damage?.[locDef.key] ?? {};
-            row.locKey = locDef.key;
+            // directly, so re-picking a servo class/armor can't desync them. `locKey` is
+            // kept as an alias for `id` -- the default 6 rows' ids equal the old fixed
+            // location keys, so system.mecha.damage (still a fixed 6-key SchemaField),
+            // the weapon offline check, and the Play view's named inputs all keep working
+            // unchanged for them. A servo added beyond the default 6 derives fine, but has
+            // no matching damage slot -- its damage edits won't persist until a later phase
+            // widens system.mecha.damage to be dynamic (tracked as a known gap).
+            row.locKey = row.id;
+            const dmg = mechaData.damage?.[row.id] ?? {};
             row.dmgKills = Number(dmg.kills) || 0;
             row.dmgSp = Number(dmg.sp) || 0;
             row.killsLeft = Math.max(0, row.hits - row.dmgKills);
@@ -452,7 +471,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.destroyed = row.hits > 0 && row.killsLeft === 0;
 
             totalCost += row.cost + row.armorCost;
-            spaceByLocation[locDef.key].space += (Number(row.space) || 0) + (Number(row.extremitySpace) || 0);
+            spaceByLocation[row.id].space += (Number(row.space) || 0) + (Number(row.extremitySpace) || 0);
             structuralKills += Number(row.hits) || 0;
         });
 
@@ -518,10 +537,13 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 row.weightTons = row.weightTons || 0;
             }
             // Parry arc (book): a shield mounted on the right arm covers the front arc plus
-            // the right flank; left arm covers front plus left flank. Display-only reminder --
-            // this system doesn't track token facing, so the arc itself isn't enforced.
-            row.arcLabel = row.loc === 'rArm' ? 'Front + R flank'
-                : row.loc === 'lArm' ? 'Front + L flank'
+            // the right flank; left arm covers front plus left flank. Keyed off the mounting
+            // servo's `side` (not a literal id check), so it still resolves for a shield on
+            // an added second arm. Display-only reminder -- this system doesn't track token
+            // facing, so the arc itself isn't enforced.
+            const mount = servos.find(sv => sv?.id === row.loc);
+            row.arcLabel = mount?.kind === 'arm' && mount.side === 'r' ? 'Front + R flank'
+                : mount?.kind === 'arm' && mount.side === 'l' ? 'Front + L flank'
                 : row.loc ? 'Arc n/a (not arm-mounted)' : '';
             // Parry wear: a shield loses 1 SP per successful parry, any damage (same math as a
             // melee weapon's Kills -- see resolveMeleeParry in mecha-damage.js).

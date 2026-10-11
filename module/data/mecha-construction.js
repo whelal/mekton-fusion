@@ -91,18 +91,66 @@ export const ARMOR = buildTable({
   weightTons: [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,  5.5],
 });
 
-// Mecha servo rows are a fixed 6-slot array on the actor; this is the location
-// each slot represents and the deriveServo() "location" kind it maps to. Each
-// location has its own construction table (Torso/Arm/Leg/Head all differ), so
-// this mapping matters -- shared by ActorDataModel and the preset loader.
+// The default humanoid loadout: this is the location each of the 6 original
+// fixed slots represented and the deriveServo() "location" kind it maps to.
+// Each location has its own construction table (Torso/Arm/Leg/Head all
+// differ), so this mapping matters -- shared by ActorDataModel and the preset
+// loader. Servos are no longer a hardcoded 6-slot array (see DEFAULT_SERVO_ROWS/
+// servoMeta below), but these keys are kept as the default rows' fixed `id`s so
+// existing weapon/shield/movement/subassembly `loc` values stay valid with no
+// data migration.
 export const SERVO_ROW_LOCATIONS = [
-  { key: "head", label: "Head", kind: "head" },
-  { key: "torso", label: "Torso", kind: "torso" },
-  { key: "rArm", label: "R Arm", kind: "arm" },
-  { key: "lArm", label: "L Arm", kind: "arm" },
-  { key: "rLeg", label: "R Leg", kind: "leg" },
-  { key: "lLeg", label: "L Leg", kind: "leg" },
+  { key: "head", label: "Head", kind: "head", side: "c" },
+  { key: "torso", label: "Torso", kind: "torso", side: "c" },
+  { key: "rArm", label: "R Arm", kind: "arm", side: "r" },
+  { key: "lArm", label: "L Arm", kind: "arm", side: "l" },
+  { key: "rLeg", label: "R Leg", kind: "leg", side: "r" },
+  { key: "lLeg", label: "L Leg", kind: "leg", side: "l" },
 ];
+
+// The servos ArrayField's default value: id/kind/side only -- deriveServo's
+// class/extremity/armor picks start empty, same as the old {} placeholders.
+export const DEFAULT_SERVO_ROWS = SERVO_ROW_LOCATIONS.map(l => ({ id: l.key, kind: l.kind, side: l.side }));
+
+export const KIND_LABELS = { head: "Head", torso: "Torso", arm: "Arm", leg: "Leg", wing: "Wing", tail: "Tail", pod: "Pod" };
+
+/**
+ * Resolve a servo row's identity (id/kind/side), falling back to the default
+ * humanoid layout by index for rows stored before this field existed.
+ * @param {object} row
+ * @param {number} i
+ */
+export function servoMeta(row, i) {
+  const d = SERVO_ROW_LOCATIONS[i];
+  return {
+    id: row.id || d?.key || `servo${i}`,
+    kind: row.kind || d?.kind || "torso",
+    side: row.side || d?.side || "c"
+  };
+}
+
+/**
+ * Derive each servo's display label from side + kind, never typed by hand.
+ * An ordinal ("R Arm 2") is appended only when a (side, kind) pair occurs
+ * more than once, so the default humanoid's labels are unchanged.
+ * @param {object[]} rows
+ * @returns {string[]} one label per row, same order as `rows`
+ */
+export function servoLabels(rows) {
+  const counts = {};
+  for (const row of rows) {
+    const pairKey = `${row.side}:${row.kind}`;
+    counts[pairKey] = (counts[pairKey] || 0) + 1;
+  }
+  const seen = {};
+  return rows.map(row => {
+    const pairKey = `${row.side}:${row.kind}`;
+    const n = (seen[pairKey] = (seen[pairKey] || 0) + 1);
+    const prefix = row.side === "r" ? "R " : row.side === "l" ? "L " : "";
+    const base = `${prefix}${KIND_LABELS[row.kind] || row.kind}`;
+    return counts[pairKey] > 1 ? `${base} ${n}` : base;
+  });
+}
 
 // Location -> table lookup.
 export const LOCATION_TABLES = {

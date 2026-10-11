@@ -6,7 +6,7 @@ import { WeaponDataModel, SkillDataModel, ArmorDataModel, MechaLoadoutDataModel 
 import { syncActorCoreItems } from "../../module/seed.js";
 import { recomputeActorArmorSp } from "../../module/data/armor.js";
 import { weaponSupportsOptions } from "../../module/data/weapon-options.js";
-import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT } from "../../module/data/mecha-construction.js";
+import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT, SERVO_ROW_LOCATIONS, KIND_LABELS } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
 import { BODY_PLANS } from "../../module/data/body-values.js";
 import { OPTIONS } from "../../module/data/mecha-options.js";
@@ -115,13 +115,25 @@ Hooks.once("init", () => {
       return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
     });
 
-    // Mecha-tab location <select> (the 6 fixed servo/body locations), for weapon/shield Loc.
-    Handlebars.registerHelper('mechaLocationSelect', (name, current) => {
-      const entries = [
-        { value: 'head', label: 'Head' }, { value: 'torso', label: 'Torso' },
-        { value: 'rArm', label: 'R Arm' }, { value: 'lArm', label: 'L Arm' },
-        { value: 'rLeg', label: 'R Leg' }, { value: 'lLeg', label: 'L Leg' }
-      ];
+    // Mecha-tab location <select>, for weapon/shield/sensor/movement Loc. Options come from
+    // the mech's actual servo list (id + derived label) so added/removed servos show up
+    // immediately; falls back to the default 6 locations when no servo list is passed.
+    Handlebars.registerHelper('mechaLocationSelect', (name, current, servos) => {
+      const list = Array.isArray(servos) && servos.length ? servos : SERVO_ROW_LOCATIONS.map(l => ({ id: l.key, servo: l.label }));
+      const entries = list.filter(s => s?.id).map(s => ({ value: s.id, label: s.servo || s.id }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Servo kind picker for added rows. No torso option -- there's exactly one torso and
+    // it's the fixed, undeletable row.
+    Handlebars.registerHelper('servoKindSelect', (name, current) => {
+      const entries = Object.entries(KIND_LABELS).filter(([key]) => key !== 'torso').map(([key, label]) => ({ value: key, label }));
+      return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
+    });
+
+    // Servo mounting side -- drives the label prefix and the shield parry arc.
+    Handlebars.registerHelper('servoSideSelect', (name, current) => {
+      const entries = [{ value: 'r', label: 'R' }, { value: 'l', label: 'L' }, { value: 'c', label: 'C' }];
       return new Handlebars.SafeString(`<select name="${name}" class="derived-picker">${buildOptions(entries, current)}</select>`);
     });
 

@@ -20,8 +20,6 @@
  *     sensors?, cockpit?, notes }
  */
 
-import { SERVO_ROW_LOCATIONS } from "./mecha-construction.js";
-
 const MECHA_PRESETS = {
   // --- Light rocket-striker: fast, fragile, rocket harasser -------------
   vesper: {
@@ -133,14 +131,15 @@ function normalizeMechaLoc(location, side) {
   return LOC_ALIASES[loc] ?? "";
 }
 
-/** Row index into the 6-slot servos array for a preset servo's location/side. */
-function servoRowIndex(location, side) {
-  const loc = String(location ?? "").trim().toLowerCase();
-  let key;
-  if (loc === "arm") key = side === "left" ? "lArm" : "rArm";
-  else if (loc === "leg") key = side === "left" ? "lLeg" : "rLeg";
-  else key = loc; // "head" / "torso"
-  return SERVO_ROW_LOCATIONS.findIndex(r => r.key === key);
+/**
+ * A preset servo's `id`: the default humanoid key (head/torso/rArm/lArm/rLeg/lLeg)
+ * for the first servo at that location/side, so it lines up with any existing
+ * weapon/shield/movement `loc` using those same keys; a randomID() for anything
+ * beyond that (a preset with, say, two right arms).
+ */
+function presetServoId(usedIds, location, side) {
+  const key = normalizeMechaLoc(location, side);
+  return (key && !usedIds.has(key)) ? key : foundry.utils.randomID();
 }
 
 // Pads UP to len if the preset has fewer rows than the sheet's default slot
@@ -161,11 +160,14 @@ function padTo(arr, len, makeEmpty) {
  * @returns {{name: string, servos: object[], weapons: object[], shields: object[], movementSystems: object[]}}
  */
 export function buildMechaPresetUpdate(preset) {
-  const servos = SERVO_ROW_LOCATIONS.map(() => ({ level: "", extremityKey: "", armor: "" }));
-  for (const s of preset.servos ?? []) {
-    const idx = servoRowIndex(s.location, s.side);
-    if (idx >= 0) servos[idx] = { level: s.class ?? "", extremityKey: s.extremity ?? "", armor: s.armor ?? "" };
-  }
+  const usedIds = new Set();
+  const servos = (preset.servos ?? []).map(s => {
+    const kind = String(s.location ?? "").trim().toLowerCase() || "torso";
+    const side = s.side === "left" ? "l" : s.side === "right" ? "r" : "c";
+    const id = presetServoId(usedIds, s.location, s.side);
+    usedIds.add(id);
+    return { id, kind, side, level: s.class ?? "", extremityKey: s.extremity ?? "", armor: s.armor ?? "" };
+  });
 
   const weapons = padTo(
     (preset.weapons ?? []).map(w => ({

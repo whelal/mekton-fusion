@@ -973,6 +973,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.load-preset-btn', ev => this._onLoadMechaPreset(ev));
     html.on('click', '.load-creature-preset-btn', ev => this._onLoadCreaturePreset(ev));
 
+    // Mecha servo list (add/remove a servo beyond the fixed, undeletable torso row).
+    html.on('click', '.mecha-servo-add', ev => this._onMechaServoAdd(ev));
+    html.on('click', '.mecha-servo-delete', ev => this._onMechaServoDelete(ev));
+
     // Mecha Play/Build toggle + play-state controls.
     html.on('click', '.mecha-mode-toggle', ev => {
       ev.preventDefault();
@@ -2433,6 +2437,45 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       el.addClass('active');
       setTimeout(() => el.removeClass('active'), 500);
     }
+  }
+
+  /** Add a servo (arm/leg/head/wing/tail/pod) beyond the fixed torso row. Defaults to a right arm. */
+  async _onMechaServoAdd(ev) {
+    ev.preventDefault();
+    const servos = this.actor.toObject().system.mecha.servos ?? [];
+    servos.push({ id: foundry.utils.randomID(), kind: "arm", side: "r", level: "", extremityKey: "", armor: "" });
+    await this.actor.update({ "system.mecha.servos": servos });
+  }
+
+  /**
+   * Remove a servo (never the torso). Clears any `loc` reference to it on
+   * weapons/shields/sensors/movementSystems/subassembly items in the same
+   * update, so nothing points at a servo that no longer exists.
+   */
+  async _onMechaServoDelete(ev) {
+    ev.preventDefault();
+    const id = ev.currentTarget.dataset.id;
+    if (!id) return;
+    const servo = this.actor.system.mecha?.servos?.find(s => s?.id === id);
+    if (servo?.kind === "torso") { ui.notifications.warn("The torso can't be removed."); return; }
+
+    const confirmed = await Dialog.confirm({
+      title: "Remove Servo?",
+      content: `<p>Remove ${servo?.servo ?? "this servo"}? Anything mounted on it (weapons, shields, sensors, movement systems, subassembly items) will show as unassigned.</p>`
+    });
+    if (!confirmed) return;
+
+    const src = this.actor.toObject().system.mecha;
+    const clearLoc = row => row.loc === id ? { ...row, loc: "" } : row;
+    const update = {
+      "system.mecha.servos": (src.servos ?? []).filter(s => s.id !== id),
+      "system.mecha.weapons": (src.weapons ?? []).map(clearLoc),
+      "system.mecha.shields": (src.shields ?? []).map(clearLoc),
+      "system.mecha.sensors": (src.sensors ?? []).map(clearLoc),
+      "system.mecha.movementSystems": (src.movementSystems ?? []).map(clearLoc),
+      "system.mecha.subassemblies.items": (src.subassemblies?.items ?? []).map(clearLoc)
+    };
+    await this.actor.update(update);
   }
 
   /**
