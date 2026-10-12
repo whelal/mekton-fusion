@@ -2,7 +2,7 @@
 
 A **custom Foundry VTT system** that merges mechanics from **Mekton Zeta** and **Cyberpunk 2020** into a unified ruleset.
 
-> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.15** -- APIs / data schema may still change.
+> Fusion of Mekton concepts with Cyberpunk 2020 style stats & skills, full derived combat stats, and a Mekton Zeta mecha construction/combat system. Currently **v0.3.16** -- APIs / data schema may still change.
 
 ---
 ## 📖 Overview
@@ -30,6 +30,7 @@ Core areas:
 - Skill seeding (auto on new actor + manual Add Skills button + world seeding macro), categorized display with favorites filter & sorting
 - Hard skill markers `(H)`, i18n keys under `MF.*`
 - Personal & mecha weapon tables on the Combat tab with roll buttons
+- Fencing (H) and Martial Art (H) as alternative skills for bladed / hand-to-hand weapons, adding half their rank (rounded down) to damage
 
 **Mecha**
 - Per-location servo construction (Torso/Arm/Leg/Head/Wing/Tail/Pod), each with its own class/extremity/armor pickers deriving Kills/Space/Cost/Weight

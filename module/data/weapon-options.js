@@ -54,8 +54,9 @@ export const WEAPON_OPTIONS = {
 };
 
 // Skills that mark a weapon as melee or thrown (see the skill mapping in weapon-catalog.js).
-// (athletics = thrown weapons, which also carry a "T" range)
-const MELEE_SKILLS = new Set(["blade", "whip", "hand-to-hand", "athletics"]);
+// (athletics = thrown weapons, which also carry a "T" range; fencing/martial-art are
+// alternative skills for blade/hand-to-hand weapons respectively -- same exclusion)
+const MELEE_SKILLS = new Set(["blade", "fencing", "whip", "hand-to-hand", "martial-art", "athletics"]);
 
 /**
  * Weapon Options are ranged-weapon accessories (sights, silencers, magazines):

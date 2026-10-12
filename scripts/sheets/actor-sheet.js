@@ -2203,9 +2203,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
 
     // Validate formula before rolling (a trailing "+" is stripped and the BODY damage mod added)
+    const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon);
     let result;
     try {
-      result = await this._rollDamageFormula(formula);
+      result = await this._rollDamageFormula(formula, skillBonus);
     } catch (err) {
       ui.notifications.error(`Invalid damage formula "${formula}" for ${weapon.name}.`);
       return;
@@ -2213,9 +2214,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const weaponName = weapon.system?.name || weapon.name;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const breakdown = result.bodyModNote ? ` = ${result.roll.total}${result.bodyModNote}` : '';
+    const breakdown = (result.bodyModNote || result.skillBonusNote) ? ` = ${result.roll.total}${result.bodyModNote}${result.skillBonusNote}` : '';
     const flavor = `<strong>${this.actor.name}</strong> rolls damage for <strong>${weaponName}</strong>: <em>${formula}</em>${breakdown} = <strong style="font-size: 1.2em; color: #c0392b;">${result.total}</strong>`;
     await result.roll.toMessage({ speaker, flavor });
+  }
+
+  /**
+   * Fencing (H) and Martial Art (H) are alternative skills for bladed /
+   * hand-to-hand weapons respectively (Blade/Hand to Hand stay the default);
+   * choosing them on a weapon's skill field adds floor(rank/2) to its damage
+   * -- rank 1 -> +0, rank 2 -> +1, rank 4 -> +2. Flat, not per die, and not
+   * affected by the BODY damage mod's own type.
+   */
+  static _meleeSkillDamageBonus(actor, weapon) {
+    const ALT_SKILLS = { fencing: 'Fencing (H)', 'martial-art': 'Martial Art (H)' };
+    const skillName = ALT_SKILLS[weapon?.system?.skill];
+    if (!skillName) return 0;
+    const skillItem = actor.items.find(i => i.type === 'skill' && i.name === skillName);
+    return Math.floor(MektonActorSheet._num(skillItem?.system?.rank, 0) / 2);
   }
 
   /**
@@ -2223,10 +2239,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * modifier applies (flat or dice) -- by that marker, not by weapon type or
    * skill, ranged or melee alike. Everything before it goes to Foundry's Roll,
    * which rejects the "+" itself. Throws if the remainder isn't a valid formula.
+   * `skillBonus` is the flat Fencing/Martial Art add-on (see _meleeSkillDamageBonus).
    * @param {string} raw - e.g. "2D10+", "1D6", "3D6/2+"
-   * @returns {Promise<{formula:string, roll:Roll, total:number, bodyModApplies:boolean, bodyModNote:string}>}
+   * @param {number} [skillBonus=0]
+   * @returns {Promise<{formula:string, roll:Roll, total:number, bodyModApplies:boolean, bodyModNote:string, skillBonusNote:string}>}
    */
-  async _rollDamageFormula(raw) {
+  async _rollDamageFormula(raw, skillBonus = 0) {
     const bodyModApplies = raw.endsWith('+');
     const formula = bodyModApplies ? raw.slice(0, -1).trim() : raw;
     const roll = new Roll(formula || '0');
@@ -2246,7 +2264,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         bodyModNote = ` + BODY ${dmgMod.value} (${bodyRoll.total})`;
       }
     }
-    return { formula, roll, total, bodyModApplies, bodyModNote };
+    let skillBonusNote = '';
+    if (skillBonus) {
+      total += skillBonus;
+      skillBonusNote = ` + Skill +${skillBonus}`;
+    }
+    return { formula, roll, total, bodyModApplies, bodyModNote, skillBonusNote };
   }
 
   /**
@@ -2725,8 +2748,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       'athletics': 'Athletics',
       'automatic-weapon': 'Automatic Weapon',
       'blade': 'Blade',
+      'fencing': 'Fencing (H)', // alternative to Blade on bladed weapons; see _meleeSkillDamageBonus
       'handgun': 'Handgun',
       'hand-to-hand': 'Hand to Hand',
+      'martial-art': 'Martial Art (H)', // alternative to Hand to Hand; see _meleeSkillDamageBonus
       'rifle': 'Rifle',
       'whip': 'Whip'
     };
@@ -2858,16 +2883,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       } else {
         let dmg = null;
         try {
-          dmg = await this._rollDamageFormula(dmgFormulaRaw);
+          dmg = await this._rollDamageFormula(dmgFormulaRaw, MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon));
         } catch (err) {
           flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${dmgFormulaRaw}" for ${weaponName}.</em>`;
         }
 
         if (dmg) {
-          const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote } = dmg;
+          const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
 
           const { key, label: locLabel } = await this.constructor._rollHitLocationKey();
-          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
 
           // Apply to the TARGET only, never the attacker. Exactly one targeted
           // token -> apply now; otherwise defer via the chat-card button.

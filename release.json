@@ -1,7 +1,7 @@
 {
   "id": "mekton-fusion",
   "title": "Mekton Fusion",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
