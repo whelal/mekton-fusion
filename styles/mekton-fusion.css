@@ -901,7 +901,7 @@ html.theme-dark .mekton-fusion {
 }
 
 .mekton-fusion .tab.body .mf-adjust-input {
-  width: 48px;
+  width: 60px;
   height: 28px;
   padding: 0 0.35rem;
   font-size: 0.8rem;
@@ -1641,7 +1641,7 @@ html.theme-dark .mekton-fusion {
 }
 
 .mekton-fusion .tab.body .mf-adjust-input {
-  width: 48px;
+  width: 60px;
   height: 28px;
   padding: 0 0.35rem;
   font-size: 0.8rem;
@@ -1844,7 +1844,7 @@ html.theme-dark .mekton-fusion {
 
 .mekton-fusion .tab.body .mf-table-horizontal th,
 .mekton-fusion .tab.body .mf-table-horizontal td {
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem 0.25rem;
   border: 1px solid var(--mf-soft-border);
   text-align: center;
 }
@@ -1865,9 +1865,11 @@ html.theme-dark .mekton-fusion {
 }
 
 .mekton-fusion .tab.body .mf-table-horizontal input[type="number"] {
+  box-sizing: border-box;
   width: 100%;
+  min-width: 3em;   /* room for 3 digits even when the column is squeezed */
   max-width: 60px;
-  padding: 0.25rem;
+  padding: 0.25rem 0.1rem;
   border: 1px solid #ddd;
   border-radius: 3px;
   text-align: center;
@@ -1880,7 +1882,7 @@ html.theme-dark .mekton-fusion {
   border-radius: 4px;
   position: relative;
   overflow: hidden;
-  min-width: 80px;
+  min-width: 48px;
 }
 
 .mekton-fusion .tab.body .mf-table-horizontal .bar::before {

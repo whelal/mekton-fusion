@@ -1,3 +1,9 @@
+## [0.3.19] - 2026-10-14
+### Added
+- The Mecha Loadouts compendium (`packs/mecha-loadouts`) now ships populated with the Vesper-class Skirmisher, Bulwark-class Assault and Dire Wolf loadouts. It was declared in `system.json` but never built, so Foundry kept recreating it as an empty, untracked database.
+### Fixed
+- Body tab hit-location table: the SP and SDP number inputs clipped 2-digit values (e.g. "15" showed as "1"). Inputs now have a 3-digit minimum width with tighter padding, cells use less side padding, and the SP/SDP bar columns shrink to 48px (was 80px) to make room. The ±SP / ±SDP adjust boxes are wider (60px) so their placeholders fit.
+
 ## [0.3.18] - 2026-10-14
 ### Added
 - Missile salvos (core): a missile rack with more than 1 shot gets a **Salvo** button in the Play view instead of Burst. Fire any number of missiles (1 to shots left) in one Action; hits = margin × ⌈missiles fired / 10⌉, clamped to missiles fired, not BV-capped (`salvoHitCount`). The card's "Apply hit" dialog adds a **Walk** pick for random location: roll one start d10, then step one chart row per extra missile toward the Head (3→2→1→10) or toward the limbs (3→4→5), wrapping 1↔10 (`salvoRows`).
