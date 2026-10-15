@@ -315,6 +315,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * (never the attacker -- caller passes the target explicitly). Damage
    * chain: subtract that location's SP, apply the remainder to hits (may go
    * negative). Flat to every location, head included -- no armor head-double.
+   * Staged penetration (MZ p.103): any hit of 1+ damage ablates that
+   * location's current SP by 1, whether or not anything gets through. Not
+   * applied with ignoreSp (burning is already past the armor, not a new hit).
    * Also resolves a Stun/Shock save when this single hit's post-armor damage
    * exceeds half the location's hits BEFORE the hit (1d10 <= substats.stun to
    * stay conscious).
@@ -322,7 +325,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
    * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
    * @param {{ignoreSp?: boolean}} [opts] - ignoreSp: damage is already post-armor (burning)
-   * @returns {{sp:number, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
+   * @returns {{sp:number, spNow:number, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
    */
   static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
@@ -330,7 +333,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const before = MektonActorSheet._num(loc?.hits, 0);
     const after = Math.max(0, dmgTotal - sp);
     const hitsNow = before - after;
-    await targetActor.update({ [`system.body.locations.${key}.hits`]: hitsNow });
+    const spNow = (!ignoreSp && dmgTotal >= 1 && sp > 0) ? sp - 1 : sp;
+    const update = { [`system.body.locations.${key}.hits`]: hitsNow };
+    if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
+    await targetActor.update(update);
 
     const state = MektonActorSheet._woundState(key, hitsNow);
 
@@ -342,20 +348,41 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
     }
 
-    return { sp, before, after, hitsNow, state, stun };
+    return { sp, spNow, before, after, hitsNow, state, stun };
   }
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, before, after, hitsNow, state, stun } = applied;
+    const { sp, spNow, before, after, hitsNow, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
-    let html = `SP ${sp} soaked, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
+    const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})` : '';
+    let html = `SP ${sp} soaked${ablated}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
     if (stun) {
       const stunColor = stun.conscious ? '#2a2' : '#c0392b';
       html += `<br>Stun/Shock check (1d10 &le; ${stun.stunVal}): rolled <strong>${stun.total}</strong> &mdash; <strong style="color:${stunColor}">${stun.conscious ? 'CONSCIOUS' : 'DOWN'}</strong>`;
     }
     return html;
+  }
+
+  /**
+   * Defender's Evade roll, human scale (MZ p.92): 1D10 (exploding) + REF +
+   * Dodge & Escape, -1 if attacked from the flank, -2 from the rear. Free,
+   * once per attack. Rolled on the attacker's client (no socket round-trip).
+   * @param {Actor} targetActor
+   * @param {number} [arcMod=0] - 0 front, -1 flank, -2 rear
+   * @returns {Promise<{total:number, label:string, hasSkill:boolean}>}
+   */
+  static async _rollEvade(targetActor, arcMod = 0) {
+    const ref = MektonActorSheet._num(targetActor.system?.stats?.REF?.value, 0);
+    const skill = targetActor.items.find(i => i.type === 'skill' && i.name === 'Dodge & Escape');
+    const dodge = skill ? MektonActorSheet._num(skill.system?.rank, 0) : 0;
+    const { total: die, plusDice, minusDice } = await MektonActorSheet._rollBidirectionalExplodingD10();
+    const total = die + ref + dodge + arcMod;
+    const dice = plusDice.join(' + ') + (minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '');
+    const parts = [`(${dice})`, `REF ${ref}`, `Dodge ${dodge}`];
+    if (arcMod) parts.push(`Arc ${arcMod}`);
+    return { total, label: `${parts.join(' + ')} = ${total}`, hasSkill: !!skill };
   }
 
   /** @override */
@@ -2713,12 +2740,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * Human-scale attack resolver (MZ core Interlock, not CP2020/IU): 1d10
-   * (exploding) + skillTotal + WA + rangeMod + aim + situational mods, vs an
-   * optional GM Difficulty. No fixed DV -- opposed Evade/Parry is deferred.
-   * On a hit (or no Difficulty given), continues in the SAME chat card: rolls
-   * hit location, rolls damage (+ BODY mod if the formula ends in "+"),
-   * applies armor/location/hits to the TARGETED token (never the attacker),
-   * and resolves a Stun/Shock save if warranted. The standalone
+   * (exploding) + skillTotal + WA + rangeMod + aim + situational mods, vs
+   * either the target's opposed Evade (MZ p.92; Evade >= attack = miss) or
+   * an optional GM Difficulty (table ruling for unaware targets / sneak
+   * attacks; a blank Difficulty means no defense roll at all). Parry is not
+   * resolved here yet. On a hit (or no Difficulty given), continues in the
+   * SAME chat card: per hit, rolls hit location, rolls damage (+ BODY mod if
+   * the formula ends in "+"), applies armor/location/hits to the TARGETED
+   * token (never the attacker), and resolves a Stun/Shock save if warranted.
+   * Burst fire (MZ p.95-96): one hit per point of margin, up to the weapon's
+   * BV, each hit rolled and soaked separately. Human scale has no Crits or
+   * Mega-Crits (table ruling: armor always applies to characters). The standalone
    * .weapon-damage-roll / .weapon-hitloc-roll buttons remain as manual
    * overrides for anything this dialog doesn't cover (e.g. opposed melee).
    */
@@ -2773,6 +2805,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       : rangeInfo ? `Combat ${rangeInfo.combat} / Max ${rangeInfo.max}`
       : 'No range data';
 
+    // Burst Value: a bare number > 1 enables Burst fire ("na", "1", "" = single only).
+    const bv = parseInt(weapon.system?.bv, 10) || 1;
+    const blast = !!MektonActorSheet._blastOf(weapon);
+    const targetsAtRoll = Array.from(game.user.targets);
+    const oneTarget = targetsAtRoll.length === 1 && !!targetsAtRoll[0].actor;
+    // Area weapons resolve vs a Difficulty (indirect fire, MZ p.97), never Evade.
+    const defaultDefense = (oneTarget && !blast) ? 'evade' : 'difficulty';
+
     const COVER_MODS = [
       { key: 'silhouetted', label: 'Silhouetted', mod: 2 },
       { key: 'crouched', label: 'Crouched/Kneeling', mod: -1 },
@@ -2793,6 +2833,29 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         title: `Attack: ${weaponName}`,
         content: `
           <form class="mf-attack-dialog">
+            <div class="form-group">
+              <label>Defense</label>
+              <select name="defense" style="width:100%">
+                ${blast ? '' : `<option value="evade" ${defaultDefense === 'evade' ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>`}
+                <option value="difficulty" ${defaultDefense === 'difficulty' ? 'selected' : ''}>GM Difficulty (no defense roll -- unaware / sneak attack)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Attacking target's (Evade only)</label>
+              <select name="arc" style="width:100%">
+                <option value="0">Front (+0)</option>
+                <option value="-1">Flank (-1 to Evade)</option>
+                <option value="-2">Rear (-2 to Evade)</option>
+              </select>
+            </div>
+            ${bv > 1 ? `
+            <div class="form-group">
+              <label>Fire Mode</label>
+              <select name="fireMode" style="width:100%">
+                <option value="single">Single shot</option>
+                <option value="burst" selected>Burst (BV ${bv})</option>
+              </select>
+            </div>` : ''}
             <div class="form-group">
               <label>Range</label>
               <select name="rangeChoice" style="width:100%">
@@ -2829,12 +2892,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           for (const c of COVER_MODS) {
             if (html.find(`[name='cvr_${c.key}']`).is(':checked')) coverMod += c.mod;
           }
-          return { rangeMod, aim, coverMod, other, difficulty };
+          const defense = html.find("[name='defense']").val() || 'difficulty';
+          const arcMod = Number(html.find("[name='arc']").val()) || 0;
+          const fireMode = html.find("[name='fireMode']").val() || 'single';
+          return { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode };
         }
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { rangeMod, aim, coverMod, other, difficulty } = dlg;
+    const { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode } = dlg;
     const mods = coverMod + other;
 
     // Weapon Options' WA bonus (Lasersight/Smartgun +, Optical Scope -) only
@@ -2863,12 +2929,36 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (aim) modParts.push(`Aim +${aim}`);
     if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
 
+    // Targets are re-read now: the user may have changed them while the dialog was open.
+    const targets = Array.from(game.user.targets);
+    const targetActor = targets.length === 1 ? targets[0].actor : null;
+
+    // success: true hit / false miss / null no defense (treated as a hit).
+    // margin: attack - defense total, or null when there was nothing to beat.
     let success = null;
+    let margin = null;
     let resultTag = '';
-    if (difficulty !== null) {
-      success = attackTotal >= difficulty;
-      resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+    if (defense === 'evade' && targetActor) {
+      const ev = await this.constructor._rollEvade(targetActor, arcMod);
+      success = attackTotal > ev.total; // Evade >= attack: the attack fails (MZ p.92)
+      margin = attackTotal - ev.total;
+      const noSkill = ev.hasSkill ? '' : ' <em style="font-size:0.85em; color:#999;">(no Dodge &amp; Escape skill)</em>';
+      resultTag = `<br>${escapeHtml(targetActor.name)} Evades: ${ev.label}${noSkill} &mdash; <strong style="color: ${success ? 'green' : 'red'}">${success ? `HIT by ${margin}` : 'EVADED'}</strong>`;
+    } else {
+      if (defense === 'evade') {
+        ui.notifications.warn('Evade needs exactly one targeted token -- resolving with no defense roll.');
+      }
+      if (difficulty !== null) {
+        success = attackTotal >= difficulty;
+        margin = attackTotal - difficulty;
+        resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+      }
     }
+
+    // Burst: one hit per point of margin, up to BV (a Difficulty tie still lands 1).
+    // With no defense roll and no Difficulty there's no margin, so a burst lands 1 hit.
+    const burst = fireMode === 'burst' && bv > 1;
+    const hitCount = burst && margin !== null ? Math.max(1, Math.min(margin, bv)) : 1;
 
     let flavor = `<strong>${this.actor.name}</strong> attacks with ${weaponName}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
@@ -2881,26 +2971,31 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (!dmgFormulaRaw) {
         flavor += `<br><em style="font-size:0.85em; color:#999;">No damage formula set on ${weaponName}.</em>`;
       } else {
-        let dmg = null;
-        try {
-          dmg = await this._rollDamageFormula(dmgFormulaRaw, MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon));
-        } catch (err) {
-          flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${dmgFormulaRaw}" for ${weaponName}.</em>`;
+        if (burst) {
+          flavor += margin === null
+            ? `<br><strong>Burst</strong>: no defense roll or Difficulty to beat -- 1 hit.`
+            : `<br><strong>Burst</strong>: ${hitCount} of ${bv} shots hit.`;
         }
+        const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon);
+        for (let h = 1; h <= hitCount; h++) {
+          let dmg = null;
+          try {
+            dmg = await this._rollDamageFormula(dmgFormulaRaw, skillBonus);
+          } catch (err) {
+            flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${dmgFormulaRaw}" for ${weaponName}.</em>`;
+            break;
+          }
 
-        if (dmg) {
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
-
           const { key, label: locLabel } = await this.constructor._rollHitLocationKey();
-          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+          const hitTag = hitCount > 1 ? `Hit ${h}: ` : '';
+          flavor += `<br>${hitTag}Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
 
           // Apply to the TARGET only, never the attacker. Exactly one targeted
-          // token -> apply now; otherwise defer via the chat-card button.
-          const targets = Array.from(game.user.targets);
-          if (targets.length === 1 && targets[0].actor) {
-            const targetActor = targets[0].actor;
+          // token -> apply now; otherwise defer via a chat-card button per hit.
+          if (targetActor) {
             const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
-            flavor += `<br>${targetActor.name}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
+            flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
             flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}">Apply to targeted token</button>`;
           }

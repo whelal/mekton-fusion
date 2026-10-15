@@ -1,3 +1,12 @@
+## [0.3.17] - 2026-10-14
+### Added
+- Human-scale opposed Evade (core p.92): the personal-weapon attack dialog has a Defense selector. "Target Evades" (default with exactly one targeted token) auto-rolls the target's 1D10 (exploding) + REF + Dodge & Escape, with -1 from the flank / -2 from the rear via a new Arc picker; Evade >= attack is a miss. "GM Difficulty" keeps the existing preset/Situational Modifier block unchanged -- the table ruling for unaware targets and sneak attacks, where no defense roll is allowed (a blank Difficulty still means no defense roll at all). Area weapons only offer GM Difficulty (indirect fire, core p.97). The Evade is rolled on the attacker's client; Parry is not resolved yet.
+- Human-scale burst fire (core p.95-96): a weapon with a numeric BV > 1 gets a Fire Mode picker (Single / Burst). A burst lands one hit per point of margin over the Evade or Difficulty, capped at BV (a Difficulty tie still lands 1); each hit rolls its own damage and hit location and soaks through that location's armor separately. With no defense roll and no Difficulty, a burst lands 1 hit. No ammo tracking for personal weapons (unchanged).
+### Fixed
+- Character armor never ablated on its own. `_applyLocationDamage` now applies staged penetration (core p.103): any hit of 1+ damage drops that location's current SP by 1, even when the armor stops it all. Burning damage (`ignoreSp`) doesn't ablate -- it's already past the armor, not a new hit. The damage chat line shows "SP 6 soaked (ablated to 5)".
+### Notes
+- No Crits or Mega-Crits at human scale (table ruling: armor always applies to characters). The margin only drives burst hits.
+
 ## [0.3.16] - 2026-10-12
 ### Added
 - Fencing (H) and Martial Art (H) as alternative weapon skills: the Combat tab's personal-weapon skill dropdown gained "Fencing (H)" (alternative to Blade, for bladed weapons) and "Martial Art (H)" (alternative to Hand to Hand). Choosing either adds half that skill's rank, rounded down, as a flat bonus to the weapon's damage (rank 1 -> +0, rank 2 -> +1, rank 3 -> +1, rank 4 -> +2) -- shown as a "+ Skill +N" breakdown term alongside the existing BODY damage mod, on both the standalone damage-roll button and the full attack-roll flow. Mecha-scale personal weapons (the isMecha-flagged row) don't get these options -- mecha combat uses its own Mecha Melee (H) skill, unrelated to this bonus.
