@@ -1,3 +1,14 @@
+## [0.3.20] - 2026-10-15
+### Fixed
+- Missile salvo hit determination now follows RAW (MZ ATM, Missiles / Missile Hit Determination). 0.3.18 got three things wrong:
+  - **Walk direction.** The attacker no longer chooses a direction. The salvo rolls one location, then walks down the chart one row per missile (3, 4, 5 … 10), wrapping 10 → 1. The Walk select is gone from the Apply-hit dialog.
+  - **Crits.** These are now counted from the raw margin, not applied as one tier to every missile: Mega-Crits = margin − 9, Crits = (margin − 4) − Mega-Crits (`salvoCritCounts`). They land on the first missiles in the walk: Mega-Crits first (that row's location, no armor), then Crits, then normal hits. Example: 12 missiles at margin 11 = 12 hits, 2 Mega-Crit, 5 Critical, 5 normal. The dialog shows the counts in place of the all-or-nothing Mega-Crit checkbox, and the fire card's header shows them too.
+  - **Crit chart.** On a Critical, the attacker's choice of the Special or Cinematic chart now uses the walk's row number as the result on that chart. Each such missile is posted for manual resolution, and nothing is applied for it.
+### Changed
+- A walked 9 (Other) on a mech with no wing or tail is skipped (the walk moves on to 10), instead of rerolling that missile. This is a house ruling, now in the new `module/rules/table-rulings.js` (`TABLE_RULINGS.salvoWalkEmptyOther`, "skip" or "reroll"). A single attack's reroll-9 is unchanged.
+- The salvo fire dialog notes that a salvo has one target: a volley split across several targets is fired as separate salvos.
+- README: the mecha combat section now covers the margin-based crits, missile salvos, and shield pass-through on a parry.
+
 ## [0.3.19] - 2026-10-14
 ### Added
 - The Mecha Loadouts compendium (`packs/mecha-loadouts`) now ships populated with the Vesper-class Skirmisher, Bulwark-class Assault and Dire Wolf loadouts. It was declared in `system.json` but never built, so Foundry kept recreating it as an empty, untracked database.

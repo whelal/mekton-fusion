@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { critTier, salvoHitCount, salvoRows, resolveShieldParry, locationFromRoll, applyHit }
+import { critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry, locationFromRoll, applyHit }
   from "../module/data/mecha-damage.js";
 
 test("critTier", () => {
@@ -17,10 +17,24 @@ test("salvoHitCount matches the book examples", () => {
   assert.equal(salvoHitCount(30, 10, 4), 4);    // clamped to missiles fired
 });
 
-test("salvoRows walks and wraps", () => {
-  assert.deepEqual(salvoRows(3, 4, "dec"), [3, 2, 1, 10]);
-  assert.deepEqual(salvoRows(3, 4, "inc"), [3, 4, 5, 6]);
-  assert.deepEqual(salvoRows(10, 2, "inc"), [10, 1]);
+test("salvoRows walks down the chart and wraps 10 -> 1", () => {
+  assert.deepEqual(salvoRows(3, 4), [3, 4, 5, 6]);
+  assert.deepEqual(salvoRows(10, 2), [10, 1]);
+  assert.deepEqual(salvoRows(3, 12), [3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4]);
+});
+
+test("salvoRows skips rows (walked 9 with no wing/tail)", () => {
+  assert.deepEqual(salvoRows(8, 3, [9]), [8, 10, 1]);
+  assert.deepEqual(salvoRows(9, 2, [9]), [10, 1]); // a skipped start row moves on too
+});
+
+test("salvoCritCounts uses the raw margin, capped at hits", () => {
+  // Book check: 12 missiles, margin 11 -> 12 hits; 2 mega, 5 crit, 5 normal.
+  assert.equal(salvoHitCount(21, 10, 12), 12);
+  assert.deepEqual(salvoCritCounts(11, 12), { mega: 2, crit: 5, normal: 5 });
+  assert.deepEqual(salvoCritCounts(3, 9), { mega: 0, crit: 0, normal: 9 });
+  assert.deepEqual(salvoCritCounts(7, 2), { mega: 0, crit: 2, normal: 0 });
+  assert.deepEqual(salvoCritCounts(11, 3), { mega: 2, crit: 1, normal: 0 });
 });
 
 test("shield parry: pass-through and per-hit ablation", () => {

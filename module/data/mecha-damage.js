@@ -148,18 +148,36 @@ export function salvoHitCount(attackTotal, defenseTotal, fired) {
 }
 
 /**
- * Chart rows a salvo walks: `start`, then one step per extra missile, wrapping 1<->10.
- * dir "dec" = 3,2,1,10...  dir "inc" = 3,4,5,6... (attacker's choice).
+ * Chart rows a missile salvo walks (MZ ATM, Missile Hit Determination): `start`,
+ * then one row DOWN the chart per extra missile (3,4,5...10), wrapping 10 -> 1.
+ * Not chosen by the attacker. Rows in `skip` are stepped over, the start row
+ * included (see TABLE_RULINGS.salvoWalkEmptyOther).
  */
-export function salvoRows(start, count, dir = "dec") {
-  const step = dir === "inc" ? 1 : -1;
+export function salvoRows(start, count, skip = []) {
   const rows = [];
+  if (skip.length >= 10) return rows;
   let r = Number(start);
-  for (let i = 0; i < count; i++) {
-    rows.push(r);
-    r = ((r - 1 + step + 10) % 10) + 1;
+  while (rows.length < count) {
+    if (!skip.includes(r)) rows.push(r);
+    r = (r % 10) + 1;
   }
   return rows;
+}
+
+/**
+ * Missile salvo crits (MZ ATM, Missile Hit Determination): counted from the RAW
+ * margin, not the multiplied hit count -- mega = margin - 9, crit = (margin - 4)
+ * - mega -- and assigned to the FIRST missiles in the walk: mega-crits, then
+ * crits, then normal hits. Capped at hits.
+ * @returns {{ mega:number, crit:number, normal:number }}
+ */
+export function salvoCritCounts(margin, hits) {
+  const m = Math.floor(Number(margin) || 0);
+  const n = Math.max(0, Math.floor(Number(hits) || 0));
+  const megaRaw = Math.max(0, m - 9);
+  const mega = Math.min(n, megaRaw);
+  const crit = Math.min(n - mega, Math.max(0, (m - 4) - megaRaw));
+  return { mega, crit, normal: n - mega - crit };
 }
 
 // MZ+ (ATM, Shields): Standard/Active shields use staged penetration -- damage over the

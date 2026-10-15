@@ -12,7 +12,7 @@ import { BODY_PLANS } from "../../module/data/body-values.js";
 import { OPTIONS } from "../../module/data/mecha-options.js";
 import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant.js";
 import { escapeHtml } from "../../module/util/escape.js";
-import { critTier } from "../../module/data/mecha-damage.js";
+import { critTier, salvoCritCounts } from "../../module/data/mecha-damage.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
 function buildOptions(entries, current) {
@@ -578,45 +578,49 @@ Hooks.once("ready", () => {
       form = await Dialog.prompt({
         title: 'Apply Mecha Hit',
         content: `<p>Hits (burst = margin capped at BV; missile salvo = margin × ⌈fired/10⌉):</p><input type="number" name="hits" value="${hitsDefault}" min="1" style="width:100%" autofocus/>`
-          + `<p>Margin (attack − defense, optional):</p><input type="number" name="margin" value="${escapeHtml(marginDefault)}" style="width:100%"/>`
-          + `<p><label><input type="checkbox" name="mega"/> Mega-Crit (margin ≥10: bypasses armor, no ablation)</label></p>`
-          + `<p>Chart (Critical, margin ≥5 — attacker's choice):</p><select name="chart" style="width:100%" disabled>`
-          + `<option value="normal">Normal</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`
-          + `<p>Location:</p><select name="loc" style="width:100%"><option value="">Random (Hit Location Chart)</option>`
-          + servos.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.servo || s.id)}</option>`).join('')
-          + `</select>`
+          + `<p>Margin (attack − defense${isMissile ? '' : ', optional'}):</p><input type="number" name="margin" value="${escapeHtml(marginDefault)}" style="width:100%"/>`
           + (isMissile
-              ? `<p>Walk (random location only):</p><select name="walk" style="width:100%">`
-                + `<option value="dec">Toward Head (3→2→1→10)</option><option value="inc">Toward limbs (3→4→5)</option></select>`
-              : ''),
+              // Salvo crits are counted from the margin and land on the first missiles in the walk.
+              ? `<p class="mf-salvo-crits" style="font-size:0.9em;"></p>`
+              : `<p><label><input type="checkbox" name="mega"/> Mega-Crit (margin ≥10: bypasses armor, no ablation)</label></p>`)
+          + `<p>Chart for Critical hits (margin ≥5 — attacker's choice):</p><select name="chart" style="width:100%" disabled>`
+          + `<option value="normal">Normal</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`
+          + `<p>Location:</p><select name="loc" style="width:100%"><option value="">Random (${isMissile ? 'salvo walks down the chart from one roll' : 'Hit Location Chart'})</option>`
+          + servos.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.servo || s.id)}</option>`).join('')
+          + `</select>`,
         label: 'Apply',
         render: html => {
-          // Margin drives the crit tier: Mega-Crit auto-checks (still overridable by hand);
-          // a plain Critical unlocks the chart pick; anything less locks it to Normal.
+          // Margin drives the crits. Single attack: Mega-Crit auto-checks (still overridable
+          // by hand), a plain Critical unlocks the chart pick. Missile salvo: show the
+          // per-missile counts; the chart pick unlocks when any missile is a plain Critical.
           const syncTier = () => {
             const raw = html.find("[name='margin']").val();
-            const tier = raw === '' ? 'none' : critTier(raw);
-            if (raw !== '') html.find("[name='mega']").prop('checked', tier === 'mega');
             const chart = html.find("[name='chart']");
-            chart.prop('disabled', tier !== 'crit');
-            if (tier !== 'crit') chart.val('normal');
+            let critAvailable;
+            if (isMissile) {
+              const c = salvoCritCounts(raw === '' ? 0 : raw, html.find("[name='hits']").val());
+              html.find('.mf-salvo-crits').text(`Crits on the first missiles: ${c.mega} Mega-Crit, ${c.crit} Critical, ${c.normal} normal.`);
+              critAvailable = c.crit > 0;
+            } else {
+              const tier = raw === '' ? 'none' : critTier(raw);
+              if (raw !== '') html.find("[name='mega']").prop('checked', tier === 'mega');
+              critAvailable = tier === 'crit';
+            }
+            chart.prop('disabled', !critAvailable);
+            if (!critAvailable) chart.val('normal');
           };
-          const syncWalk = () => html.find("[name='walk']").prop('disabled', !!html.find("[name='loc']").val());
-          html.find("[name='margin']").on('input', syncTier);
-          html.find("[name='loc']").on('change', syncWalk);
+          html.find("[name='margin'], [name='hits']").on('input', syncTier);
           syncTier();
-          syncWalk();
         },
         callback: html => {
           const raw = html.find("[name='margin']").val();
-          const servoId = html.find("[name='loc']").val() || null;
           return {
             hits: Math.max(1, Number(html.find("[name='hits']").val()) || 1),
             megaCrit: html.find("[name='mega']").is(':checked'),
             chart: html.find("[name='chart']").val() || 'normal',
+            margin: raw === '' ? null : Number(raw),
             tier: raw === '' ? null : critTier(raw),
-            servoId,
-            walk: isMissile && !servoId ? (html.find("[name='walk']").val() || 'dec') : null
+            servoId: html.find("[name='loc']").val() || null
           };
         }
       });
@@ -625,7 +629,7 @@ Hooks.once("ready", () => {
     btn.disabled = true;
     await MektonActorSheet._applyMechaSalvo(actor, {
       kills: Number(btn.dataset.kills) || 0, hits: form.hits, megaCrit: form.megaCrit, servoId: form.servoId,
-      walk: form.walk, chart: form.chart, tier: form.tier
+      missile: isMissile, margin: form.margin, chart: form.chart, tier: form.tier
     });
   });
 
