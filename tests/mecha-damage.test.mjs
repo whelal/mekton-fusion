@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry, locationFromRoll, applyHit }
+import { critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry, locationFromRoll, applyHit, applyPodHit }
   from "../module/data/mecha-damage.js";
 
 test("critTier", () => {
@@ -62,4 +62,32 @@ test("applyHit staged penetration (core example: 3 SP, 5K -> 2 through, SP -1)",
   const r = applyHit({ maxKills: 10, maxSP: 3, taken: { kills: 0, sp: 0 } }, 5);
   assert.equal(r.through, 2);
   assert.equal(r.taken.sp, 1);
+});
+
+test("shield parry: a fully stopped hit still costs 1 SP", () => {
+  const r = resolveShieldParry({ spMax: 6, spUsed: 0 }, 4, 2);
+  assert.deepEqual(r.through, [0, 0]);
+  assert.equal(r.spUsed, 2);
+});
+
+test("applyPodHit: penetrating Kills go to a system in the pod", () => {
+  const pod = { maxSP: 2, taken: { kills: 0, sp: 0 } };
+  const r = applyPodHit(pod, 5, [{ maxKills: 4, takenKills: 0 }]);
+  assert.equal(r.through, 3);
+  assert.equal(r.taken.sp, 1);
+  assert.equal(r.systemIndex, 0);
+  assert.equal(r.systemTaken, 3);
+  assert.equal(r.destroyed, false);                 // first penetrating hit no longer destroys the pod
+  const r2 = applyPodHit({ maxSP: 2, taken: r.taken }, 5, [{ maxKills: 4, takenKills: 3 }]);
+  assert.equal(r2.systemDestroyed, true);
+  assert.equal(r2.destroyed, true);                 // every system in it destroyed -> pod destroyed
+  const r3 = applyPodHit({ maxSP: 2, taken: r2.taken }, 5, [{ maxKills: 4, takenKills: 4 }]);
+  assert.equal(r3.wasDestroyed, true);
+});
+
+test("applyPodHit: empty pod ablates but is never destroyed", () => {
+  const r = applyPodHit({ maxSP: 1, taken: { kills: 0, sp: 0 } }, 9, []);
+  assert.equal(r.through, 8);
+  assert.equal(r.systemIndex, null);
+  assert.equal(r.destroyed, false);
 });

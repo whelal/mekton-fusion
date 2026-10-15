@@ -1,3 +1,15 @@
+## [0.3.22] - 2026-10-15
+### Fixed
+- Pods (MZ ATM, Pod Servo): a pod has no Kills of its own and was being destroyed by its first penetrating hit. Damage past a pod's armor now goes to a weapon mounted in it, chosen at random when there are several (`applyPodHit`); excess past that weapon's Kills is lost. A pod is destroyed once every weapon in it is, and a destroyed weapon goes offline. Only weapons track damage, so sensors and subassembly items in a pod aren't counted. An empty pod still ablates its armor, but penetrating damage goes nowhere and the pod is never destroyed. Pod hits resolve the same way from every Apply button: the salvo dialog, burst per-hit buttons, the Play view's Apply Hit, and parry through-damage.
+- Ties go to the defender in all combat (MZ core, Evade Rolls). A human-scale attack that exactly meets a GM Difficulty now misses, and a human-scale burst on a tie lands 0 hits (it used to land 1).
+### Changed
+- Shield parry plays RAW only. Each parried hit is resolved against the shield's current SP, and any hit of 1K or more costs 1 SP even when fully stopped (MZ core, Staged Penetration; MZ ATM, Shields). The `SHIELD_PASS_THROUGH` switch and its "parry stops everything" mode are removed.
+- Damage that gets past a shield now goes to the hit's originally rolled location, not the shield's mounting servo (an Interpretation, now listed in ROADMAP.md). The parry dialog asks for that location: Random rolls it the normal way (walking the chart if you tick "Missile salvo"), or pick the aimed or already-rolled servo. The shield wear, the servo damage and the parry roll go into one update and one chat card. The "no mount, apply by hand" path is removed.
+- An aimed hit no longer rolls a d10 it doesn't use. The single-hit Apply buttons now share the salvo flow, so their chat card shows "Hit 1: aimed → …".
+- Every weapon's `killsUsed` is kept in the Play-view form, not just melee/EMW weapons', so damage taken in a pod survives a form submit. Any weapon that has lost Kills shows "Kills X/Y".
+- The comment calling "weapons in a destroyed servo go offline" an assumption now cites RAW (MZ ATM).
+- ROADMAP.md: new Interpretations list, and four new 0.5 items (Damage Coefficient, Beam/Reactive shields, autofire crit allocation, non-weapon systems going out of action with their servo).
+
 ## [0.3.21] - 2026-10-15
 ### Changed
 - Table rulings now live in `module/rules/table-rulings.js` (`TABLE_RULINGS`), and the code reads them from there instead of hardcoding them: `burstAmmoCost` (1 per mecha burst, whatever the BV), `otherWithoutWingTail` (a single attack's 9 with no wing/tail rerolls; "torso" restores the pre-0.3.15 behavior), `salvoWalkEmptyOther` (added in 0.3.20), `sideLimbPick` (moved from `LIMB_PICK` in `mecha-damage.js`, which is removed), and `excessKills` ("lost"). No gameplay change: every entry holds its current value.

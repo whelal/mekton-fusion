@@ -24,6 +24,12 @@ sentence goes in the Parking lot.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
 - Human-scale: no armor bypass for characters. Armor ablation and burst fire play RAW. The GM Difficulty option stays, for sneak attacks with no evade or dodge.
 
+### Interpretations
+Where the book is silent or ambiguous and the table decided. These are not settings toggles.
+- Parried through-damage goes to the originally rolled location.
+- Salvo crit chart (Random/Special/Cinematic) is chosen once per salvo. Random must remain an option.
+- Ties go to the defender in all combat, including vs GM Difficulty.
+
 ## Versioning
 
 - **Minor** (0.x.0) = a milestone is complete.
@@ -41,7 +47,7 @@ sentence goes in the Parking lot.
 
 ### 0.4 — Mecha sheet usability ◀ CURRENT
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
-- [~] Create `module/rules/table-rulings.js` and route existing rulings through it — mecha rulings routed; SHIELD_PASS_THROUGH and the human-scale rulings still to classify
+- [x] Create `module/rules/table-rulings.js` and route existing rulings through it
 - [ ] Redesign the mecha data model: separate inputs from derived values
 - [ ] Split the sheet into a Construction view and a Play view
 - [ ] Make derived values read-only and remove redundant input fields
@@ -56,6 +62,10 @@ sentence goes in the Parking lot.
 - [x] Servo damage, with excess lost
 - [x] Ammo and clips per ruling; reload as an Action
 - [ ] Maneuver Pool use in combat
+- [ ] Damage Coefficient (Alpha/Beta/Gamma): armor and shields ablate only on hits >= DC
+- [ ] Beam and Reactive shields (no staged penetration; overload/reset)
+- [ ] Autofire crits use the salvo Mega-Crit/Crit allocation (each burst hit still rolls its own location, no walk)
+- [ ] Non-weapon systems (sensors, subassemblies, movement) go out of action with a destroyed servo, except flight systems and maneuver verniers (RAW)
 
 ### 0.6 — Human-scale polish
 **Done when:** a human-scale fight runs without paper.

@@ -3,7 +3,7 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
 import { deriveArmorByLocation } from "../../module/data/armor.js";
-import { applyHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
+import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { escapeHtml } from "../../module/util/escape.js";
@@ -2585,34 +2585,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * Apply one hit of `kills` damage to `actor`'s mecha at servo `loc` (its `id`,
-   * aliased via `locKey`). Staged penetration math lives in applyHit()
-   * (mecha-damage.js, shared with the multi-hit salvo flow); this just reads
-   * the servo's current damage-taken entry, applies one hit, and writes it back.
+   * aliased via `locKey`): one aimed hit through _applyMechaSalvo, so servos and
+   * pods resolve the same way from every Apply button.
    */
   static async _applyMechaHit(actor, loc, kills, { megaCrit = false } = {}) {
-    const servo = actor.system.mecha?.servos?.find(s => s?.locKey === loc);
-    if (!servo) {
+    if (!actor.system.mecha?.servos?.some(s => s?.locKey === loc)) {
       ui.notifications.warn(`${actor.name}: no servo at ${loc}.`);
       return null;
     }
-    const r = applyHit({ maxKills: servo.hits, maxSP: servo.sp, taken: { kills: servo.dmgKills, sp: servo.dmgSp } }, kills, { megaCrit });
-    const speaker = ChatMessage.getSpeaker({ actor });
-    const mechName = escapeHtml(actor.system.mecha.name || actor.name);
-    if (r.wasDestroyed) {
-      await ChatMessage.create({ speaker, content: `<strong>${mechName}</strong> — ${servo.servo} is already destroyed, hit has no effect.` });
-      return r;
-    }
-    await actor.update({
-      [`system.mecha.damage.${loc}.sp`]: r.taken.sp,
-      [`system.mecha.damage.${loc}.kills`]: r.taken.kills
-    });
-    const parts = [`${r.through}K through`, r.ablated ? 'SP -1' : 'SP unaffected'];
-    if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
-    await ChatMessage.create({
-      speaker,
-      content: `<strong>${mechName}</strong> — ${servo.servo} takes ${kills}K${megaCrit ? ' (Mega-Crit)' : ''}: ${parts.join(' · ')}`
-    });
-    return r;
+    return MektonActorSheet._applyMechaSalvo(actor, { kills, hits: 1, megaCrit, servoId: loc });
   }
 
   /** Sheet button: prompt for one attack's damage and apply it to this mech. */
@@ -2648,12 +2629,21 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * `chart` "special"/"cinematic" (attacker's choice on a Critical, RAW) posts each
    * Critical hit for manual resolution -- as the walk's row number on that chart
    * when there is one -- and applies nothing for it.
+   * A pod (MZ ATM, Pod Servo) resolves through applyPodHit: penetrating Kills go to
+   * a weapon mounted in it (its killsUsed), and the pod falls when they all do.
+   * `killsPerHit` (parried through-damage) overrides `kills` hit by hit; a 0 entry
+   * was stopped by the shield. `extraUpdate` / `intro` are merged into this call's
+   * single actor.update and prepended to its chat card.
    */
-  static async _applyMechaSalvo(actor, { kills, hits = 1, megaCrit = false, servoId = null, missile = false, margin = null, chart = 'normal', tier = null } = {}) {
+  static async _applyMechaSalvo(actor, { kills, hits = 1, megaCrit = false, servoId = null, missile = false, margin = null, chart = 'normal', tier = null, killsPerHit = null, extraUpdate = {}, intro = '', extraRolls = [] } = {}) {
     const servos = (actor.system.mecha?.servos ?? []).filter(s => s?.id);
     if (!servos.length) { ui.notifications.warn(`${actor.name}: no servos to hit.`); return null; }
     const servoById = Object.fromEntries(servos.map(s => [s.id, s]));
     const mechName = escapeHtml(actor.system.mecha.name || actor.name);
+    // Weapons working copy: a pod hit damages the weapons mounted in it (killsUsed).
+    const derivedWeapons = actor.system.mecha?.weapons ?? [];
+    const weaponsWork = foundry.utils.deepClone(actor._source.system.mecha.weapons ?? []);
+    let weaponsTouched = false;
 
     // Per-hit crit kind: a missile salvo counts them from the margin; anything else shares one tier.
     const counts = missile ? salvoCritCounts(margin ?? 0, hits) : null;
@@ -2663,7 +2653,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const tierLabel = counts
       ? [counts.mega && `${counts.mega} Mega-Crit`, counts.crit && `${counts.crit} Critical`].filter(Boolean).join(', ')
       : (megaCrit ? TIER_LABEL.mega : (TIER_LABEL[tier] ?? ''));
-    const header = `<strong>${mechName}</strong> takes ${hits} hit${hits === 1 ? '' : 's'} of ${kills}K${tierLabel ? ` — <strong>${tierLabel}</strong>` : ''}`;
+    const dmgText = killsPerHit ? 'damage past the shield' : `${kills}K`;
+    const header = `<strong>${mechName}</strong> takes ${hits} hit${hits === 1 ? '' : 's'} of ${dmgText}${tierLabel ? ` — <strong>${tierLabel}</strong>` : ''}`;
     const chartName = chart === 'special' ? 'Special' : chart === 'cinematic' ? 'Cinematic' : null;
 
     // Running damage-taken per servo, seeded from current state, mutated hit by
@@ -2671,7 +2662,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const working = {};
     const takenFor = id => working[id] ?? (working[id] = { kills: servoById[id].dmgKills, sp: servoById[id].dmgSp });
 
-    const rolls = [];
+    const rolls = [...extraRolls];
     const lines = [];
     let ejectWarning = false;
 
@@ -2690,6 +2681,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const kind = kindOf(i);
       const label = missile ? `Missile ${i}` : `Hit ${i}`;
       const kindTag = kind === 'mega' ? ' (Mega-Crit)' : kind === 'crit' ? ' (Critical)' : '';
+      const hitKills = killsPerHit ? (Number(killsPerHit[i - 1]) || 0) : kills;
+      if (killsPerHit && hitKills <= 0) {
+        lines.push(`<li>${label}: stopped by the shield.</li>`);
+        continue;
+      }
 
       // Critical on the Special/Cinematic chart (attacker's choice): the walk's row
       // number is the result on that chart; nothing is applied automatically.
@@ -2712,12 +2708,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           tag += ` → reroll d10 ${rr.total}`;
           loc = locationFromRoll(rr.total, servos, pickIndex);
         }
+      } else if (servoId) {
+        loc = { servoId, special: false, reroll: false };
+        tag = 'aimed';
       } else {
         let roll, attempts = 0;
         do {
           roll = await new Roll('1d10').evaluate();
           rolls.push(roll);
-          loc = servoId ? { servoId, special: false, reroll: false } : locationFromRoll(roll.total, servos, pickIndex);
+          loc = locationFromRoll(roll.total, servos, pickIndex);
           attempts++;
         } while (loc.reroll && attempts < 20);
         tag = `d10 ${roll.total}`;
@@ -2732,7 +2731,32 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         lines.push(`<li>${label}: ${tag} → no servo there.</li>`);
         continue;
       }
-      const r = applyHit({ maxKills: servo.hits, maxSP: servo.sp, taken: takenFor(servo.id) }, kills, { megaCrit: kind === 'mega' });
+      if (servo.kind === 'pod') {
+        const inPod = weaponsWork.map((w, wi) => ({ w, d: derivedWeapons[wi] }))
+          .filter(x => x.d?.weaponKey && x.d.loc === servo.id && Number(x.d.hits) > 0);
+        const p = applyPodHit({ maxSP: servo.sp, taken: takenFor(servo.id) }, hitKills,
+          inPod.map(x => ({ maxKills: x.d.hits, takenKills: x.w.killsUsed })), { megaCrit: kind === 'mega', rand: pickIndex });
+        working[servo.id] = p.taken;
+        if (p.wasDestroyed) {
+          lines.push(`<li>${label}: ${tag} → ${escapeHtml(servo.servo)} -- already destroyed, no effect.</li>`);
+          continue;
+        }
+        const parts = [`${p.through}K through`, p.ablated ? 'SP -1' : 'SP unaffected'];
+        if (p.systemIndex !== null) {
+          const x = inPod[p.systemIndex];
+          x.w.killsUsed = p.systemTaken;
+          weaponsTouched = true;
+          parts.push(`to ${escapeHtml(x.d.name || 'weapon')} (Kills ${Math.max(0, x.d.hits - p.systemTaken)}/${x.d.hits})${p.systemDestroyed ? ' <strong>DESTROYED</strong>' : ''}`);
+        } else if (p.through > 0 && !inPod.length) {
+          parts.push('empty pod: no system to damage');
+        }
+        if (p.destroyed) parts.push('<strong>POD DESTROYED</strong>');
+        lines.push(`<li>${label}: ${tag} → <strong>${escapeHtml(servo.servo)}</strong>${kindTag}: ${parts.join(' · ')}</li>`);
+        if (p.destroyed && actor.system.mecha?.subassemblies?.cockpit?.loc === servo.id) ejectWarning = true;
+        continue;
+      }
+
+      const r = applyHit({ maxKills: servo.hits, maxSP: servo.sp, taken: takenFor(servo.id) }, hitKills, { megaCrit: kind === 'mega' });
       working[servo.id] = r.taken;
 
       if (r.wasDestroyed) {
@@ -2746,14 +2770,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (r.destroyed && actor.system.mecha?.subassemblies?.cockpit?.loc === servo.id) ejectWarning = true;
     }
 
-    const update = {};
+    const update = { ...extraUpdate };
     for (const [id, t] of Object.entries(working)) {
       update[`system.mecha.damage.${id}.sp`] = t.sp;
       update[`system.mecha.damage.${id}.kills`] = t.kills;
     }
+    if (weaponsTouched) update['system.mecha.weapons'] = weaponsWork;
     if (Object.keys(update).length) await actor.update(update);
 
-    let content = `${header}:<ul>${lines.join('')}</ul>`;
+    let content = `${intro}${header}:<ul>${lines.join('')}</ul>`;
     if (ejectWarning) content += `<p><strong>Pilot must make an Emergency Ejection roll.</strong></p>`;
     await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }), content, rolls });
     return { taken: working, rolls };
@@ -3015,16 +3040,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         ui.notifications.warn('Evade needs exactly one targeted token -- resolving with no defense roll.');
       }
       if (difficulty !== null) {
-        success = attackTotal >= difficulty;
+        success = attackTotal > difficulty; // ties go to the defender in all combat (MZ core, Evade Rolls)
         margin = attackTotal - difficulty;
         resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
       }
     }
 
-    // Burst: one hit per point of margin, up to BV (a Difficulty tie still lands 1).
+    // Burst: one hit per point of margin (> 0 -- a tie is a miss), up to BV.
     // With no defense roll and no Difficulty there's no margin, so a burst lands 1 hit.
     const burst = fireMode === 'burst' && bv > 1;
-    const hitCount = burst && margin !== null ? Math.max(1, Math.min(margin, bv)) : 1;
+    const hitCount = burst && margin !== null ? Math.max(0, Math.min(margin, bv)) : 1;
 
     let flavor = `<strong>${this.actor.name}</strong> attacks with ${weaponName}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
@@ -3248,7 +3273,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * spends 1 Kill regardless of damage (destroyed at 0); a shield uses staged
    * penetration (MZ+ ATM, resolveShieldParry): -1 SP per parried hit (a burst/
    * salvo ablates it once per hit), and damage over its current SP passes to
-   * the mounting servo; an EMW doesn't deplete, but an attack whose damage
+   * the hit's originally rolled location; an EMW doesn't deplete, but an attack whose damage
    * exceeds the EMW's own Damage rating isn't stopped at all.
    */
   async _onMechaParry(ev) {
@@ -3264,6 +3289,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!isShield && !row.canParry) { ui.notifications.warn(`${row.name || 'This weapon'} can't parry -- melee weapons and EMWs only.`); return; }
     if (row.parryDestroyed) { ui.notifications.warn(`${row.name}: nothing left to parry with -- it's destroyed.`); return; }
 
+    // Damage past a shield goes to each hit's originally rolled location (Interpretation,
+    // ROADMAP.md) -- so the parry asks for that location the same way Apply hit does.
+    const servos = (this.actor.system.mecha?.servos ?? []).filter(s => s?.id);
     let form;
     try {
       form = await Dialog.prompt({
@@ -3272,6 +3300,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           + `<p>Incoming damage (Kills${isShield ? ' per hit' : ''}):</p><input type="number" name="dmg" min="0" value="0" style="width:100%"/>`
           + (isShield
               ? `<p>Hits (1 for a single shot; the burst/salvo hit count):</p><input type="number" name="hits" min="1" value="1" style="width:100%"/>`
+                + `<p>Hit location for damage past the shield:</p><select name="loc" style="width:100%"><option value="">Random (Hit Location Chart)</option>`
+                + servos.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.servo || s.id)} (aimed / already rolled)</option>`).join('')
+                + `</select>`
+                + `<p><label><input type="checkbox" name="missile"/> Missile salvo (random location walks the chart)</label></p>`
                 + `<p style="font-size:0.85em;color:#666;">Arc reminder (not enforced): ${escapeHtml(row.arcLabel || 'n/a')}</p>`
               : `<p><label><input type="checkbox" name="melee" checked/> Incoming attack is melee or an EMW</label></p>`),
         label: 'Roll Parry',
@@ -3279,6 +3311,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           atk: Number(html.find("[name='atk']").val()) || 0,
           dmg: Number(html.find("[name='dmg']").val()) || 0,
           hits: Math.max(1, Math.floor(Number(html.find("[name='hits']").val()) || 1)),
+          servoId: html.find("[name='loc']").val() || null,
+          missile: html.find("[name='missile']").is(':checked'),
           melee: isShield || html.find("[name='melee']").is(':checked')
         })
       });
@@ -3314,12 +3348,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Successful shield parry (resolveShieldParry): write the shield's new spUsed and
-   * apply each hit's pass-through Kills to the mounting servo (shield.loc) through its
-   * own armor (applyHit), stacking on a working copy like _applyMechaSalvo. One
-   * actor.update for shield + servo; one chat card.
+   * Successful shield parry (resolveShieldParry, RAW): write the shield's new spUsed,
+   * then send each hit's pass-through Kills to that hit's originally rolled location
+   * (aimed / already-rolled servo, or rolled now -- walked for a missile salvo) via
+   * _applyMechaSalvo, so the shield and servo damage land in one actor.update and
+   * one chat card. Hits the shield fully stopped apply nothing.
    */
-  async _resolveShieldParry(idx, shield, { dmg, hits }, head, roll) {
+  async _resolveShieldParry(idx, shield, { dmg, hits, servoId, missile }, head, roll) {
     const spBefore = Math.max(0, (Number(shield.sp) || 0) - (Number(shield.spUsed) || 0));
     const p = resolveShieldParry({ spMax: shield.sp, spUsed: shield.spUsed }, dmg, hits);
     const spAfter = Math.max(0, (Number(shield.sp) || 0) - p.spUsed);
@@ -3327,35 +3362,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const shields = foundry.utils.deepClone(this.actor._source.system.mecha.shields);
     if (shields[idx]) shields[idx].spUsed = p.spUsed;
     const update = { 'system.mecha.shields': shields };
+    const summary = `${head} — parried · shield SP ${spBefore} → ${spAfter}${p.destroyed ? ' · <strong>DESTROYED</strong>' : ''}`;
 
-    const mount = shield.loc ? this.actor.system.mecha?.servos?.find(s => s?.id === shield.loc) : null;
-    const lines = [];
-    let ejectWarning = false;
-    if (p.through.some(k => k > 0)) {
-      if (!mount) {
-        p.through.forEach((k, i) => { if (k > 0) lines.push(`<li>Hit ${i + 1}: ${k}K through — apply manually (shield has no mount).</li>`); });
-      } else {
-        let taken = { kills: mount.dmgKills, sp: mount.dmgSp };
-        p.through.forEach((k, i) => {
-          if (k <= 0) { lines.push(`<li>Hit ${i + 1}: stopped by the shield.</li>`); return; }
-          const r = applyHit({ maxKills: mount.hits, maxSP: mount.sp, taken }, k);
-          taken = r.taken;
-          if (r.wasDestroyed) { lines.push(`<li>Hit ${i + 1}: ${k}K to ${escapeHtml(mount.servo)} -- already destroyed, no effect.</li>`); return; }
-          const parts = [`${r.through}K through`, r.ablated ? 'SP -1' : 'SP unaffected'];
-          if (r.destroyed) parts.push('<strong>DESTROYED</strong>');
-          lines.push(`<li>Hit ${i + 1}: ${k}K to <strong>${escapeHtml(mount.servo)}</strong>: ${parts.join(' · ')}</li>`);
-          if (r.destroyed && this.actor.system.mecha?.subassemblies?.cockpit?.loc === mount.id) ejectWarning = true;
-        });
-        update[`system.mecha.damage.${mount.id}.sp`] = taken.sp;
-        update[`system.mecha.damage.${mount.id}.kills`] = taken.kills;
-      }
+    if (!p.through.some(k => k > 0)) {
+      await this.actor.update(update);
+      await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this.actor }), content: `${summary} · attack stopped.`, rolls: [roll] });
+      return;
     }
-    await this.actor.update(update);
-
-    let content = `${head} — parried · shield SP ${spBefore} → ${spAfter}${p.destroyed ? ' · <strong>DESTROYED</strong>' : ''}`
-      + (lines.length ? `<ul>${lines.join('')}</ul>` : ' · attack stopped.');
-    if (ejectWarning) content += `<p><strong>Pilot must make an Emergency Ejection roll.</strong></p>`;
-    await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor: this.actor }), content, rolls: [roll] });
+    const r = await MektonActorSheet._applyMechaSalvo(this.actor, {
+      hits: p.through.length, killsPerHit: p.through, servoId, missile,
+      extraUpdate: update, intro: `<p>${summary}</p>`, extraRolls: [roll]
+    });
+    if (r === null) await this.actor.update(update); // no servos to hit: still record the shield wear
   }
 
   /**

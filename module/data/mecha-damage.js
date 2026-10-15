@@ -62,9 +62,10 @@ export function locationFromRoll(n, servos, rand) {
  *   entirely) penetrates to Kills.
  * - A non-Mega-Crit hit of >=1K ablates 1 SP, even if fully stopped. A
  *   Mega-Crit never ablates (the shot never touched the armor).
- * - `maxKills === 0` (a pod, or any unconfigured servo) has no real Kills
- *   pool: the first penetrating hit still registers (taken.kills -> 1) so the
- *   caller's destroyed check can fire; a second hit is a no-op (wasDestroyed).
+ * - `maxKills === 0` (an unconfigured servo) has no real Kills pool: the first
+ *   penetrating hit still registers (taken.kills -> 1) so the caller's destroyed
+ *   check can fire; a second hit is a no-op (wasDestroyed). Pods don't come here
+ *   -- see applyPodHit.
  * - Excess damage past 0 Kills is lost, not carried to another servo (table
  *   ruling TABLE_RULINGS.excessKills; "lost" is the only implemented value).
  * - A hit on an already-destroyed servo does nothing; the caller should report
@@ -94,6 +95,49 @@ export function applyHit({ maxKills, maxSP, taken }, kills, { megaCrit = false }
   const nowDestroyed = (maxK > 0 && maxK - newKills <= 0) || (maxK === 0 && newKills > 0);
 
   return { taken: { kills: newKills, sp: newSp }, through, ablated, destroyed: nowDestroyed, wasDestroyed: false };
+}
+
+/**
+ * Pod hit (MZ ATM, Pod Servo). A pod has no Kills of its own -- its armor holds it
+ * together. Staged penetration vs the pod's current SP, exactly as applyHit; Kills
+ * that penetrate go to a system mounted in the pod, and the pod is destroyed when
+ * the systems in it are.
+ * - `systems`: [{ maxKills, takenKills }] -- only systems with a Kills value (>0).
+ * - With several intact systems, `rand(k)` picks the one that takes the hit.
+ * - Damage past that system's remaining Kills is lost (TABLE_RULINGS.excessKills).
+ * - Empty pod (no systems): the armor still ablates, penetrating Kills go nowhere,
+ *   and the pod is never destroyed -- the book's Pod Servo rule doesn't cover it.
+ * @returns {{ taken:{kills:number, sp:number}, through:number, ablated:boolean,
+ *   systemIndex:number|null, systemTaken:number, systemDestroyed:boolean,
+ *   destroyed:boolean, wasDestroyed:boolean }}
+ */
+export function applyPodHit({ maxSP, taken }, kills, systems = [], { megaCrit = false, rand = () => 0 } = {}) {
+  const dmg = Math.max(0, Math.floor(Number(kills) || 0));
+  const takenKills = Number(taken?.kills) || 0;
+  const takenSp = Number(taken?.sp) || 0;
+  const list = systems.map((s, i) => ({ i, max: Number(s.maxKills) || 0, taken: Number(s.takenKills) || 0 }));
+  const intact = list.filter(s => s.taken < s.max);
+  const none = { systemIndex: null, systemTaken: 0, systemDestroyed: false };
+
+  if (list.length > 0 && intact.length === 0) {
+    return { taken: { kills: takenKills, sp: takenSp }, through: 0, ablated: false, ...none, destroyed: true, wasDestroyed: true };
+  }
+
+  const spCurrent = Math.max(0, (Number(maxSP) || 0) - takenSp);
+  const through = Math.max(0, dmg - (megaCrit ? 0 : spCurrent));
+  const ablated = !megaCrit && spCurrent > 0 && dmg >= 1;
+  const newSp = takenSp + (ablated ? 1 : 0);
+
+  let hit = none;
+  if (through > 0 && intact.length) {
+    const s = intact[rand(intact.length)];
+    const systemTaken = Math.min(s.max, s.taken + through);
+    hit = { systemIndex: s.i, systemTaken, systemDestroyed: systemTaken >= s.max };
+  }
+  const destroyed = list.length > 0
+    && list.every(s => (s.i === hit.systemIndex ? hit.systemTaken : s.taken) >= s.max);
+
+  return { taken: { kills: takenKills, sp: newSp }, through, ablated, ...hit, destroyed, wasDestroyed: false };
 }
 
 /** Burst fire: one hit per point Attack beats Defense, capped at BV. Tie/miss = 0. */
@@ -184,18 +228,15 @@ export function salvoCritCounts(margin, hits) {
   return { mega, crit, normal: n - mega - crit };
 }
 
-// MZ+ (ATM, Shields): Standard/Active shields use staged penetration -- damage over the
-// shield's current SP passes through to its mounting servo, and parrying a burst/salvo
-// ablates the shield once per hit. false = core-only reading (a parry stops the whole
-// attack, -1 SP no matter the damage). Single switch point; not yet classified as
-// RAW or house, so it isn't in TABLE_RULINGS.
-export const SHIELD_PASS_THROUGH = true;
-
 /**
- * One successful shield parry against `hits` hits of `kills` each.
+ * One successful shield parry against `hits` hits of `kills` each. Each parried hit
+ * is resolved against the shield's CURRENT SP with staged penetration (MZ core,
+ * Staged Penetration): damage over that SP passes through, and any hit of >=1K
+ * costs the shield 1 SP even when fully stopped -- so a parried burst/salvo ablates
+ * it once per hit (MZ ATM, Shields). Once the shield is at 0 SP, the rest pass in full.
  * @returns {{ spUsed:number, through:number[], destroyed:boolean }}
- *   through[i] = Kills that continue to the mounting servo for hit i
- *   (before that servo's own armor -- feed each one to applyHit).
+ *   through[i] = Kills that continue for hit i, to that hit's originally rolled
+ *   location (before that servo's own armor -- feed each one to applyHit).
  */
 export function resolveShieldParry({ spMax, spUsed }, kills, hits = 1) {
   const max = Math.max(0, Number(spMax) || 0);
@@ -203,15 +244,10 @@ export function resolveShieldParry({ spMax, spUsed }, kills, hits = 1) {
   const dmg = Math.max(0, Math.floor(Number(kills) || 0));
   const n = Math.max(1, Math.floor(Number(hits) || 1));
 
-  if (!SHIELD_PASS_THROUGH) {
-    used = Math.min(max, used + 1);
-    return { spUsed: used, through: Array(n).fill(0), destroyed: max - used <= 0 };
-  }
-
   const through = [];
   for (let i = 0; i < n; i++) {
     const cur = Math.max(0, max - used);
-    if (cur === 0) { through.push(dmg); continue; } // shield gone mid-burst: the rest hit the servo
+    if (cur === 0) { through.push(dmg); continue; } // shield gone mid-burst: the rest pass in full
     through.push(Math.max(0, dmg - cur));
     if (dmg >= 1) used += 1;                         // staged penetration: >=1K ablates 1
   }

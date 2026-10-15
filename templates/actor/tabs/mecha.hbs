@@ -75,7 +75,8 @@
           </td>
           <td>
             {{w.name}}{{#if w.damageNote}} <small>{{w.damageNote}}</small>{{/if}}
-            {{#if w.canParry}}<br/><small>Parry Kills {{w.parryKillsLeft}}/{{w.hits}}</small><input type="hidden" name="system.mecha.weapons.{{idx}}.killsUsed" value="{{w.killsUsed}}"/>{{/if}}
+            {{#if w.canParry}}<br/><small>Parry Kills {{w.parryKillsLeft}}/{{w.hits}}</small>{{else if w.killsUsed}}<br/><small>Kills {{w.parryKillsLeft}}/{{w.hits}}</small>{{/if}}
+            <input type="hidden" name="system.mecha.weapons.{{idx}}.killsUsed" value="{{w.killsUsed}}"/>
           </td>
           <td>{{w.wa}}</td><td>{{w.range}}</td><td>{{w.damage}}K</td><td>{{w.bv}}</td>
           <td>

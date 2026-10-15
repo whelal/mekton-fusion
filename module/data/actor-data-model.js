@@ -469,9 +469,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.dmgSp = Number(dmg.sp) || 0;
             row.killsLeft = Math.max(0, row.hits - row.dmgKills);
             row.spLeft = Math.max(0, row.sp - row.dmgSp);
-            // Pods (and any 0-Kills component) have no real Kills pool, so the first
-            // penetrating hit (applyHit records it as dmgKills > 0) destroys them outright.
-            row.destroyed = (row.hits > 0 && row.killsLeft === 0) || (row.kind === "pod" && row.dmgKills > 0);
+            // Pods have no Kills of their own: they're destroyed when the systems in them
+            // are (MZ ATM, Pod Servo), set after the weapons pass below.
+            row.destroyed = row.kind !== "pod" && row.hits > 0 && row.killsLeft === 0;
 
             totalCost += row.cost + row.armorCost;
             spaceByLocation[row.id].space += (Number(row.space) || 0) + (Number(row.extremitySpace) || 0);
@@ -515,17 +515,29 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             // Missile racks fire any number of missiles (1..shots left) in one Action -- a salvo.
             row.canSalvo = row.category === 'missile' && row.shotsMax > 1;
             row.locLabel = labelById[row.loc] ?? (row.loc || "—");
-            row.offline = !!servos.find(s => s?.locKey === row.loc && s.destroyed); // ASSUMPTION: systems in a destroyed servo are lost
             // Parry: melee weapons and EMWs may parry melee/EMW attacks (not shields' "any attack").
             // Melee weapons spend 1 of their own Kills per successful parry, regardless of damage;
             // EMWs don't deplete (see resolveMeleeParry/resolveEmwParry in mecha-damage.js).
+            // killsUsed = the weapon's own Kills lost: parry wear, or damage taken in a pod (applyPodHit).
             row.canParry = row.category === 'melee' || row.category === 'energyMelee';
             row.killsUsed = Number(row.killsUsed) || 0;
             row.parryKillsLeft = Math.max(0, row.hits - row.killsUsed);
             row.parryDestroyed = row.hits > 0 && row.parryKillsLeft === 0;
+            // Systems with Spaces in a destroyed servo are out of action (RAW, MZ ATM).
+            row.offline = row.parryDestroyed || !!servos.find(s => s?.locKey === row.loc && s.destroyed);
             totalCost += Number(row.cost) || 0;
             if (spaceByLocation[row.loc]) spaceByLocation[row.loc].space += Number(row.space) || 0;
             structuralKills += Number(row.hits) || 0;
+        });
+
+        // Pods (MZ ATM, Pod Servo): destroyed once every system in them with a Kills value
+        // is. Only weapons track damage, so only weapons count. An empty pod is never destroyed.
+        servos.forEach(row => {
+            if (row?.kind !== "pod") return;
+            const inPod = weapons.filter(w => w?.weaponKey && w.loc === row.id && w.hits > 0);
+            row.podSystems = inPod.length;
+            row.destroyed = inPod.length > 0 && inPod.every(w => w.parryDestroyed);
+            if (row.destroyed) inPod.forEach(w => { w.offline = true; });
         });
 
         // Shields: flat SHIELDS lookup by key.
