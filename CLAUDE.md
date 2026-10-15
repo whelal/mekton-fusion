@@ -4,6 +4,16 @@ Guidance for Claude Code (VS Code) working in this repo. Planning, rules
 interpretation, and design discussion also happen in the linked claude.ai
 project; the actual editing/committing/pushing happens here.
 
+## Scope discipline
+- Read ROADMAP.md before starting any task.
+- Work only on the milestone marked CURRENT. If a request falls outside it,
+  add it to the Parking lot in ROADMAP.md and say so, rather than implementing it.
+- Never hardcode a table ruling inline; add or use a named entry in
+  module/rules/table-rulings.js.
+- Every change meets the Definition of done in ROADMAP.md.
+- Never add rulebook PDFs, scans, or verbatim rule text to the repo, including in code
+  comments. Cite book + section/page only.
+
 ## What this is
 
 A custom **Foundry VTT system** (not a module — `system.json` at root) implementing
