@@ -1,3 +1,8 @@
+## [0.3.21] - 2026-10-15
+### Changed
+- Table rulings now live in `module/rules/table-rulings.js` (`TABLE_RULINGS`), and the code reads them from there instead of hardcoding them: `burstAmmoCost` (1 per mecha burst, whatever the BV), `otherWithoutWingTail` (a single attack's 9 with no wing/tail rerolls; "torso" restores the pre-0.3.15 behavior), `salvoWalkEmptyOther` (added in 0.3.20), `sideLimbPick` (moved from `LIMB_PICK` in `mecha-damage.js`, which is removed), and `excessKills` ("lost"). No gameplay change: every entry holds its current value.
+- Parry ties going to the defender are RAW (MZ core Interlock), not an assumption, so the code comments now say so. No entry, since the file holds house deviations only.
+
 ## [0.3.20] - 2026-10-15
 ### Fixed
 - Missile salvo hit determination now follows RAW (MZ ATM, Missiles / Missile Hit Determination). 0.3.18 got three things wrong:

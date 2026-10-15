@@ -41,7 +41,7 @@ sentence goes in the Parking lot.
 
 ### 0.4 — Mecha sheet usability ◀ CURRENT
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
-- [ ] Create `module/rules/table-rulings.js` and route existing rulings through it
+- [~] Create `module/rules/table-rulings.js` and route existing rulings through it — mecha rulings routed; SHIELD_PASS_THROUGH and the human-scale rulings still to classify
 - [ ] Redesign the mecha data model: separate inputs from derived values
 - [ ] Split the sheet into a Construction view and a Play view
 - [ ] Make derived values read-only and remove redundant input fields

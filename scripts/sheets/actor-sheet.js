@@ -3165,9 +3165,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (_) { return; }                                     // cancelled dialog: nothing fired
     const { defense } = form;
     const fired = isSalvo ? form.fired : 1;
-    // DECISION: a salvo spends one shot per missile fired (the table's "1 ammo per burst"
-    // ruling is for autofire). One-line change if ruled otherwise: spend 1 here instead.
-    if (!(await this._spendMechaAmmo(idx, fired))) return;     // fired: costs ammo, hit, miss or parried
+    // A salvo spends 1 per missile fired; a burst spends TABLE_RULINGS.burstAmmoCost whatever its BV.
+    const spend = isSalvo ? fired : TABLE_RULINGS.burstAmmoCost;
+    if (!(await this._spendMechaAmmo(idx, spend))) return;     // fired: costs ammo, hit, miss or parried
 
     const margin = attack - defense;
     const tier = critTier(margin);
@@ -3242,7 +3242,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * shield or a melee/EMW weapon (`.mp-parry` button, data-kind "shield"|"weapon").
    * Parry is a roll, not an automatic stop: 1D10 + MR + Mecha Melee + DA
    * (shields use their own DA; melee weapons/EMWs use their WA as DA) vs the
-   * attack total -- ASSUMPTION: ties succeed, same as Evade. Shields parry
+   * attack total -- ties go to the defender (RAW, as with Evade). Shields parry
    * any attack; melee weapons and EMWs may only parry melee/EMW attacks (not
    * exclusive -- either can parry the other). On a success: a melee weapon
    * spends 1 Kill regardless of damage (destroyed at 0); a shield uses staged

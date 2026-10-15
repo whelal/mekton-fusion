@@ -1,8 +1,8 @@
 // Mecha hit location chart (Mekton Zeta core, 1d10), resolved against the mech's
 // actual servo list rather than a fixed 6 slots. A tie among several equally
-// valid servos (e.g. two pods) is broken uniformly; LIMB_PICK is a single switch
-// point if a table ever wants a different side-limb tie rule.
-export const LIMB_PICK = "uniform"; // "uniform" | "armOrLegFirst"
+// valid servos (e.g. two pods) is broken uniformly -- for side limbs that's the
+// table ruling TABLE_RULINGS.sideLimbPick ("uniform").
+import { TABLE_RULINGS } from "../rules/table-rulings.js";
 
 function pickUniform(list, rand) {
   return list.length ? list[rand(list.length)] : null;
@@ -47,7 +47,10 @@ export function locationFromRoll(n, servos, rand) {
   }
   if (n === 9) {
     const picked = pickUniform(byKind("wing", "tail"), rand);
-    return picked ? hit(picked.id) : { servoId: null, special: false, reroll: true };
+    if (picked) return hit(picked.id);
+    // No wing/tail: table ruling (TABLE_RULINGS.otherWithoutWingTail).
+    if (TABLE_RULINGS.otherWithoutWingTail === "torso") return torso() ? hit(torso().id) : miss;
+    return { servoId: null, special: false, reroll: true };
   }
   // n === 10: Special chart -- resolve by hand, nothing applied automatically.
   return { servoId: null, special: true, reroll: false };
@@ -62,7 +65,8 @@ export function locationFromRoll(n, servos, rand) {
  * - `maxKills === 0` (a pod, or any unconfigured servo) has no real Kills
  *   pool: the first penetrating hit still registers (taken.kills -> 1) so the
  *   caller's destroyed check can fire; a second hit is a no-op (wasDestroyed).
- * - Excess damage past 0 Kills is lost, not carried to another servo.
+ * - Excess damage past 0 Kills is lost, not carried to another servo (table
+ *   ruling TABLE_RULINGS.excessKills; "lost" is the only implemented value).
  * - A hit on an already-destroyed servo does nothing; the caller should report
  *   that rather than re-resolve it (see `wasDestroyed`).
  * @param {{maxKills:number, maxSP:number, taken:{kills:number, sp:number}}} servo
@@ -122,7 +126,7 @@ export function resolveEmwParry({ emwDamage, attackDamage }) {
   return { ok: Number(attackDamage) <= Number(emwDamage), emwDamage: Number(emwDamage), attackDamage: Number(attackDamage) };
 }
 
-/** Parry Roll vs attack. ASSUMPTION: same tie rule as Evade (parry total >= attack total succeeds). */
+/** Parry Roll vs attack. Ties go to the defender (RAW, MZ core Interlock: Evade/Escape/Parry). */
 export function parrySucceeds(parryTotal, attackTotal) {
   return Number(parryTotal) >= Number(attackTotal);
 }
@@ -183,7 +187,8 @@ export function salvoCritCounts(margin, hits) {
 // MZ+ (ATM, Shields): Standard/Active shields use staged penetration -- damage over the
 // shield's current SP passes through to its mounting servo, and parrying a burst/salvo
 // ablates the shield once per hit. false = core-only reading (a parry stops the whole
-// attack, -1 SP no matter the damage). Single switch point, like LIMB_PICK.
+// attack, -1 SP no matter the damage). Single switch point; not yet classified as
+// RAW or house, so it isn't in TABLE_RULINGS.
 export const SHIELD_PASS_THROUGH = true;
 
 /**
