@@ -12,6 +12,7 @@ import { BODY_PLANS } from "../../module/data/body-values.js";
 import { OPTIONS } from "../../module/data/mecha-options.js";
 import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant.js";
 import { escapeHtml } from "../../module/util/escape.js";
+import { critTier } from "../../module/data/mecha-damage.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
 function buildOptions(entries, current) {
@@ -542,7 +543,9 @@ Hooks.once("ready", () => {
       return;
     }
     btn.disabled = true;
-    await MektonActorSheet._applyMechaHit(actor, btn.dataset.loc, Number(btn.dataset.dmg) || 0);
+    // Burst margin (attack - defense) of 10+ is a Mega-Crit: no armor on this location.
+    const megaCrit = btn.dataset.margin !== undefined && critTier(btn.dataset.margin) === 'mega';
+    await MektonActorSheet._applyMechaHit(actor, btn.dataset.loc, Number(btn.dataset.dmg) || 0, { megaCrit });
   });
 
   // Mecha "Apply hit" button (posted on every damaging Armament roll): GM rolls
@@ -566,26 +569,64 @@ Hooks.once("ready", () => {
       return;
     }
 
+    const isMissile = btn.dataset.missile === '1';
+    const hitsDefault = Math.max(1, Number(btn.dataset.hits) || 1);
+    const marginDefault = btn.dataset.margin ?? '';
+
     let form;
     try {
       form = await Dialog.prompt({
         title: 'Apply Mecha Hit',
-        content: `<p>Hits (a resolved burst = margin capped at BV):</p><input type="number" name="hits" value="1" min="1" style="width:100%" autofocus/>`
+        content: `<p>Hits (burst = margin capped at BV; missile salvo = margin × ⌈fired/10⌉):</p><input type="number" name="hits" value="${hitsDefault}" min="1" style="width:100%" autofocus/>`
+          + `<p>Margin (attack − defense, optional):</p><input type="number" name="margin" value="${escapeHtml(marginDefault)}" style="width:100%"/>`
           + `<p><label><input type="checkbox" name="mega"/> Mega-Crit (margin ≥10: bypasses armor, no ablation)</label></p>`
+          + `<p>Chart (Critical, margin ≥5 — attacker's choice):</p><select name="chart" style="width:100%" disabled>`
+          + `<option value="normal">Normal</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`
           + `<p>Location:</p><select name="loc" style="width:100%"><option value="">Random (Hit Location Chart)</option>`
-          + servos.map(s => `<option value="${s.id}">${escapeHtml(s.servo || s.id)}</option>`).join('')
-          + `</select>`,
+          + servos.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.servo || s.id)}</option>`).join('')
+          + `</select>`
+          + (isMissile
+              ? `<p>Walk (random location only):</p><select name="walk" style="width:100%">`
+                + `<option value="dec">Toward Head (3→2→1→10)</option><option value="inc">Toward limbs (3→4→5)</option></select>`
+              : ''),
         label: 'Apply',
-        callback: html => ({
-          hits: Math.max(1, Number(html.find("[name='hits']").val()) || 1),
-          megaCrit: html.find("[name='mega']").is(':checked'),
-          servoId: html.find("[name='loc']").val() || null
-        })
+        render: html => {
+          // Margin drives the crit tier: Mega-Crit auto-checks (still overridable by hand);
+          // a plain Critical unlocks the chart pick; anything less locks it to Normal.
+          const syncTier = () => {
+            const raw = html.find("[name='margin']").val();
+            const tier = raw === '' ? 'none' : critTier(raw);
+            if (raw !== '') html.find("[name='mega']").prop('checked', tier === 'mega');
+            const chart = html.find("[name='chart']");
+            chart.prop('disabled', tier !== 'crit');
+            if (tier !== 'crit') chart.val('normal');
+          };
+          const syncWalk = () => html.find("[name='walk']").prop('disabled', !!html.find("[name='loc']").val());
+          html.find("[name='margin']").on('input', syncTier);
+          html.find("[name='loc']").on('change', syncWalk);
+          syncTier();
+          syncWalk();
+        },
+        callback: html => {
+          const raw = html.find("[name='margin']").val();
+          const servoId = html.find("[name='loc']").val() || null;
+          return {
+            hits: Math.max(1, Number(html.find("[name='hits']").val()) || 1),
+            megaCrit: html.find("[name='mega']").is(':checked'),
+            chart: html.find("[name='chart']").val() || 'normal',
+            tier: raw === '' ? null : critTier(raw),
+            servoId,
+            walk: isMissile && !servoId ? (html.find("[name='walk']").val() || 'dec') : null
+          };
+        }
       });
     } catch (_) { return; }
 
     btn.disabled = true;
-    await MektonActorSheet._applyMechaSalvo(actor, { kills: Number(btn.dataset.kills) || 0, hits: form.hits, megaCrit: form.megaCrit, servoId: form.servoId });
+    await MektonActorSheet._applyMechaSalvo(actor, {
+      kills: Number(btn.dataset.kills) || 0, hits: form.hits, megaCrit: form.megaCrit, servoId: form.servoId,
+      walk: form.walk, chart: form.chart, tier: form.tier
+    });
   });
 
   // Override Combat.rollInitiative to use exploding dice

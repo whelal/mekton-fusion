@@ -69,7 +69,8 @@
         <tr class="{{#if w.offline}}destroyed{{/if}}">
           <td>
             <button type="button" class="mecha-weapon-roll" data-idx="{{idx}}" data-mech="mecha" title="Single shot"><i class="fas fa-dice-d20"></i></button>
-            {{#if w.bv}}<button type="button" class="mecha-weapon-burst" data-idx="{{idx}}" title="Burst (BV {{w.bv}})"><i class="fas fa-bullseye"></i></button>{{/if}}
+            {{#if w.canSalvo}}<button type="button" class="mecha-weapon-burst" data-idx="{{idx}}" title="Salvo (fire 1-{{w.shotsLeft}} missiles)"><i class="fas fa-bullseye"></i></button>
+            {{else if w.bv}}<button type="button" class="mecha-weapon-burst" data-idx="{{idx}}" title="Burst (BV {{w.bv}})"><i class="fas fa-bullseye"></i></button>{{/if}}
             {{#if w.canParry}}<button type="button" class="mp-parry" data-kind="weapon" data-idx="{{idx}}" title="Parry a melee/EMW attack" {{#if w.parryDestroyed}}disabled{{/if}}><i class="fas fa-shield-alt"></i></button>{{/if}}
           </td>
           <td>
@@ -89,7 +90,7 @@
             <input type="hidden" name="system.mecha.weapons.{{idx}}.clipsUsed" value="{{w.clipsUsed}}"/>
             <input type="hidden" name="system.mecha.weapons.{{idx}}.partialClips" value="{{w.partialClips}}"/>
           </td>
-          <td>{{w.loc}}</td>
+          <td>{{w.locLabel}}</td>
         </tr>
         {{/if}}{{/each}}
       </tbody>
@@ -100,7 +101,7 @@
       <tbody>
         {{#each system.mecha.shields as |sh idx|}}{{#if sh.key}}
         <tr class="{{#if sh.parryDestroyed}}destroyed{{/if}}">
-          <td><button type="button" class="mp-parry" data-kind="shield" data-idx="{{idx}}" title="Declare a parry (stops any attack)" {{#if sh.parryDestroyed}}disabled{{/if}}><i class="fas fa-shield-alt"></i></button></td>
+          <td><button type="button" class="mp-parry" data-kind="shield" data-idx="{{idx}}" title="Parry Roll: 1D10 + MR + Mecha Melee + DA. Damage over the shield's SP passes to its mount." {{#if sh.parryDestroyed}}disabled{{/if}}><i class="fas fa-shield-alt"></i></button></td>
           <td>{{sh.name}}</td>
           <td>{{sh.da}}</td>
           <td>{{sh.spLeft}}/{{sh.sp}}<input type="hidden" name="system.mecha.shields.{{idx}}.spUsed" value="{{sh.spUsed}}"/></td>

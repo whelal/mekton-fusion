@@ -126,3 +126,71 @@ export function resolveEmwParry({ emwDamage, attackDamage }) {
 export function parrySucceeds(parryTotal, attackTotal) {
   return Number(parryTotal) >= Number(attackTotal);
 }
+
+/** Core p.102: beat defense by 5+ = Critical (attacker picks chart), 10+ = Mega-Crit (no armor). */
+export function critTier(margin) {
+  const m = Number(margin);
+  if (m >= 10) return "mega";
+  if (m >= 5) return "crit";
+  return "none";
+}
+
+/**
+ * Missile salvo (core): missiles hit per point of margin = ceil(fired / 10).
+ * Clamped to missiles fired -- a physical ceiling the book doesn't state.
+ * Tie/miss = 0. No BV cap.
+ */
+export function salvoHitCount(attackTotal, defenseTotal, fired) {
+  const margin = Math.floor(Number(attackTotal) - Number(defenseTotal));
+  const n = Math.max(0, Math.floor(Number(fired) || 0));
+  if (!(margin >= 1) || n === 0) return 0;
+  return Math.min(n, margin * Math.ceil(n / 10));
+}
+
+/**
+ * Chart rows a salvo walks: `start`, then one step per extra missile, wrapping 1<->10.
+ * dir "dec" = 3,2,1,10...  dir "inc" = 3,4,5,6... (attacker's choice).
+ */
+export function salvoRows(start, count, dir = "dec") {
+  const step = dir === "inc" ? 1 : -1;
+  const rows = [];
+  let r = Number(start);
+  for (let i = 0; i < count; i++) {
+    rows.push(r);
+    r = ((r - 1 + step + 10) % 10) + 1;
+  }
+  return rows;
+}
+
+// MZ+ (ATM, Shields): Standard/Active shields use staged penetration -- damage over the
+// shield's current SP passes through to its mounting servo, and parrying a burst/salvo
+// ablates the shield once per hit. false = core-only reading (a parry stops the whole
+// attack, -1 SP no matter the damage). Single switch point, like LIMB_PICK.
+export const SHIELD_PASS_THROUGH = true;
+
+/**
+ * One successful shield parry against `hits` hits of `kills` each.
+ * @returns {{ spUsed:number, through:number[], destroyed:boolean }}
+ *   through[i] = Kills that continue to the mounting servo for hit i
+ *   (before that servo's own armor -- feed each one to applyHit).
+ */
+export function resolveShieldParry({ spMax, spUsed }, kills, hits = 1) {
+  const max = Math.max(0, Number(spMax) || 0);
+  let used = Math.max(0, Number(spUsed) || 0);
+  const dmg = Math.max(0, Math.floor(Number(kills) || 0));
+  const n = Math.max(1, Math.floor(Number(hits) || 1));
+
+  if (!SHIELD_PASS_THROUGH) {
+    used = Math.min(max, used + 1);
+    return { spUsed: used, through: Array(n).fill(0), destroyed: max - used <= 0 };
+  }
+
+  const through = [];
+  for (let i = 0; i < n; i++) {
+    const cur = Math.max(0, max - used);
+    if (cur === 0) { through.push(dmg); continue; } // shield gone mid-burst: the rest hit the servo
+    through.push(Math.max(0, dmg - cur));
+    if (dmg >= 1) used += 1;                         // staged penetration: >=1K ablates 1
+  }
+  return { spUsed: used, through, destroyed: max - used <= 0 };
+}

@@ -427,6 +427,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         servos.forEach((row, i) => row && Object.assign(row, servoMeta(row, i)));
         const labels = servoLabels(servos);
         servos.forEach((row, i) => { if (row) row.servo = labels[i]; });
+        // Play view / chat show a mount's label ("R Arm 2"), never its raw id.
+        const labelById = Object.fromEntries(servos.filter(Boolean).map(row => [row.id, row.servo]));
 
         // spaceByLocation is keyed by servo id now (was the fixed location key).
         const spaceByLocation = {};
@@ -510,6 +512,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             // Only worth an Action if it actually gets you more shots than what's loaded.
             row.canReload = row.shotsMax !== null && (Number(row.shotsUsed) || 0) > 0
                 && (row.fullSparesLeft > 0 || row.partials.some(n => n > row.shotsLeft));
+            // Missile racks fire any number of missiles (1..shots left) in one Action -- a salvo.
+            row.canSalvo = row.category === 'missile' && row.shotsMax > 1;
+            row.locLabel = labelById[row.loc] ?? (row.loc || "—");
             row.offline = !!servos.find(s => s?.locKey === row.loc && s.destroyed); // ASSUMPTION: systems in a destroyed servo are lost
             // Parry: melee weapons and EMWs may parry melee/EMW attacks (not shields' "any attack").
             // Melee weapons spend 1 of their own Kills per successful parry, regardless of damage;
@@ -546,8 +551,9 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             row.arcLabel = mount?.kind === 'arm' && mount.side === 'r' ? 'Front + R flank'
                 : mount?.kind === 'arm' && mount.side === 'l' ? 'Front + L flank'
                 : row.loc ? 'Arc n/a (not arm-mounted)' : '';
-            // Parry wear: a shield loses 1 SP per successful parry, any damage (same math as a
-            // melee weapon's Kills -- see resolveMeleeParry in mecha-damage.js).
+            row.locLabel = labelById[row.loc] ?? (row.loc || "—");
+            // Parry wear: a shield loses 1 SP per parried hit (staged penetration; damage over
+            // its current SP passes to the mount -- see resolveShieldParry in mecha-damage.js).
             row.spUsed = Number(row.spUsed) || 0;
             row.spLeft = Math.max(0, (Number(row.sp) || 0) - row.spUsed);
             row.parryDestroyed = (Number(row.sp) || 0) > 0 && row.spLeft === 0;
