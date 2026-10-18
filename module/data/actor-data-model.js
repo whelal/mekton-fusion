@@ -5,6 +5,7 @@ import { OPTIONS, optionCost } from "./mecha-options.js";
 import { finalWeight, propulsionLiftPoints, groundMA, maneuverValue, mechaReflex, maneuverPool } from "./mecha-movement.js";
 import { getPowerplant, powerplantMultipliers } from "./mecha-powerplant.js";
 import { finalCost, collectMultipliers } from "./mecha-cost.js";
+import { podArmorGone } from "./mecha-damage.js";
 
 // Body-location keys mapped onto the BOD hit-value groups body-values.js provides
 // (head/torso get their own column; all limbs share the "limbs" column).
@@ -530,14 +531,19 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             structuralKills += Number(row.hits) || 0;
         });
 
-        // Pods (MZ ATM, Pod Servo): destroyed once every system in them with a Kills value
-        // is. Only weapons track damage, so only weapons count. An empty pod is never destroyed.
+        // Pods (MZ ATM, Pod Servo; ROADMAP.md Interpretations): destroyed when the armor
+        // holding them together is gone (podArmorGone), or when every weapon in them is.
+        // Only weapons track damage, so only weapons count. Armor loss DROPS the contents:
+        // the weapons go offline, their own damage state untouched.
         servos.forEach(row => {
             if (row?.kind !== "pod") return;
             const inPod = weapons.filter(w => w?.weaponKey && w.loc === row.id && w.hits > 0);
+            const systemsGone = inPod.length > 0 && inPod.every(w => w.parryDestroyed);
+            const armorGone = podArmorGone(row.sp, { kills: row.dmgKills, sp: row.dmgSp });
             row.podSystems = inPod.length;
-            row.destroyed = inPod.length > 0 && inPod.every(w => w.parryDestroyed);
-            if (row.destroyed) inPod.forEach(w => { w.offline = true; });
+            row.podDropped = armorGone && !systemsGone;
+            row.destroyed = armorGone || systemsGone;
+            if (row.destroyed) weapons.forEach(w => { if (w?.loc === row.id) w.offline = true; });
         });
 
         // Shields: flat SHIELDS lookup by key.

@@ -29,6 +29,9 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Parried through-damage goes to the originally rolled location.
 - Salvo crit chart (Random/Special/Cinematic) is chosen once per salvo. Random must remain an option.
 - Ties go to the defender in all combat, including vs GM Difficulty.
+- Pod destroyed at 0 armor or when all its weapons are destroyed; contents are dropped (offline), not destroyed. No-armor pod: destroyed by its first hit.
+- Several weapons in a pod: a random weapon takes the hit; damage past its Kills is lost.
+- Non-weapon pod contents (sensors, subassemblies): the GM adjudicates. Not codified.
 
 ## Versioning
 
@@ -64,7 +67,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Maneuver Pool use in combat
 - [ ] Damage Coefficient (Alpha/Beta/Gamma): armor and shields ablate only on hits >= DC
 - [ ] Beam and Reactive shields (no staged penetration; overload/reset)
-- [ ] Autofire crits use the salvo Mega-Crit/Crit allocation (each burst hit still rolls its own location, no walk)
+- [ ] Streamline the shield parry flow (table finds it clunky)
 - [ ] Non-weapon systems (sensors, subassemblies, movement) go out of action with a destroyed servo, except flight systems and maneuver verniers (RAW)
 
 ### 0.6 — Human-scale polish

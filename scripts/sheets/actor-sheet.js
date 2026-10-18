@@ -3,7 +3,7 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
 import { deriveArmorByLocation } from "../../module/data/armor.js";
-import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
+import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { escapeHtml } from "../../module/util/escape.js";
@@ -2624,8 +2624,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * `missile` (a missile salvo, MZ ATM Missile Hit Determination): with a random
    * location, roll ONE start d10 and walk down the chart one row per missile
    * (salvoRows); crits come from the raw `margin` (salvoCritCounts) and land on the
-   * first missiles -- mega-crits, then crits, then normal hits. Otherwise every hit
-   * shares one tier: `megaCrit` (checkbox) or `tier` (critTier of the margin).
+   * first missiles -- mega-crits, then crits, then normal hits. Several non-missile
+   * hits with a margin (mecha autofire, MZ ATM) are counted the same way, each hit
+   * rolling its own location. A single hit takes one tier: `megaCrit` (checkbox) or
+   * `tier` (critTier of the margin).
    * `chart` "special"/"cinematic" (attacker's choice on a Critical, RAW) posts each
    * Critical hit for manual resolution -- as the walk's row number on that chart
    * when there is one -- and applies nothing for it.
@@ -2645,8 +2647,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const weaponsWork = foundry.utils.deepClone(actor._source.system.mecha.weapons ?? []);
     let weaponsTouched = false;
 
-    // Per-hit crit kind: a missile salvo counts them from the margin; anything else shares one tier.
-    const counts = missile ? salvoCritCounts(margin ?? 0, hits) : null;
+    // Per-hit crit kind: a missile salvo -- or any multi-hit attack with a margin (mecha
+    // autofire uses the salvo method, MZ ATM) -- counts them from the margin onto the
+    // first hits; a single hit takes one tier (the Mega-Crit box or the margin's tier).
+    const counts = (missile || (margin !== null && hits > 1)) ? salvoCritCounts(margin ?? 0, hits) : null;
     const kindOf = i => counts
       ? (i <= counts.mega ? 'mega' : i <= counts.mega + counts.crit ? 'crit' : 'normal')
       : (megaCrit ? 'mega' : tier === 'crit' ? 'crit' : 'normal');
@@ -2750,7 +2754,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         } else if (p.through > 0 && !inPod.length) {
           parts.push('empty pod: no system to damage');
         }
-        if (p.destroyed) parts.push('<strong>POD DESTROYED</strong>');
+        if (p.cause === 'armor') parts.push('<strong>POD DESTROYED</strong> (armor gone: its contents are dropped and go offline)');
+        else if (p.cause === 'systems') parts.push('<strong>POD DESTROYED</strong> (every weapon in it destroyed)');
         lines.push(`<li>${label}: ${tag} → <strong>${escapeHtml(servo.servo)}</strong>${kindTag}: ${parts.join(' · ')}</li>`);
         if (p.destroyed && actor.system.mecha?.subassemblies?.cockpit?.loc === servo.id) ejectWarning = true;
         continue;
@@ -3180,11 +3185,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             ? `<p>Missiles to fire at this target (1–${row.shotsLeft}):</p><input type="number" name="fired" value="${row.shotsLeft}" min="1" max="${row.shotsLeft}" style="width:100%"/>`
               + `<p style="font-size:0.85em;color:#666;">One target per salvo. To split a volley across targets (60 missiles at 3 targets), fire it as separate salvos (three of 20).</p>`
             : '')
-          + `<p>Attack total: <strong>${attack}</strong>. Defender's Evade/Defense total:</p><input type="number" name="def" value="0" style="width:100%" autofocus/>`,
+          + `<p>Attack total: <strong>${attack}</strong>. Defender's Evade/Defense total:</p><input type="number" name="def" value="0" style="width:100%" autofocus/>`
+          + (isSalvo ? ''
+            // Burst crits (MZ ATM: the salvo method): the attacker picks the chart once per burst.
+            : `<p>Chart for any Critical hits (attacker's choice, once per burst):</p><select name="chart" style="width:100%">`
+              + `<option value="normal">Random (Hit Location Chart)</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`),
         label: 'Resolve',
         callback: html => ({
           defense: Number(html.find("[name='def']").val()) || 0,
-          fired: Math.max(1, Math.min(row.shotsLeft, Math.floor(Number(html.find("[name='fired']").val()) || 1)))
+          fired: Math.max(1, Math.min(row.shotsLeft, Math.floor(Number(html.find("[name='fired']").val()) || 1))),
+          chart: html.find("[name='chart']").val() || 'normal'
         })
       });
     } catch (_) { return; }                                     // cancelled dialog: nothing fired
@@ -3195,18 +3205,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!(await this._spendMechaAmmo(idx, spend))) return;     // fired: costs ammo, hit, miss or parried
 
     const margin = attack - defense;
-    const tier = critTier(margin);
-    const tierTag = TIER_LABEL[tier] ? ` — <strong>${TIER_LABEL[tier]}</strong>` : '';
     const dmg = Number(row.damage) || 0;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     const who = escapeHtml(this.actor.name);
+    // Crits count from the raw margin and land on the first hits: mega, then crit (salvoCritCounts).
+    const critTag = c => {
+      const parts = [c.mega && `${c.mega} Mega-Crit`, c.crit && `${c.crit} Critical`].filter(Boolean);
+      return parts.length ? ` — <strong>${parts.join(', ')}</strong>` : '';
+    };
 
     if (isSalvo) {
       const hits = salvoHitCount(attack, defense, fired);
-      // Salvo crits count from the raw margin and land on the first missiles (salvoCritCounts).
-      const c = salvoCritCounts(margin, hits);
-      const critParts = [c.mega && `${c.mega} Mega-Crit`, c.crit && `${c.crit} Critical`].filter(Boolean);
-      const salvoTag = critParts.length ? ` — <strong>${critParts.join(', ')}</strong>` : '';
+      const salvoTag = critTag(salvoCritCounts(margin, hits));
       const applyBtn = hits > 0 && dmg > 0
         ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmg}" data-hits="${hits}" data-margin="${margin}" data-missile="1" title="GM: walk the hit chart and apply damage to the targeted mech">Apply hit</button>`
         : '';
@@ -3223,10 +3233,23 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       : SERVO_ROW_LOCATIONS.map(l => ({ id: l.key, kind: l.kind, side: l.side, servo: l.label }));
     const servoById = Object.fromEntries(servos.map(s => [s.id, s]));
 
+    // Autofire crits (MZ ATM: the salvo method): Mega-Crits on the first hits, then Crits,
+    // then normal hits. Each hit rolls its OWN location -- no walk (salvo-only).
     const hits = burstHitCount(attack, defense, row.bv);
+    const c = salvoCritCounts(margin, hits);
+    const chartName = form.chart === 'special' ? 'Special' : form.chart === 'cinematic' ? 'Cinematic' : null;
     const rolls = [roll];
     const lines = [];
-    for (let i = 0; i < hits; i++) {
+    for (let i = 1; i <= hits; i++) {
+      const kind = i <= c.mega ? 'mega' : i <= c.mega + c.crit ? 'crit' : 'normal';
+      const kindTag = kind === 'mega' ? ' (Mega-Crit)' : kind === 'crit' ? ' (Critical)' : '';
+      if (kind === 'crit' && chartName) {
+        // The hit's own d10 is the result on the chosen chart; nothing to apply automatically.
+        const r = await new Roll('1d10').evaluate();
+        rolls.push(r);
+        lines.push(`<li>Hit ${i}: <strong>Critical</strong> -- resolve as ${r.total} on the ${chartName} chart</li>`);
+        continue;
+      }
       let r, loc, attempts = 0;
       do {
         r = await new Roll('1d10').evaluate();
@@ -3234,14 +3257,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         loc = locationFromRoll(r.total, servos, pickIndex);
       } while (loc.reroll && attempts++ < 20);
       const servo = loc.servoId ? servoById[loc.servoId] : null;
-      lines.push(loc.special ? `<li>Hit ${i + 1}: d10 ${r.total} → Special hit — resolve on the Special chart</li>`
-        : !servo ? `<li>Hit ${i + 1}: d10 ${r.total} → no servo there</li>`
-        : `<li>Hit ${i + 1}: ${escapeHtml(servo.servo || servo.id)} (d10 ${r.total}) <button type="button" class="mf-apply-mecha-hit" data-loc="${escapeHtml(servo.id)}" data-dmg="${dmg}" data-margin="${margin}">Apply ${dmg}K${tier === 'mega' ? ' (Mega-Crit)' : ''}</button></li>`);
+      lines.push(loc.special ? `<li>Hit ${i}: d10 ${r.total} → Special hit${kindTag} — resolve on the Special chart</li>`
+        : !servo ? `<li>Hit ${i}: d10 ${r.total} → no servo there</li>`
+        : `<li>Hit ${i}: ${escapeHtml(servo.servo || servo.id)} (d10 ${r.total})${kindTag} <button type="button" class="mf-apply-mecha-hit" data-loc="${escapeHtml(servo.id)}" data-dmg="${dmg}"${kind === 'mega' ? ' data-mega="1"' : ''}>Apply ${dmg}K</button></li>`);
     }
-    const critNote = tier === 'crit' && hits ? `<p><em>Critical: the attacker may resolve hits on the Special or Cinematic chart instead of applying them.</em></p>` : '';
-    const content = `<strong>${who}</strong> bursts ${row.name} (BV ${row.bv}): attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${tierTag}`
+    const content = `<strong>${who}</strong> bursts ${row.name} (BV ${row.bv}): attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${critTag(c)}`
       + (targetServos.length ? '' : ' <small>(no mech targeted: default humanoid chart)</small>')
-      + critNote
       + (lines.length ? `<ul>${lines.join('')}</ul>` : '');
     await ChatMessage.create({ speaker, content, rolls });
   }

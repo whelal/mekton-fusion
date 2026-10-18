@@ -98,35 +98,50 @@ export function applyHit({ maxKills, maxSP, taken }, kills, { megaCrit = false }
 }
 
 /**
+ * A pod's armor is gone (MZ ATM, Pod Servo: its armor holds it together): an armored
+ * pod at 0 current SP, or a pod with no armor that has taken a hit of >=1K (recorded
+ * as taken.kills > 0, since a pod has no Kills of its own to track).
+ */
+export function podArmorGone(maxSP, taken) {
+  const max = Number(maxSP) || 0;
+  return max > 0 ? (Number(taken?.sp) || 0) >= max : (Number(taken?.kills) || 0) > 0;
+}
+
+/**
  * Pod hit (MZ ATM, Pod Servo). A pod has no Kills of its own -- its armor holds it
  * together. Staged penetration vs the pod's current SP, exactly as applyHit; Kills
- * that penetrate go to a system mounted in the pod, and the pod is destroyed when
- * the systems in it are.
- * - `systems`: [{ maxKills, takenKills }] -- only systems with a Kills value (>0).
- * - With several intact systems, `rand(k)` picks the one that takes the hit.
- * - Damage past that system's remaining Kills is lost (TABLE_RULINGS.excessKills).
- * - Empty pod (no systems): the armor still ablates, penetrating Kills go nowhere,
- *   and the pod is never destroyed -- the book's Pod Servo rule doesn't cover it.
+ * that penetrate go to a weapon mounted in the pod. The pod is destroyed when EITHER
+ * its armor is gone (podArmorGone -- its contents are dropped: offline, not damaged)
+ * OR every weapon in it is destroyed (see ROADMAP.md, Interpretations).
+ * - `systems`: [{ maxKills, takenKills }] -- weapons with a Kills value (>0).
+ * - With several intact weapons, `rand(k)` picks the one that takes the hit; damage
+ *   past its remaining Kills is lost (TABLE_RULINGS.excessKills).
+ * - No armor: destroyed by its first hit of >=1K. Empty pod: destroyed when its armor
+ *   is gone; penetrating Kills go nowhere.
  * @returns {{ taken:{kills:number, sp:number}, through:number, ablated:boolean,
  *   systemIndex:number|null, systemTaken:number, systemDestroyed:boolean,
- *   destroyed:boolean, wasDestroyed:boolean }}
+ *   destroyed:boolean, cause:"armor"|"systems"|null, wasDestroyed:boolean }}
  */
 export function applyPodHit({ maxSP, taken }, kills, systems = [], { megaCrit = false, rand = () => 0 } = {}) {
   const dmg = Math.max(0, Math.floor(Number(kills) || 0));
+  const max = Number(maxSP) || 0;
   const takenKills = Number(taken?.kills) || 0;
   const takenSp = Number(taken?.sp) || 0;
   const list = systems.map((s, i) => ({ i, max: Number(s.maxKills) || 0, taken: Number(s.takenKills) || 0 }));
   const intact = list.filter(s => s.taken < s.max);
   const none = { systemIndex: null, systemTaken: 0, systemDestroyed: false };
 
-  if (list.length > 0 && intact.length === 0) {
-    return { taken: { kills: takenKills, sp: takenSp }, through: 0, ablated: false, ...none, destroyed: true, wasDestroyed: true };
+  const wasSystems = list.length > 0 && intact.length === 0;
+  if (wasSystems || podArmorGone(max, { kills: takenKills, sp: takenSp })) {
+    return { taken: { kills: takenKills, sp: takenSp }, through: 0, ablated: false, ...none,
+      destroyed: true, cause: wasSystems ? "systems" : "armor", wasDestroyed: true };
   }
 
-  const spCurrent = Math.max(0, (Number(maxSP) || 0) - takenSp);
+  const spCurrent = Math.max(0, max - takenSp);
   const through = Math.max(0, dmg - (megaCrit ? 0 : spCurrent));
   const ablated = !megaCrit && spCurrent > 0 && dmg >= 1;
   const newSp = takenSp + (ablated ? 1 : 0);
+  const newKills = max === 0 && dmg >= 1 ? 1 : takenKills;   // no-armor pod: the first >=1K hit fells it
 
   let hit = none;
   if (through > 0 && intact.length) {
@@ -134,10 +149,12 @@ export function applyPodHit({ maxSP, taken }, kills, systems = [], { megaCrit = 
     const systemTaken = Math.min(s.max, s.taken + through);
     hit = { systemIndex: s.i, systemTaken, systemDestroyed: systemTaken >= s.max };
   }
-  const destroyed = list.length > 0
+  const bySystems = list.length > 0
     && list.every(s => (s.i === hit.systemIndex ? hit.systemTaken : s.taken) >= s.max);
+  const byArmor = podArmorGone(max, { kills: newKills, sp: newSp });
+  const cause = bySystems ? "systems" : byArmor ? "armor" : null;
 
-  return { taken: { kills: takenKills, sp: newSp }, through, ablated, ...hit, destroyed, wasDestroyed: false };
+  return { taken: { kills: newKills, sp: newSp }, through, ablated, ...hit, destroyed: !!cause, cause, wasDestroyed: false };
 }
 
 /** Burst fire: one hit per point Attack beats Defense, capped at BV. Tie/miss = 0. */
@@ -216,7 +233,9 @@ export function salvoRows(start, count, skip = []) {
  * Missile salvo crits (MZ ATM, Missile Hit Determination): counted from the RAW
  * margin, not the multiplied hit count -- mega = margin - 9, crit = (margin - 4)
  * - mega -- and assigned to the FIRST missiles in the walk: mega-crits, then
- * crits, then normal hits. Capped at hits.
+ * crits, then normal hits. Capped at hits: mega <= hits, crit <= hits - mega.
+ * Mecha autofire uses the same method (MZ ATM), each burst hit rolling its own
+ * location instead of walking.
  * @returns {{ mega:number, crit:number, normal:number }}
  */
 export function salvoCritCounts(margin, hits) {

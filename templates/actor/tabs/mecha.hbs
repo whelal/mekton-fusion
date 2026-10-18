@@ -53,7 +53,7 @@
           </td>
           <td>
             <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="1">&minus;</button>
-            {{#if s.hits}}{{s.killsLeft}}/{{s.hits}}{{else}}{{#if s.destroyed}}Destroyed{{else}}Intact{{/if}}{{/if}}
+            {{#if s.hits}}{{s.killsLeft}}/{{s.hits}}{{else}}{{#if s.podDropped}}Destroyed (contents dropped){{else if s.destroyed}}Destroyed{{else}}Intact{{/if}}{{/if}}
             <button type="button" class="mp-step" data-target="system.mecha.damage.{{s.locKey}}.kills" data-delta="-1">+</button>
             <input type="number" class="mp-dmg" name="system.mecha.damage.{{s.locKey}}.kills" value="{{s.dmgKills}}" min="0" title="Kills taken (0-Kills components like pods: any value >0 destroys it)"/>
           </td>

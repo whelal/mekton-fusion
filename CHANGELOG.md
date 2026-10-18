@@ -1,3 +1,20 @@
+## [0.3.23] - 2026-10-15
+### Fixed
+- Pods (MZ ATM, Pod Servo; corrects 0.3.22): a pod is held together by its armor. It's destroyed when EITHER its armor is gone OR every weapon inside it is destroyed.
+  - **Armor gone:** an armored pod at 0 SP. Each hit of 1K or more ablates 1 SP, even when nothing gets through.
+  - **No armor:** the pod is destroyed by its first hit of 1K or more.
+  - **Armor loss drops the contents:** the weapons inside go offline, but their own damage is untouched.
+  - **Empty pod:** destroyed when its armor is gone (0.3.22 never destroyed it).
+  - **Damage past the armor** still goes to a random weapon inside; anything past that weapon's Kills is lost.
+  - **Display:** the Play view shows "Destroyed (contents dropped)" for a pod lost to armor, and the hit card says which way the pod fell.
+- Mecha autofire crits (MZ ATM: autofire uses the missile salvo method). A burst at margin 10+ used to make every hit a Mega-Crit. Now the counts come from the raw margin (`salvoCritCounts`) and land on the first hits: Mega-Crits, then Crits, then normal hits. Each burst hit still rolls its own location; only salvos walk.
+  - **Examples:** BV 5 at margin 12 = 3 Mega-Crit + 2 Critical. BV 5 at margin 6 = 2 Critical + 3 normal.
+  - **Chart:** the burst dialog asks for the chart for Critical hits once per burst: Random (Hit Location Chart), Special or Cinematic. A Critical on Special/Cinematic shows its own d10 as the result on that chart, with no Apply button.
+  - **Per-hit buttons:** they no longer carry the margin. Each Mega-Crit hit is flagged on its own button instead. Burst cards posted before this version lose their Mega-Crit flag when applied.
+- The Apply-hit dialog had the same all-Mega-Crit problem when you typed in several hits with a margin. It now counts crits the same way and shows the counts, and the Mega-Crit box only applies to a single hit. Its chart choices read Random / Special / Cinematic.
+### Changed
+- ROADMAP.md: three pod Interpretations added; the autofire-crit item is removed from the 0.5 checklist (done); "Streamline the shield parry flow" is added to 0.5.
+
 ## [0.3.22] - 2026-10-15
 ### Fixed
 - Pods (MZ ATM, Pod Servo): a pod has no Kills of its own and was being destroyed by its first penetrating hit. Damage past a pod's armor now goes to a weapon mounted in it, chosen at random when there are several (`applyPodHit`); excess past that weapon's Kills is lost. A pod is destroyed once every weapon in it is, and a destroyed weapon goes offline. Only weapons track damage, so sensors and subassembly items in a pod aren't counted. An empty pod still ablates its armor, but penetrating damage goes nowhere and the pod is never destroyed. Pod hits resolve the same way from every Apply button: the salvo dialog, burst per-hit buttons, the Play view's Apply Hit, and parry through-damage.

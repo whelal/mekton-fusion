@@ -543,8 +543,8 @@ Hooks.once("ready", () => {
       return;
     }
     btn.disabled = true;
-    // Burst margin (attack - defense) of 10+ is a Mega-Crit: no armor on this location.
-    const megaCrit = btn.dataset.margin !== undefined && critTier(btn.dataset.margin) === 'mega';
+    // A burst flags each Mega-Crit hit itself (salvo-method allocation): no armor on this location.
+    const megaCrit = btn.dataset.mega === '1';
     await MektonActorSheet._applyMechaHit(actor, btn.dataset.loc, Number(btn.dataset.dmg) || 0, { megaCrit });
   });
 
@@ -579,31 +579,38 @@ Hooks.once("ready", () => {
         title: 'Apply Mecha Hit',
         content: `<p>Hits (burst = margin capped at BV; missile salvo = margin × ⌈fired/10⌉):</p><input type="number" name="hits" value="${hitsDefault}" min="1" style="width:100%" autofocus/>`
           + `<p>Margin (attack − defense${isMissile ? '' : ', optional'}):</p><input type="number" name="margin" value="${escapeHtml(marginDefault)}" style="width:100%"/>`
-          + (isMissile
-              // Salvo crits are counted from the margin and land on the first missiles in the walk.
-              ? `<p class="mf-salvo-crits" style="font-size:0.9em;"></p>`
-              : `<p><label><input type="checkbox" name="mega"/> Mega-Crit (margin ≥10: bypasses armor, no ablation)</label></p>`)
+          // Multi-hit crits are counted from the margin and land on the first hits (salvo method).
+          + `<p class="mf-salvo-crits" style="font-size:0.9em;"></p>`
+          + (isMissile ? ''
+              : `<p><label><input type="checkbox" name="mega"/> Mega-Crit (single hit, margin ≥10: bypasses armor, no ablation)</label></p>`)
           + `<p>Chart for Critical hits (margin ≥5 — attacker's choice):</p><select name="chart" style="width:100%" disabled>`
-          + `<option value="normal">Normal</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`
+          + `<option value="normal">Random (Hit Location Chart)</option><option value="special">Special</option><option value="cinematic">Cinematic</option></select>`
           + `<p>Location:</p><select name="loc" style="width:100%"><option value="">Random (${isMissile ? 'salvo walks down the chart from one roll' : 'Hit Location Chart'})</option>`
           + servos.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.servo || s.id)}</option>`).join('')
           + `</select>`,
         label: 'Apply',
         render: html => {
-          // Margin drives the crits. Single attack: Mega-Crit auto-checks (still overridable
-          // by hand), a plain Critical unlocks the chart pick. Missile salvo: show the
-          // per-missile counts; the chart pick unlocks when any missile is a plain Critical.
+          // Margin drives the crits. Single hit: Mega-Crit auto-checks (still overridable by
+          // hand), a plain Critical unlocks the chart pick. Missile salvo, or several hits with
+          // a margin (mecha autofire): show the per-hit counts; the Mega-Crit box doesn't
+          // apply, and the chart pick unlocks when any hit is a plain Critical.
           const syncTier = () => {
             const raw = html.find("[name='margin']").val();
+            const hits = Number(html.find("[name='hits']").val()) || 1;
             const chart = html.find("[name='chart']");
+            const mega = html.find("[name='mega']");
+            const counted = isMissile || (raw !== '' && hits > 1);
             let critAvailable;
-            if (isMissile) {
-              const c = salvoCritCounts(raw === '' ? 0 : raw, html.find("[name='hits']").val());
-              html.find('.mf-salvo-crits').text(`Crits on the first missiles: ${c.mega} Mega-Crit, ${c.crit} Critical, ${c.normal} normal.`);
+            if (counted) {
+              const c = salvoCritCounts(raw === '' ? 0 : raw, hits);
+              html.find('.mf-salvo-crits').text(`Crits on the first ${isMissile ? 'missiles' : 'hits'}: ${c.mega} Mega-Crit, ${c.crit} Critical, ${c.normal} normal.`);
+              mega.prop('checked', false).prop('disabled', true);
               critAvailable = c.crit > 0;
             } else {
+              html.find('.mf-salvo-crits').text('');
+              mega.prop('disabled', false);
               const tier = raw === '' ? 'none' : critTier(raw);
-              if (raw !== '') html.find("[name='mega']").prop('checked', tier === 'mega');
+              if (raw !== '') mega.prop('checked', tier === 'mega');
               critAvailable = tier === 'crit';
             }
             chart.prop('disabled', !critAvailable);

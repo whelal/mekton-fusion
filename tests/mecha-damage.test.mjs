@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry, locationFromRoll, applyHit, applyPodHit }
+import { critTier, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry, locationFromRoll, applyHit, applyPodHit, burstHitCount }
   from "../module/data/mecha-damage.js";
 
 test("critTier", () => {
@@ -85,9 +85,44 @@ test("applyPodHit: penetrating Kills go to a system in the pod", () => {
   assert.equal(r3.wasDestroyed, true);
 });
 
-test("applyPodHit: empty pod ablates but is never destroyed", () => {
-  const r = applyPodHit({ maxSP: 1, taken: { kills: 0, sp: 0 } }, 9, []);
-  assert.equal(r.through, 8);
+test("applyPodHit: empty pod is destroyed when its armor is gone", () => {
+  const r = applyPodHit({ maxSP: 2, taken: { kills: 0, sp: 0 } }, 9, []);
+  assert.equal(r.through, 7);
   assert.equal(r.systemIndex, null);
   assert.equal(r.destroyed, false);
+  const r2 = applyPodHit({ maxSP: 2, taken: r.taken }, 1, []);
+  assert.equal(r2.destroyed, true);
+  assert.equal(r2.cause, "armor");
+});
+
+test("applyPodHit: armor worn to 0 drops the pod, weapon undamaged", () => {
+  const weapon = [{ maxKills: 4, takenKills: 0 }];
+  const r = applyPodHit({ maxSP: 2, taken: { kills: 0, sp: 1 } }, 1, weapon); // small hit, fully stopped
+  assert.equal(r.through, 0);
+  assert.equal(r.systemIndex, null);
+  assert.equal(r.destroyed, true);
+  assert.equal(r.cause, "armor");
+});
+
+test("applyPodHit: killing its only weapon destroys the pod", () => {
+  const r = applyPodHit({ maxSP: 6, taken: { kills: 0, sp: 0 } }, 10, [{ maxKills: 4, takenKills: 0 }]);
+  assert.equal(r.systemDestroyed, true);
+  assert.equal(r.cause, "systems");
+});
+
+test("applyPodHit: a pod with no armor falls to its first hit of 1K+", () => {
+  const r = applyPodHit({ maxSP: 0, taken: { kills: 0, sp: 0 } }, 1, [{ maxKills: 4, takenKills: 0 }]);
+  assert.equal(r.destroyed, true);
+  assert.equal(r.cause, "armor");
+  assert.equal(r.systemTaken, 1);
+});
+
+test("mecha autofire crits use the salvo method", () => {
+  const h12 = burstHitCount(22, 10, "5");
+  assert.equal(h12, 5);
+  assert.deepEqual(salvoCritCounts(12, h12), { mega: 3, crit: 2, normal: 0 });
+  const h6 = burstHitCount(16, 10, "5");
+  assert.equal(h6, 5);
+  assert.deepEqual(salvoCritCounts(6, h6), { mega: 0, crit: 2, normal: 3 });
+  assert.equal(burstHitCount(30, 10, "∞"), 20); // infinite BV: no cap
 });
