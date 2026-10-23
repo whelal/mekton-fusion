@@ -50,7 +50,17 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 
 ## Milestones
 
-### 0.4 — Mecha sheet usability ◀ CURRENT
+### 0.4 — Human-scale polish ◀ CURRENT
+**Done when:** a human-scale fight runs without paper.
+- [x] Armor ablation (staged penetration), RAW
+- [x] Burst fire, RAW
+- [x] No armor bypass (ruling)
+- [x] GM Difficulty option retained
+- [x] Human-scale armor coverage: 8 zones, garment presets, drop-on-zone, per-zone weight/cost (0.3.24)
+- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.25)
+- [ ] Bruise damage, Fists From Hell core rule (0.3.26)
+
+### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
 - [x] Create `module/rules/table-rulings.js` and route existing rulings through it
 - [ ] Redesign the mecha data model: separate inputs from derived values
@@ -59,11 +69,8 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Use presets as the starting point (create a mech from a preset, then edit)
 - [ ] Support non-humanoid servo layouts (generalized kind + side)
 - [ ] Migrate existing mech actors
-- [x] Human-scale armor coverage: 8 zones, garment presets, drop-on-zone, per-zone weight/cost (0.3.24)
-- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.25)
-- [ ] Bruise damage, Fists From Hell core rule (0.3.26)
 
-### 0.5 — Mecha combat loop
+### 0.6 — Mecha combat loop
 **Done when:** one full mecha skirmish has been played in Foundry.
 - [~] Interlock attack roll (1d10 + MR + skill + WA vs. defense) — rolls exist; defense is still typed in by hand (no opposed-roll handshake)
 - [x] Hit location, including the reroll-9 ruling and aimed-shot choice
@@ -74,13 +81,6 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Beam and Reactive shields (no staged penetration; overload/reset)
 - [ ] Streamline the shield parry flow (table finds it clunky)
 - [ ] Non-weapon systems (sensors, subassemblies, movement) go out of action with a destroyed servo, except flight systems and maneuver verniers (RAW)
-
-### 0.6 — Human-scale polish
-**Done when:** a human-scale fight runs without paper.
-- [x] Armor ablation (staged penetration), RAW
-- [x] Burst fire, RAW
-- [x] No armor bypass (ruling)
-- [x] GM Difficulty option retained
 
 ### 0.7 — Hardening
 **Done when:** schema changes can't silently break worlds.

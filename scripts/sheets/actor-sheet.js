@@ -902,8 +902,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Armor equipping runs through _onDropItem/_onDropItemCreate below (the
     // same pipeline that already creates the embedded Item) -- see the
     // comment there for why a separate jQuery-bound drop listener here
-    // didn't work. Dropping mesh/plate on a paperdoll zone ([data-zone])
-    // covers that zone; anywhere else opens the coverage picker.
+    // didn't work. Dropping mesh/plate opens the coverage picker; a paperdoll
+    // zone ([data-zone]) drop pre-ticks that zone.
 
     // Input validation: prevent negative values and enforce max limits
     html.on("input", ".skill-rank, .skill-ip", ev => {
@@ -1877,9 +1877,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
     }
 
-    // Armor coverage (MZ core, Sample Armor Coverage): mesh/plate dropped on a
-    // paperdoll zone covers just that zone; dropped anywhere else, the player
-    // picks the garment shape (closing the picker cancels that piece).
+    // Armor coverage (MZ core, Sample Armor Coverage): mesh/plate always opens
+    // the picker so the player chooses the zones covered (a paperdoll-zone
+    // drop pre-ticks just that zone; closing the picker cancels that piece).
     // Fixed-coverage kinds skip the picker. Each piece's per-zone current SP
     // is seeded from its baseSP. Body-location SP itself is recomputed by the
     // createItem hook in mekton-fusion.js.
@@ -1890,7 +1890,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         const sys = data.system ??= {};
         let zones;
         if (ARMOR_KINDS[sys.kind]?.choosable) {
-          zones = ARMOR_ZONES[dropZone] ? [dropZone] : await pickArmorCoverage(data);
+          zones = await pickArmorCoverage(data, ARMOR_ZONES[dropZone] ? [dropZone] : undefined);
           if (!zones) continue;
         } else {
           zones = effectiveCoverage(sys);

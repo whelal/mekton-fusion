@@ -27,7 +27,7 @@ Core areas:
 - BOD-derived Stun Save, Lift, Throw, Dmg, EV, and per-location hit points (Head/Torso/Limbs)
 - MA-derived movement: Run, Walk, Leap, Running Jump, Anime Leap, Swim, and encumbrance-adjusted MA
 - Paperdoll body tab with hit-location rolls and a Creature section (Body Plan + Natural Armor + Natural Weapons) for non-mecha NPCs
-- Personal armor covers 8 zones (head, torso, each arm, each thigh, each lower leg). Drop mesh or plate on a paperdoll zone to cover just that zone, or anywhere else to pick a garment (Vest, Jacket, Overcoat, Pants, Shorts, Boots, Hat, or Custom); weight and cost scale with the zones covered. Helmets, suits, the Flight Jacket and Powered Armor have fixed coverage
+- Personal armor covers 8 zones (head, torso, each arm, each thigh, each lower leg). Dropping mesh or plate opens a picker to choose the zones covered (dropping on a paperdoll zone pre-ticks that zone): a garment (Vest, Jacket, Overcoat, Pants, Shorts, Boots, Hat, or Custom); weight and cost scale with the zones covered. Helmets, suits, the Flight Jacket and Powered Armor have fixed coverage
 - Skill seeding (auto on new actor + manual Add Skills button + world seeding macro), categorized display with favorites filter & sorting
 - Hard skill markers `(H)`, i18n keys under `MF.*`
 - Personal & mecha weapon tables on the Combat tab with roll buttons

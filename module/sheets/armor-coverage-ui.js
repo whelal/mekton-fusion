@@ -52,10 +52,11 @@ export function bindCoverageEditor($root, system, onChange) {
 
 /**
  * Ask how a dropped mesh/plate piece is worn. Resolves to the chosen zones,
- * or null if the dialog is closed (the drop is then cancelled).
+ * or null if the dialog is closed (the drop is then cancelled). `initialZones`
+ * pre-ticks the boxes (e.g. the paperdoll zone it was dropped on).
  */
-export function pickArmorCoverage(itemData) {
-  const system = itemData.system ?? {};
+export function pickArmorCoverage(itemData, initialZones) {
+  const system = initialZones ? { ...itemData.system, coverage: initialZones } : (itemData.system ?? {});
   return new Promise(resolve => {
     let done = false;
     const finish = v => { if (!done) { done = true; resolve(v); } };

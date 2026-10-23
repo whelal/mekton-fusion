@@ -1,3 +1,8 @@
+## [0.3.24.1] - 2026-10-23
+### Changed
+- Dropping mesh or plate always opens the coverage picker so the player picks the zones covered. Dropping on a paperdoll zone now just pre-ticks that zone instead of skipping the picker.
+- ROADMAP.md: Human-scale polish is now 0.4 (CURRENT) and holds the human-scale armor items. Mecha sheet usability moves to 0.5 and the Mecha combat loop to 0.6.
+
 ## [0.3.24] - 2026-10-19
 ### Added
 - Personal armor zones (MZ core, Personal Armor / Sample Armor Coverage). Armor now covers 8 zones keyed by the hit number: head (1), torso (2-4), right arm (5), left arm (6), right thigh (7), right lower leg (8), left thigh (9), left lower leg (10). Damage still goes to the 6 body locations.
