@@ -1,5 +1,7 @@
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../data/weapon-options.js";
-import { ARMOR_COVERAGE } from "../data/armor-coverage.js";
+import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../data/armor-coverage.js";
+import { seedZoneSP } from "../data/armor.js";
+import { coverageEditorHtml, bindCoverageEditor } from "./armor-coverage-ui.js";
 
 export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
   static get defaultOptions() {
@@ -42,10 +44,18 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
     }
 
     if (context.isArmor) {
-      const currentCoverage = context.system.coverage || "vest";
-      context.armorCoverageOptions = Object.entries(ARMOR_COVERAGE).map(([value, opt]) => ({
-        value, label: opt.label, selected: value === currentCoverage
-      }));
+      const kind = context.system.kind ?? "";
+      const kindDef = ARMOR_KINDS[kind];
+      context.armorKindOptions = [{ value: "", label: "—", selected: !kindDef },
+        ...Object.entries(ARMOR_KINDS).map(([value, k]) => ({ value, label: k.label, selected: value === kind }))];
+      context.armorPerZone = kindDef?.pricing === "perZone";
+      // Mesh/plate: preset + per-zone picker. Fixed kinds: read-only zone list.
+      if (kindDef?.choosable) {
+        context.armorCoverageEditor = coverageEditorHtml(context.system, { disabled: !this.isEditable });
+      } else {
+        const zones = effectiveCoverage(context.system);
+        context.armorCoverageText = zones.length ? zones.map(z => ARMOR_ZONES[z].label).join(", ") : "None";
+      }
     }
 
     // Options are ranged-weapon accessories only (see weaponSupportsOptions).
@@ -137,6 +147,18 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
       const keys = html.find('.mf-weapon-option:checked').map((_, el) => el.dataset.optionKey).get();
       await this.object.update({ 'system.options': keys });
     });
+
+    // Armor coverage editor (no `name` either): persist coverage and reseed
+    // the per-zone current SP (kept zones keep theirs, new zones get baseSP).
+    if (this.object.type === "armor" && this.isEditable) {
+      const sys = this.object.system;
+      bindCoverageEditor(html.find('.mf-coverage-editor'), sys, async zones => {
+        await this.object.update({
+          'system.coverage': zones,
+          'system.currentSP': seedZoneSP(zones, sys.baseSP, { oldCoverage: sys.coverage, oldSP: sys.currentSP })
+        });
+      });
+    }
   }
 
   async _onFormChange(event) {
@@ -145,6 +167,13 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
   }
 
   async _updateObject(event, formData) {
+    // Armor kind change: a fixed-coverage kind takes its own zones; reseed per-zone SP to match.
+    if (this.object.type === "armor" && "system.kind" in formData && formData["system.kind"] !== this.object.system.kind) {
+      const sys = this.object.system;
+      const zones = effectiveCoverage({ ...sys, kind: formData["system.kind"] });
+      formData["system.coverage"] = zones;
+      formData["system.currentSP"] = seedZoneSP(zones, sys.baseSP, { oldCoverage: sys.coverage, oldSP: sys.currentSP });
+    }
     // Handle the form submission and update the item
     return this.object.update(formData);
   }

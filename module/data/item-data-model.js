@@ -1,3 +1,5 @@
+import { migrateArmorSource } from "./armor.js";
+
 export class ItemDataModel extends foundry.abstract.DataModel {
   static defineSchema() {
     const fields = foundry.data.fields;
@@ -67,24 +69,39 @@ export class SkillDataModel extends ItemDataModel {
   }
 }
 
-// Schema for armor items
+// Schema for armor items. Coverage is a set of the 8 armor zones (see
+// module/data/armor-coverage.js); pre-0.3.24 items are migrated by
+// migrateArmorSource (module/data/armor.js).
 export class ArmorDataModel extends ItemDataModel {
   static defineSchema() {
     const fields = foundry.data.fields;
     const parentSchema = super.defineSchema();
+    const zoneSP = () => new fields.NumberField({ initial: 0, min: 0, integer: true });
     return foundry.utils.mergeObject(parentSchema, {
       name: new fields.StringField({ initial: "" }),
       category: new fields.StringField({ initial: "" }), // e.g. "Ballistic Mesh", "Space Suit", "Other Armor"
-      sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Stopping Power
-      spNote: new fields.StringField({ initial: "" }), // e.g. "3D6" (Personal Force Screen) -- roll once, enter the result into sp above
-      // Garment shape (hat/vest/jacket/overcoat/pants/shorts/boots), plus
-      // "all"/"handheld" -- see module/data/armor-coverage.js (ARMOR_COVERAGE)
-      // for what hit-zone(s) each value actually covers.
-      coverage: new fields.StringField({ initial: "vest" }),
-      weight: new fields.NumberField({ initial: 0, min: 0 }), // kg
-      cost: new fields.NumberField({ initial: 0, min: 0 }),
-      tl: new fields.NumberField({ initial: 0, min: 0, integer: true })
+      kind: new fields.StringField({ initial: "" }), // ARMOR_KINDS key: mesh/plate/helmet/suit/flightJacket/poweredArmor/other
+      tier: new fields.StringField({ initial: "" }), // e.g. light/medium/heavy/flak, standard/industrial/military
+      baseSP: new fields.NumberField({ initial: 0, min: 0, integer: true }), // table Stopping Power
+      spNote: new fields.StringField({ initial: "" }), // e.g. "3D6" (Personal Force Screen) -- roll once, enter the result into baseSP
+      hardness: new fields.StringField({ initial: "" }), // "hard" | "soft" -- explicit, never derived from SP
+      coverage: new fields.ArrayField(new fields.StringField(), { initial: [] }), // ARMOR_ZONES keys
+      // Current SP on each zone (only covered zones are meaningful): a jacket
+      // hit in the torso ablates only its torso section.
+      currentSP: new fields.SchemaField({
+        head: zoneSP(), torso: zoneSP(), rArm: zoneSP(), lArm: zoneSP(),
+        rThigh: zoneSP(), rLowerLeg: zoneSP(), lThigh: zoneSP(), lLowerLeg: zoneSP()
+      }),
+      weight: new fields.NumberField({ initial: 0, min: 0 }), // kg; per Single location for mesh/plate
+      cost: new fields.NumberField({ initial: 0, min: 0 }), // per Single location for mesh/plate
+      tl: new fields.NumberField({ initial: 0, min: 0, integer: true }),
+      migrationNote: new fields.StringField({ initial: "" }) // what the 0.3.24 migration couldn't map; cleared once reported
     });
+  }
+
+  static migrateData(source) {
+    migrateArmorSource(source);
+    return super.migrateData(source);
   }
 }
 

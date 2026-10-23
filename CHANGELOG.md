@@ -1,3 +1,20 @@
+## [0.3.24] - 2026-10-19
+### Added
+- Personal armor zones (MZ core, Personal Armor / Sample Armor Coverage). Armor now covers 8 zones keyed by the hit number: head (1), torso (2-4), right arm (5), left arm (6), right thigh (7), right lower leg (8), left thigh (9), left lower leg (10). Damage still goes to the 6 body locations.
+- Armor items have a **Kind** (mesh, plate, helmet, suit, flight jacket, powered armor, other), a **Tier**, an explicit **Hardness** (soft or hard, never derived from SP), a **Base SP**, and a current SP per covered zone. The per-zone SP is stored but not used by damage yet (0.3.25).
+- Coverage picker for mesh and plate: a garment preset (Hat, Vest, Jacket, Overcoat, Pants, Shorts, Boots) or Custom, with a checkbox per zone. It's on the item sheet, and it opens when you drop mesh or plate anywhere on the character sheet except a paperdoll zone. Closing the picker cancels the drop.
+- Dropping mesh or plate on a paperdoll zone covers just that zone. Each leg on the paperdoll is now split into thigh and lower leg.
+- Weight and cost for mesh and plate are per Single location, charged per covered zone (a thigh or lower leg is half). Heavy Mesh as a Jacket is 1.2 kg, 168; as Boots, 0.4 kg, 56. Helmets, suits, the Flight Jacket and Powered Armor keep their table weight and cost.
+### Changed
+- Helmets (head), the Flight Jacket (torso and arms), suits and Powered Armor (all 8 zones) have fixed coverage and skip the picker.
+- Overcoat now covers the thighs only, Shorts the thighs only, and Boots the lower legs only, as the coverage table says (they used to cover the whole leg).
+- Shield and both force screens are kind "other" with no hardness set; they're parked (ROADMAP.md).
+- Interim until 0.3.25: a body location's SP is still the best Base SP covering any of its zones, and ablation still lives on the location.
+- ROADMAP.md: the three human-scale armor patches are 0.4 items; the hard-armor ruling, the per-zone charge Interpretation, and four Parking-lot items are added. The drop-zone Parking-lot item is removed (done).
+- Old armor converts automatically when loaded: SP becomes Base SP, the old Coverage value becomes zones (Vest = torso, Jacket = torso and arms, Pants = all four leg zones, All = all 8; Hat, Overcoat, Shorts and Boots map to their presets), and kind, tier and hardness are filled in from the category and name.
+- Run the **Update Characters** macro to save the converted armor and seed each piece's per-zone SP. A piece that was providing a location's SP keeps that location's ablated SP on its zones there; other zones start at Base SP. Any armor it couldn't map is whispered to you in chat, left blank, and not guessed.
+- Run the **Build Armor Pack** macro to rewrite the compendium in the new format.
+
 ## [0.3.23] - 2026-10-15
 ### Fixed
 - Pods (MZ ATM, Pod Servo; corrects 0.3.22): a pod is held together by its armor. It's destroyed when EITHER its armor is gone OR every weapon inside it is destroyed.

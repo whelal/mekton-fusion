@@ -1,8 +1,9 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
-import { ARMOR_COVERAGE } from "../../module/data/armor-coverage.js";
-import { deriveArmorByLocation } from "../../module/data/armor.js";
+import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../../module/data/armor-coverage.js";
+import { deriveArmorByLocation, seedZoneSP } from "../../module/data/armor.js";
+import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
@@ -901,9 +902,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Armor equipping runs through _onDropItem/_onDropItemCreate below (the
     // same pipeline that already creates the embedded Item) -- see the
     // comment there for why a separate jQuery-bound drop listener here
-    // didn't work. Since armor equips by fixed `coverage` (not by which
-    // zone it's dropped on), it can be dropped anywhere on the sheet, same
-    // as a weapon -- no zone-specific dragover binding needed here anymore.
+    // didn't work. Dropping mesh/plate on a paperdoll zone ([data-zone])
+    // covers that zone; anywhere else opens the coverage picker.
 
     // Input validation: prevent negative values and enforce max limits
     html.on("input", ".skill-rank, .skill-ip", ev => {
@@ -1230,13 +1230,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ev.preventDefault();
     const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
     try {
-      const covering = this.actor.items.filter(i =>
-        i.type === 'armor' && ARMOR_COVERAGE[i.system?.coverage]?.locations?.includes(loc));
+      const coveredLocs = i => new Set(effectiveCoverage(i.system).map(z => ARMOR_ZONES[z].location));
+      const covering = this.actor.items.filter(i => i.type === 'armor' && coveredLocs(i).has(loc));
       if (!covering.length) return;
 
       let target = covering[0];
       if (covering.length > 1) {
-        const options = covering.map(i => `<option value="${i.id}">${foundry.utils.escapeHTML(i.name)} (SP ${i.system?.sp ?? 0})</option>`).join('');
+        const options = covering.map(i => `<option value="${i.id}">${foundry.utils.escapeHTML(i.name)} (SP ${i.system?.baseSP ?? 0})</option>`).join('');
         const chosenId = await Dialog.prompt({
           title: 'Remove which armor?',
           content: `<div class="form-group"><label>Armor covering this location</label><select name="armorId" style="width:100%">${options}</select></div>`,
@@ -1248,7 +1248,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         if (!target) return;
       }
 
-      const others = ARMOR_COVERAGE[target.system?.coverage]?.locations?.length > 1
+      const others = coveredLocs(target).size > 1
         ? ' It covers other locations too; they lose it as well.' : '';
       const ok = await Dialog.confirm({
         title: `Remove ${target.name}?`,
@@ -1877,14 +1877,35 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       data.system = foundry.utils.mergeObject(data.system ?? {}, { isMecha: overMecha });
     }
 
-    // Armor's body-location SP is derived from the actor's armor Items and
-    // recomputed by the createItem/deleteItem/updateItem hooks in
-    // mekton-fusion.js -- nothing to stamp here, just tell the user about
-    // handheld pieces that won't show up on any hit-zone.
-    const created = await super._onDropItemCreate(rest);
+    // Armor coverage (MZ core, Sample Armor Coverage): mesh/plate dropped on a
+    // paperdoll zone covers just that zone; dropped anywhere else, the player
+    // picks the garment shape (closing the picker cancels that piece).
+    // Fixed-coverage kinds skip the picker. Each piece's per-zone current SP
+    // is seeded from its baseSP. Body-location SP itself is recomputed by the
+    // createItem hook in mekton-fusion.js.
+    const dropZone = dropEl ? $(dropEl).closest('[data-zone]').attr('data-zone') : null;
+    const toCreate = [];
+    for (const data of rest) {
+      if (data.type === 'armor') {
+        const sys = data.system ??= {};
+        let zones;
+        if (ARMOR_KINDS[sys.kind]?.choosable) {
+          zones = ARMOR_ZONES[dropZone] ? [dropZone] : await pickArmorCoverage(data);
+          if (!zones) continue;
+        } else {
+          zones = effectiveCoverage(sys);
+        }
+        sys.coverage = zones;
+        sys.currentSP = seedZoneSP(zones, sys.baseSP);
+      }
+      toCreate.push(data);
+    }
+    if (!toCreate.length) return [];
+
+    const created = await super._onDropItemCreate(toCreate);
     for (const item of Array.isArray(created) ? created : [created]) {
-      if (item?.type === 'armor' && !ARMOR_COVERAGE[item.system?.coverage]?.locations?.length) {
-        ui.notifications.warn(`${item.name} is handheld armor -- it doesn't cover any body location.`);
+      if (item?.type === 'armor' && !effectiveCoverage(item.system).length) {
+        ui.notifications.warn(`${item.name} doesn't cover any body zone.`);
       }
     }
     return created;

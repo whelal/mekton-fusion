@@ -245,7 +245,7 @@ Hooks.once("init", () => {
 // sheet edit, macro) rather than stamping SP from the equip code path. Only
 // the client that made the change runs it, or every connected client would
 // write the same update. `changes` for updateItem is the diff, so only an
-// sp/coverage edit triggers a recompute.
+// baseSP/coverage/kind edit triggers a recompute.
 for (const hook of ["createItem", "deleteItem", "updateItem"]) {
   Hooks.on(hook, (item, ...args) => {
     const actor = item.parent;
@@ -254,7 +254,7 @@ for (const hook of ["createItem", "deleteItem", "updateItem"]) {
     if (userId !== game.user.id) return;
     if (hook === "updateItem") {
       const sys = args[0]?.system ?? {};
-      if (!("sp" in sys) && !("coverage" in sys)) return;
+      if (!("baseSP" in sys) && !("coverage" in sys) && !("kind" in sys)) return;
     }
     return recomputeActorArmorSp(actor, { excludeId: hook === "deleteItem" ? item.id : undefined });
   });

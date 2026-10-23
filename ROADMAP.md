@@ -23,6 +23,7 @@ sentence goes in the Parking lot.
 - Mecha damage: excess damage past a servo's 0 Kills is lost. A hit-location roll of 9 (Other) rerolls if the mecha has no wing or tail. In a missile salvo walk, a 9 with no wing or tail is skipped (the walk moves on to 10), not rerolled.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
 - Human-scale: no armor bypass for characters. Armor ablation and burst fire play RAW. The GM Difficulty option stays, for sneak attacks with no evade or dodge.
+- Hard armor: helmets, plate, Military Suit, Powered Armor. Everything else is soft.
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -32,6 +33,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Pod destroyed at 0 armor or when all its weapons are destroyed; contents are dropped (offline), not destroyed. No-armor pod: destroyed by its first hit.
 - Several weapons in a pod: a random weapon takes the hit; damage past its Kills is lost.
 - Non-weapon pod contents (sensors, subassemblies): the GM adjudicates. Not codified.
+- Mesh/plate weight and cost are per Single location; a thigh or lower leg is half a location (Jacket = 3, Overcoat = 4, Pants = 2, Shorts = 1, Boots = 1).
 
 ## Versioning
 
@@ -57,6 +59,9 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Use presets as the starting point (create a mech from a preset, then edit)
 - [ ] Support non-humanoid servo layouts (generalized kind + side)
 - [ ] Migrate existing mech actors
+- [x] Human-scale armor coverage: 8 zones, garment presets, drop-on-zone, per-zone weight/cost (0.3.24)
+- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.25)
+- [ ] Bruise damage, Fists From Hell core rule (0.3.26)
 
 ### 0.5 — Mecha combat loop
 **Done when:** one full mecha skirmish has been played in Foundry.
@@ -98,3 +103,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - CP2020-only mechanics (BTM, cyberware/Humanity, netrunning)
 - Localization
 - Public release (manifest, compendium packs, docs)
+- Shields at human scale
+- Force screens (3D6 SP, 10 attacks/round)
+- Powered Armor extras (+4 BODY, +4H damage, -3 non-ablative)
+- Custom hard Flight Jacket (built as plate)
