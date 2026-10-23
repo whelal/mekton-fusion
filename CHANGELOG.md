@@ -1,3 +1,15 @@
+## [0.3.25] - 2026-10-23
+### Added
+- Close combat (MZ core, brawling and melee): a **Close Combat** button on the Combat tab opens a dialog to pick the maneuver (Punch, Claw, Elbow, Backhand, Chop, Crescent, Kick, Wheel, Thrust, Spin, Jab), the skill (Hand to Hand or Martial Art), and a location the maneuver can reach. The dialog shows the total modifier (WA + location penalty) before rolling, and the chosen location is the hit location (no location roll).
+- Melee weapons (Blade, Fencing, Whip, Hand to Hand, Martial Art skills) get a Location choice in their attack dialog: torso free, head -4, arm -2, leg -2.
+- Table ruling (playtest values), `closeCombatCalledPenalty` in table-rulings.js: the default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of the maneuver's WA. Single-location maneuvers (Kick, Wheel, Thrust, Spin, Jab) take only their own WA.
+- Interpretations: Chop and Crescent have no free location (head -6, arm -4 total). A leg hit lands on the thigh or lower leg 50/50, on the chosen side. Eyes/sensors (Jab) damage the head.
+- Maneuver damage per MZ core's Hand-to-Hand Attack Table (men scale), with the BODY damage modifier: Punch/Claw/Elbow/Backhand 1D2, Jab 1D3, Kick 1D3, Wheel 1D6, Crescent 1D6+1, Thrust 1D6+2, Spin 1D6+3. A Martial Art attack adds half its rank, as Martial Art weapons already do. It's applied to the targeted token like a weapon hit. Chop does no damage; the card reports Stun (not automated).
+### Changed
+- No Stun/Shock check is rolled when damage is applied to a dead target (head or torso at DEAD).
+- Stat, skill, weapon, close combat and mecha armament roll cards now show the final total (die + modifiers) as the big number, not the bare die roll.
+- ROADMAP.md: close combat is 0.3.25; armor protection moves to 0.3.26 and bruise damage to 0.3.27.
+
 ## [0.3.24.1] - 2026-10-23
 ### Changed
 - Dropping mesh or plate always opens the coverage picker so the player picks the zones covered. Dropping on a paperdoll zone now just pre-ticks that zone instead of skipping the picker.

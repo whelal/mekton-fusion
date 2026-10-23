@@ -4,6 +4,7 @@ import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSu
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../../module/data/armor-coverage.js";
 import { deriveArmorByLocation, seedZoneSP } from "../../module/data/armor.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
+import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
@@ -164,6 +165,19 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     roll.flags ??= {};
     roll.flags['mekton-fusion'] = { plusDice: [...plusDice], minusDice: [...minusDice], capped };
     return { roll, total, plusDice, minusDice, capped, maxExtra: MAX_EXTRA };
+  }
+
+  // The Roll posted to chat: the dice roll plus its numeric modifiers, so the
+  // card's big total is the final result rather than the bare die. Only for
+  // _rollBidirectionalExplodingD10's purely numeric Roll -- a formula with dice
+  // terms would be re-rolled here.
+  static async _rollWithMods(roll, mods) {
+    const terms = mods.map(n => Number(n) || 0).filter(n => n !== 0);
+    const formula = roll.formula + terms.map(n => (n < 0 ? ` - ${-n}` : ` + ${n}`)).join('');
+    const out = new Roll(formula);
+    await out.evaluate();
+    out.flags = roll.flags;
+    return out;
   }
 
   // Basic Difficulty Levels (Interlock): named GM target numbers.
@@ -346,8 +360,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const state = MektonActorSheet._woundState(key, hitsNow);
 
+    // No Stun/Shock save for the dead -- head or torso at DEAD, from this hit or an earlier one.
+    const locs = targetActor.system?.body?.locations ?? {};
+    const dead = ['head', 'torso'].some(k =>
+      MektonActorSheet._woundState(k, k === key ? hitsNow : MektonActorSheet._num(locs[k]?.hits, 0)) === 'dead');
+
     let stun = null;
-    if (after > 0 && after > before / 2) {
+    if (!dead && after > 0 && after > before / 2) {
       const stunVal = MektonActorSheet._num(targetActor.system?.substats?.stun, 0);
       const stunRoll = new Roll('1d10');
       await stunRoll.evaluate();
@@ -991,6 +1010,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Armament row) share one handler, which dispatches by data attributes.
     html.on('click', '.create-weapon-item', ev => this._onCreateWeapon(ev));
     html.on('click', '.weapon-roll, .mecha-weapon-roll', ev => this._onRollWeapon(ev));
+    html.on('click', '.mf-close-combat', ev => { ev.preventDefault(); this._rollCloseCombat(); });
     html.on('click', '.weapon-damage-roll', ev => this._onRollWeaponDamage(ev));
     html.on('click', '.weapon-options', ev => this._onEditWeaponOptions(ev));
     html.on('click', '.weapon-hitloc-roll', ev => this._onRollHitLocation(ev));
@@ -1731,7 +1751,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: stat });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
-    await roll.toMessage({ speaker, flavor });
+    const shown = await this.constructor._rollWithMods(roll, [statVal, mod]);
+    await shown.toMessage({ speaker, flavor });
   }
 
   /** Roll 1d10 for Stun Save */
@@ -1823,7 +1844,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: skill.name });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}`;
-    await roll.toMessage({ speaker, flavor });
+    const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod]);
+    await shown.toMessage({ speaker, flavor });
   }
 
   /**
@@ -2845,6 +2867,60 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
+   * Resolve the defense against a human-scale attack total: the single
+   * targeted token's opposed Evade, else an optional GM Difficulty. Targets
+   * are re-read now: the user may have changed them while the dialog was open.
+   * success: true hit / false miss / null no defense (treated as a hit).
+   * margin: attack - defense total, or null when there was nothing to beat.
+   */
+  async _resolveAttackDefense(attackTotal, { defense, difficulty, arcMod }) {
+    const targets = Array.from(game.user.targets);
+    const targetActor = targets.length === 1 ? targets[0].actor : null;
+    let success = null;
+    let margin = null;
+    let resultTag = '';
+    if (defense === 'evade' && targetActor) {
+      const ev = await this.constructor._rollEvade(targetActor, arcMod);
+      success = attackTotal > ev.total; // Evade >= attack: the attack fails (MZ p.92)
+      margin = attackTotal - ev.total;
+      const noSkill = ev.hasSkill ? '' : ' <em style="font-size:0.85em; color:#999;">(no Dodge &amp; Escape skill)</em>';
+      resultTag = `<br>${escapeHtml(targetActor.name)} Evades: ${ev.label}${noSkill} &mdash; <strong style="color: ${success ? 'green' : 'red'}">${success ? `HIT by ${margin}` : 'EVADED'}</strong>`;
+    } else {
+      if (defense === 'evade') {
+        ui.notifications.warn('Evade needs exactly one targeted token -- resolving with no defense roll.');
+      }
+      if (difficulty !== null) {
+        success = attackTotal > difficulty; // ties go to the defender in all combat (MZ core, Evade Rolls)
+        margin = attackTotal - difficulty;
+        resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
+      }
+    }
+    return { targetActor, success, margin, resultTag };
+  }
+
+  /** <option>s for a close-combat Location select, each showing its called-shot penalty. */
+  static _closeTargetOptions(groups, defaultGroup) {
+    const selected = defaultCloseTarget(groups, defaultGroup);
+    return closeTargetsFor(groups).map(k => {
+      const p = closeCalledPenalty(groups, k, defaultGroup);
+      return `<option value="${k}"${k === selected ? ' selected' : ''}>${CLOSE_TARGETS[k].label} (${p >= 0 ? '+' : ''}${p})</option>`;
+    }).join('');
+  }
+
+  /**
+   * A close-combat hit on the chosen target (no location roll). Same shape as
+   * _rollHitLocationKey's key/label; `zone` is the armor zone (a leg hit is
+   * thigh or lower leg, see closeHitZone).
+   */
+  static _closeHit(targetKey) {
+    const zone = closeHitZone(targetKey);
+    const t = CLOSE_TARGETS[targetKey];
+    const label = t.group === 'leg' ? ARMOR_ZONES[zone].label
+      : t.group === 'eyes' ? `${t.label} (Head)` : t.label;
+    return { key: ARMOR_ZONES[zone].location, label, zone };
+  }
+
+  /**
    * Roll a weapon attack. Dispatches by source: a Combat tab weapon Item
    * (data-item-id) or a Mecha tab Armament row (data-mech + data-idx).
    */
@@ -2867,7 +2943,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * token (never the attacker), and resolves a Stun/Shock save if warranted.
    * Burst fire (MZ p.95-96): one hit per point of margin, up to the weapon's
    * BV, each hit rolled and soaked separately. Human scale has no Crits or
-   * Mega-Crits (table ruling: armor always applies to characters). The standalone
+   * Mega-Crits (table ruling: armor always applies to characters). Close-contact
+   * weapons (CLOSE_COMBAT_SKILLS) pick the hit location instead of rolling it,
+   * with a called-shot penalty off the torso (see close-combat.js). The standalone
    * .weapon-damage-roll / .weapon-hitloc-roll buttons remain as manual
    * overrides for anything this dialog doesn't cover (e.g. opposed melee).
    */
@@ -2921,6 +2999,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const rangeHint = rangeInfo?.thrown ? 'Thrown'
       : rangeInfo ? `Combat ${rangeInfo.combat} / Max ${rangeInfo.max}`
       : 'No range data';
+
+    // Close contact (melee skill, not thrown): the player picks the location
+    // (torso free; others cost TABLE_RULINGS.closeCombatCalledPenalty) instead of rolling it.
+    const closeContact = CLOSE_COMBAT_SKILLS.has(String(skillKey ?? '').toLowerCase()) && !rangeInfo?.thrown;
 
     // Burst Value: a bare number > 1 enables Burst fire ("na", "1", "" = single only).
     const bv = parseInt(weapon.system?.bv, 10) || 1;
@@ -2981,6 +3063,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               </select>
               <p style="font-size:0.8em; color:#666; margin:2px 0 8px;">${rangeHint}</p>
             </div>
+            ${closeContact ? `
+            <div class="form-group">
+              <label>Location</label>
+              <select name="closeTarget" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS)}</select>
+            </div>` : ''}
             <div class="form-group">
               <label>Aim (+1/action, max +4)</label>
               <input type="number" name="aim" value="0" min="0" max="4" style="width:100%"/>
@@ -3012,13 +3099,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           const defense = html.find("[name='defense']").val() || 'difficulty';
           const arcMod = Number(html.find("[name='arc']").val()) || 0;
           const fireMode = html.find("[name='fireMode']").val() || 'single';
-          return { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode };
+          const closeTarget = html.find("[name='closeTarget']").val() || null;
+          return { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode, closeTarget };
         }
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode } = dlg;
+    const { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode, closeTarget } = dlg;
     const mods = coverMod + other;
+    const locPenalty = closeTarget ? closeCalledPenalty(MELEE_STRIKE_TARGETS, closeTarget) : 0;
 
     // Weapon Options' WA bonus (Lasersight/Smartgun +, Optical Scope -) only
     // applies at Combat Range (rangeMod === 0), per the book -- the dropdown
@@ -3029,7 +3118,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods;
+    const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty;
 
     const plusStr = plusDice.join(' + ');
     const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
@@ -3045,32 +3134,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
     if (aim) modParts.push(`Aim +${aim}`);
     if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
+    if (closeTarget) modParts.push(`${CLOSE_TARGETS[closeTarget].label} ${locPenalty >= 0 ? '+' : ''}${locPenalty}`);
 
-    // Targets are re-read now: the user may have changed them while the dialog was open.
-    const targets = Array.from(game.user.targets);
-    const targetActor = targets.length === 1 ? targets[0].actor : null;
-
-    // success: true hit / false miss / null no defense (treated as a hit).
-    // margin: attack - defense total, or null when there was nothing to beat.
-    let success = null;
-    let margin = null;
-    let resultTag = '';
-    if (defense === 'evade' && targetActor) {
-      const ev = await this.constructor._rollEvade(targetActor, arcMod);
-      success = attackTotal > ev.total; // Evade >= attack: the attack fails (MZ p.92)
-      margin = attackTotal - ev.total;
-      const noSkill = ev.hasSkill ? '' : ' <em style="font-size:0.85em; color:#999;">(no Dodge &amp; Escape skill)</em>';
-      resultTag = `<br>${escapeHtml(targetActor.name)} Evades: ${ev.label}${noSkill} &mdash; <strong style="color: ${success ? 'green' : 'red'}">${success ? `HIT by ${margin}` : 'EVADED'}</strong>`;
-    } else {
-      if (defense === 'evade') {
-        ui.notifications.warn('Evade needs exactly one targeted token -- resolving with no defense roll.');
-      }
-      if (difficulty !== null) {
-        success = attackTotal > difficulty; // ties go to the defender in all combat (MZ core, Evade Rolls)
-        margin = attackTotal - difficulty;
-        resultTag = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
-      }
-    }
+    const { targetActor, success, margin, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
 
     // Burst: one hit per point of margin (> 0 -- a tie is a miss), up to BV.
     // With no defense roll and no Difficulty there's no margin, so a burst lands 1 hit.
@@ -3104,7 +3170,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           }
 
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
-          const { key, label: locLabel } = await this.constructor._rollHitLocationKey();
+          const { key, label: locLabel } = closeTarget
+            ? this.constructor._closeHit(closeTarget)
+            : await this.constructor._rollHitLocationKey();
           const hitTag = hitCount > 1 ? `Hit ${h}: ` : '';
           flavor += `<br>${hitTag}Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
 
@@ -3121,7 +3189,164 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
 
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    await roll.toMessage({ speaker, flavor });
+    const shown = await this.constructor._rollWithMods(roll, [skillTotal, effectiveWa, rangeMod, aim, mods, locPenalty]);
+    await shown.toMessage({ speaker, flavor });
+  }
+
+  /**
+   * Close-combat (brawling) attack, human scale. The player picks a maneuver
+   * (CLOSE_MANEUVERS) and a location it can reach, pre-selected to the free
+   * one; the chosen location is the hit location (no location roll).
+   * 1D10 (exploding) + Hand to Hand or Martial Art + maneuver WA + called-shot
+   * penalty + other, vs Evade or a GM Difficulty (same as _rollWeaponItem).
+   * Damage per the Hand-to-Hand Attack Table, applied like a weapon hit (a
+   * Martial Art attack adds its rank bonus, see _meleeSkillDamageBonus). Chop
+   * does no damage: the card reports its Stun effect, which isn't automated.
+   */
+  async _rollCloseCombat() {
+    const SKILLS = { 'hand-to-hand': 'Hand to Hand', 'martial-art': 'Martial Art (H)' };
+    const skills = Object.fromEntries(Object.entries(SKILLS).map(([k, name]) => {
+      const it = this.actor.items.find(i => i.type === 'skill' && i.name === name);
+      const stat = MektonActorSheet._num(this.actor.system?.stats?.[String(it?.system?.stat || '').toUpperCase()]?.value, 0);
+      return [k, { name, has: !!it, total: it ? stat + MektonActorSheet._num(it.system?.rank, 0) : 0 }];
+    }));
+    const defaultSkill = skills['martial-art'].total > skills['hand-to-hand'].total ? 'martial-art' : 'hand-to-hand';
+    const targetsAtRoll = Array.from(game.user.targets);
+    const oneTarget = targetsAtRoll.length === 1 && !!targetsAtRoll[0].actor;
+    const sign = n => `${n >= 0 ? '+' : ''}${n}`;
+
+    const maneuverOptions = Object.entries(CLOSE_MANEUVERS)
+      .map(([k, m]) => `<option value="${k}">${m.label} (WA ${sign(m.wa)})</option>`).join('');
+    const skillOptions = Object.entries(skills)
+      .map(([k, s]) => `<option value="${k}"${k === defaultSkill ? ' selected' : ''}>${s.name} (${sign(s.total)})</option>`).join('');
+
+    const read = html => {
+      const m = CLOSE_MANEUVERS[html.find("[name='maneuver']").val()];
+      const target = html.find("[name='closeTarget']").val();
+      return {
+        m, target,
+        locPenalty: closeCalledPenalty(m.targets, target, m.defaultGroup),
+        other: Number(html.find("[name='other']").val()) || 0,
+        skill: html.find("[name='skill']").val() || defaultSkill
+      };
+    };
+    const refreshTotal = html => {
+      const { m, locPenalty, other } = read(html);
+      html.find('.mf-close-total').text(`Modifier: WA ${sign(m.wa)} + location ${sign(locPenalty)}`
+        + (other ? ` + other ${sign(other)}` : '') + ` = ${sign(m.wa + locPenalty + other)}`);
+    };
+
+    let dlg;
+    try {
+      dlg = await Dialog.prompt({
+        title: 'Close Combat',
+        content: `
+          <form class="mf-attack-dialog">
+            <div class="form-group">
+              <label>Maneuver</label>
+              <select name="maneuver" style="width:100%">${maneuverOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>Skill</label>
+              <select name="skill" style="width:100%">${skillOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <select name="closeTarget" style="width:100%"></select>
+            </div>
+            <div class="form-group">
+              <label>Other Modifier</label>
+              <input type="number" name="other" value="0" style="width:100%"/>
+            </div>
+            <p class="mf-close-total" style="font-weight:600; margin:6px 0;"></p>
+            <div class="form-group">
+              <label>Defense</label>
+              <select name="defense" style="width:100%">
+                <option value="evade" ${oneTarget ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>
+                <option value="difficulty" ${oneTarget ? '' : 'selected'}>GM Difficulty (no defense roll -- unaware / sneak attack)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Attacking target's (Evade only)</label>
+              <select name="arc" style="width:100%">
+                <option value="0">Front (+0)</option>
+                <option value="-1">Flank (-1 to Evade)</option>
+                <option value="-2">Rear (-2 to Evade)</option>
+              </select>
+            </div>
+            ${this.constructor._difficultyPresetHtml()}
+          </form>
+        `,
+        label: "Attack",
+        render: html => {
+          this.constructor._bindDifficultyPresetListeners(html);
+          // Location list follows the maneuver, pre-selected to its free location.
+          const fillTargets = () => {
+            const m = CLOSE_MANEUVERS[html.find("[name='maneuver']").val()];
+            html.find("[name='closeTarget']").html(this.constructor._closeTargetOptions(m.targets, m.defaultGroup));
+            refreshTotal(html);
+          };
+          html.find("[name='maneuver']").on('change', fillTargets);
+          html.find("[name='closeTarget'], [name='other']").on('change input', () => refreshTotal(html));
+          fillTargets();
+        },
+        options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
+        callback: html => {
+          const diffRaw = html.find("[name='difficulty']").val();
+          return {
+            ...read(html),
+            defense: html.find("[name='defense']").val() || 'difficulty',
+            arcMod: Number(html.find("[name='arc']").val()) || 0,
+            difficulty: diffRaw ? Number(diffRaw) : null
+          };
+        }
+      });
+    } catch (_) { return; } // dialog cancelled
+
+    const { m, target, locPenalty, other, skill, defense, arcMod, difficulty } = dlg;
+    const s = skills[skill];
+    if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
+
+    const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
+    const attackTotal = base + s.total + m.wa + locPenalty + other;
+    const dice = plusDice.join(' + ') + (minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '');
+    const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
+    const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
+    const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
+    const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
+    const parts = [`(${dice})`, `${s.name} ${s.total}`, `WA ${m.wa}`, `${CLOSE_TARGETS[target].label} ${sign(locPenalty)}`];
+    if (other) parts.push(`Mods ${sign(other)}`);
+
+    const { targetActor, success, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
+    let flavor = `<strong>${this.actor.name}</strong> attacks: ${m.label}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+
+    if (success !== false) {
+      const { key, label: locLabel } = this.constructor._closeHit(target);
+      if (!m.damage) {
+        flavor += `<br>Hits <strong>${locLabel}</strong>: <strong>${m.effect ?? 'no damage'}</strong> <em style="font-size:0.85em; color:#999;">(resolve per MZ core; not automated)</em>`;
+      } else {
+        const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, { system: { skill } });
+        let dmg = null;
+        try {
+          dmg = await this._rollDamageFormula(m.damage, skillBonus);
+        } catch (err) {
+          flavor += `<br><em style="font-size:0.85em; color:#c0392b;">Invalid damage formula "${m.damage}" for ${m.label}.</em>`;
+        }
+        if (dmg) {
+          const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
+          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+          if (targetActor) {
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
+            flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
+          } else {
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}">Apply to targeted token</button>`;
+          }
+        }
+      }
+    }
+
+    const shown = await this.constructor._rollWithMods(roll, [s.total, m.wa, locPenalty, other]);
+    await shown.toMessage({ speaker: ChatMessage.getSpeaker({ actor: this.actor }), flavor });
   }
 
   /** Spend `n` ammo for an attack (1 for a single shot or burst; missiles fired for a salvo). Returns false if short. Untracked (∞) always succeeds. */
@@ -3467,6 +3692,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const applyBtn = dmgNum > 0 ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmgNum}" title="GM: roll hit location(s) and apply damage to the targeted mech">Apply hit</button>` : '';
     const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
 
-    await roll.toMessage({ speaker, flavor });
+    const shown = await this.constructor._rollWithMods(roll, [mr, rank, wa]);
+    await shown.toMessage({ speaker, flavor });
   }
 }

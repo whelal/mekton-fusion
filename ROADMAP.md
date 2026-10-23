@@ -24,6 +24,7 @@ sentence goes in the Parking lot.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
 - Human-scale: no armor bypass for characters. Armor ablation and burst fire play RAW. The GM Difficulty option stays, for sneak attacks with no evade or dodge.
 - Hard armor: helmets, plate, Military Suit, Powered Armor. Everything else is soft.
+- Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values.
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -34,6 +35,9 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Several weapons in a pod: a random weapon takes the hit; damage past its Kills is lost.
 - Non-weapon pod contents (sensors, subassemblies): the GM adjudicates. Not codified.
 - Mesh/plate weight and cost are per Single location; a thigh or lower leg is half a location (Jacket = 3, Overcoat = 4, Pants = 2, Shorts = 1, Boots = 1).
+- Chop and Crescent have no free location (they can't reach the torso).
+- Melee leg hits split thigh / lower leg 50/50, on the side the attacker chose.
+- Eyes/sensors (Jab) damage the head.
 
 ## Versioning
 
@@ -57,8 +61,9 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [x] No armor bypass (ruling)
 - [x] GM Difficulty option retained
 - [x] Human-scale armor coverage: 8 zones, garment presets, drop-on-zone, per-zone weight/cost (0.3.24)
-- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.25)
-- [ ] Bruise damage, Fists From Hell core rule (0.3.26)
+- [x] Human-scale close combat: called locations, maneuver picker, maneuver damage (0.3.25)
+- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.26)
+- [ ] Bruise damage, Fists From Hell core rule (0.3.27)
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -107,3 +112,5 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Force screens (3D6 SP, 10 attacks/round)
 - Powered Armor extras (+4 BODY, +4H damage, -3 non-ablative)
 - Custom hard Flight Jacket (built as plate)
+- Remaining Hand-to-Hand Attack Table maneuvers in the Close Combat dialog: Bite (errata: WA 0, not +1), Slam, Throw, Trip/Sweep, Grab, Pin, Bearhug, Dismember; and Chop's Stun effect
+- Mecha-scale brawling (the table's Mecha column, + by servo size)

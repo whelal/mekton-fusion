@@ -39,5 +39,14 @@ export const TABLE_RULINGS = {
    * Damage past a servo's 0 Kills (MZ core, Resolving Damage): "lost" -- HOUSE: the
    * excess goes nowhere. Only "lost" is implemented (see applyHit).
    */
-  excessKills: "lost"
+  excessKills: "lost",
+
+  /**
+   * Human-scale close combat (MZ core, brawling / melee): HOUSE, playtest values.
+   * RAW makes every close-contact attack a free called shot. Instead, the
+   * attack's default location (torso, or legs for sweeps) is free and any other
+   * reachable location costs this much, on top of the maneuver's WA.
+   * Single-location maneuvers take no extra penalty (see module/data/close-combat.js).
+   */
+  closeCombatCalledPenalty: { head: -4, arm: -2, leg: -2, torso: 0 }
 };
