@@ -69,11 +69,11 @@ and sheet UX is the top priority.**
 
 ## Checks before committing
 
-- `node` is not reliably on PATH in this dev environment, so don't assume a runnable gate.
-  Do a **manual review** of each edited file: brace/paren/bracket balance, and
-  import/export symmetry. If a JS runtime happens to be available, `node --check <file>`
-  (or `python -c "import py_compile"`-style equivalents) is a nice-to-have, not a
-  requirement.
+- `node` (v24) is on PATH. Before every commit:
+  - `node --check <file>` on each edited `.js`/`.mjs` file.
+  - `npm test` (runs `node --test tests/*.test.mjs`) must pass. Add or update a test in
+    `tests/` when changing pure rules logic in `module/`.
+  - Still review import/export symmetry by hand — `--check` is syntax only.
 - `.hbs`: eyeball `{{#...}}`/`{{/...}}` block balance. A real Handlebars parse needs the
   Foundry helpers (`localize`, etc.), so a full render isn't the bar — structural balance is.
 - Grep for a removed identifier to confirm no orphaned references remain.
