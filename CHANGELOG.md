@@ -1,3 +1,14 @@
+## [0.3.27] - 2026-10-23
+### Added
+- Friendly-fire guard (human scale and mecha): attacking a targeted token when both it and the attacker's token are Friendly asks "<Target> is friendly. Attack anyway?" first, with Cancel as the default. Cancel stops the attack with no roll and no ammo spent. The GM gets the prompt too. Covers weapon attacks, close combat, mecha Armament rolls, bursts and missile salvos.
+- Area blasts never prompt; everyone in the radius is hit, and the card lists any friendlies caught as "Friendly fire: <names>".
+### Changed
+- Attack cards name both sides: "<Attacker> attacks <Target> — <weapon or maneuver>", or "(no target)" / "(N targets)". Damage lines end "to <Target>'s Torso". Applies to weapon attacks (including bursts), close combat, and mecha Armament rolls, bursts and salvos. "Apply to targeted token" now reads "Applied N damage from <Attacker> to <Target>'s <location>".
+- Exploding dice read in words: "10 (+7) = 17," and "1 (fumble chain −4) = −3," followed by the modifiers. Applies to attacks, Evade, stat and skill rolls. Totals are unchanged.
+- ROADMAP.md: attack card clarity is 0.3.27; armor protection moves to 0.3.28 and bruise damage to 0.3.29. Parking lot: mook actors default to a Hostile token disposition.
+### Fixed
+- release.json's `compatibility.verified` now matches system.json (14).
+
 ## [0.3.26] - 2026-10-23
 ### Added
 - **Bite** close combat maneuver (MZ core Hand-to-Hand Attack Table): WA 0 (MZ core errata p.99), 1D3 + BODY damage. A **Mouth Position** choice appears in the Close Combat dialog for Bite. Level with target reaches torso, head or arms like a Punch (torso free, head -4, arm -2: the table's called-shot ruling overrides core's no-penalty Bite); On the ground reaches the legs only (free, either leg).

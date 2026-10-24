@@ -65,10 +65,11 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [x] Human-scale close combat: called locations, maneuver picker, maneuver damage (0.3.25)
 - [x] Bite maneuver with mouth position (0.3.26)
 - [x] Human-scale armor ablation threshold: 1 SP only on hits of 5+ (0.3.26)
-- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.27)
+- [x] Attack card clarity + friendly-fire guard: cards name attacker and target, exploding chains in words, confirm before attacking a friendly token (0.3.27)
+- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.28)
   - The active piece loses 1 SP on that zone only, and only for a hit of >= `personalArmorAblationThreshold` (before armor); never more than 1 per hit. Use `ablatePersonalArmor()`.
   - Check: Heavy Mesh (15) + Light Mesh (10) on the torso, hits of 6 damage. After 6 hits the torso is at 9 (still Heavy Mesh); after 15 hits Light Mesh's 10 takes over.
-- [ ] Bruise damage, Fists From Hell core rule (0.3.28)
+- [ ] Bruise damage, Fists From Hell core rule (0.3.29)
   - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
   - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
@@ -122,4 +123,5 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Custom hard Flight Jacket (built as plate)
 - Remaining Hand-to-Hand Attack Table maneuvers in the Close Combat dialog: Slam, Throw, Trip/Sweep, Grab, Pin, Bearhug, Dismember; and Chop's Stun effect
 - Mecha-scale brawling (the table's Mecha column, + by servo size)
+- Mook/NPC creation: new mook actors get a Hostile prototype token disposition (the friendly-fire guard reads token dispositions; Foundry's Token Config works but is clunky at the table).
 - (0.6 Mecha combat loop) Head-mounted melee weapons for humanoid mecha, WA +0 (MZ core errata p.99; also simulates jaws).

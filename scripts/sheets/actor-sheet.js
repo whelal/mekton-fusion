@@ -9,6 +9,7 @@ import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleePar
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { escapeHtml } from "../../module/util/escape.js";
+import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire } from "../../module/data/attack-card.js";
 
 // Tie-break picker for locationFromRoll (several equally valid servos, e.g. two right arms).
 const pickIndex = n => Math.floor(Math.random() * n);
@@ -408,8 +409,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const dodge = skill ? MektonActorSheet._num(skill.system?.rank, 0) : 0;
     const { total: die, plusDice, minusDice } = await MektonActorSheet._rollBidirectionalExplodingD10();
     const total = die + ref + dodge + arcMod;
-    const dice = plusDice.join(' + ') + (minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '');
-    const parts = [`(${dice})`, `REF ${ref}`, `Dodge ${dodge}`];
+    const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `Dodge ${dodge}`];
     if (arcMod) parts.push(`Arc ${arcMod}`);
     return { total, label: `${parts.join(' + ')} = ${total}`, hasSkill: !!skill };
   }
@@ -1734,9 +1734,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const finalTotal = base + statVal + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const flavorParts = [`(${plusStr}${minusStr})`, `${stat} ${statVal}`];
+    const flavorParts = [chainText(plusDice, minusDice), `${stat} ${statVal}`];
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
     
     const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
@@ -1821,9 +1819,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const finalTotal = base + mr + rank + (mod||0);
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
 
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
-    const flavorParts = [`(${plusStr}${minusStr})`];
+    const flavorParts = [chainText(plusDice, minusDice)];
     if (isMecha && stat === 'REF') {
       flavorParts.push(`MR ${mr}`);
     } else {
@@ -2447,6 +2443,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     let html = `<br><strong>Blast</strong> (${radius}m around ${foundry.utils.escapeHTML(targets[0].name)}): ${inBlast.length} in radius`;
+    // No friendly-fire prompt for an area blast: everyone in the radius is hit, and the card says who.
+    const mine = this._attackerDisposition();
+    const friendlies = inBlast.filter(t => isFriendlyFire(mine, t.document?.disposition));
+    if (friendlies.length) {
+      html += `<br><strong style="color:#c0392b;">Friendly fire:</strong> ${friendlies.map(t => escapeHtml(t.name)).join(', ')}`;
+    }
     const unit = (canvas.scene?.grid?.units ?? '').trim().toLowerCase();
     if (unit && !['m', 'meter', 'meters', 'metre', 'metres'].includes(unit)) {
       html += ` <em style="font-size:0.85em; color:#c0392b;">(scene distance unit is "${foundry.utils.escapeHTML(unit)}", not metres -- radius measured in scene units)</em>`;
@@ -2902,6 +2904,41 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return { targetActor, success, margin, resultTag };
   }
 
+  /** Names of the user's targeted tokens, for attack-card headers. */
+  static _targetNames() {
+    return Array.from(game.user.targets).map(t => t.name);
+  }
+
+  /**
+   * The attacker's token disposition (CONST.TOKEN_DISPOSITIONS): its own token
+   * for a synthetic actor, else its first token on the scene, else the
+   * prototype token's.
+   */
+  _attackerDisposition() {
+    const doc = this.actor.token ?? this.actor.getActiveTokens(false, true)[0];
+    return doc?.disposition ?? this.actor.prototypeToken?.disposition;
+  }
+
+  /**
+   * Friendly-fire guard: when a targeted token and the attacker are both
+   * FRIENDLY, ask before resolving (Cancel is the default). The GM isn't
+   * exempt. Area blasts don't use this; they list friendlies hit instead.
+   * @returns {Promise<boolean>} true to go ahead with the attack
+   */
+  async _confirmFriendlyFire() {
+    const mine = this._attackerDisposition();
+    const friendly = Array.from(game.user.targets).filter(t => isFriendlyFire(mine, t.document?.disposition));
+    if (!friendly.length) return true;
+    const names = friendly.map(t => escapeHtml(t.name)).join(', ');
+    const ok = await foundry.applications.api.DialogV2.confirm({
+      window: { title: 'Friendly Fire' },
+      content: `<p>${names} ${friendly.length === 1 ? 'is' : 'are'} friendly. Attack anyway?</p>`,
+      yes: { label: 'Attack', default: false },
+      no: { label: 'Cancel', default: true }
+    });
+    return ok === true;
+  }
+
   /** <option>s for a close-combat Location select, each showing its called-shot penalty. */
   static _closeTargetOptions(groups, defaultGroup) {
     const selected = defaultCloseTarget(groups, defaultGroup);
@@ -3110,6 +3147,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (_) { return; } // dialog cancelled
 
     const { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode, closeTarget } = dlg;
+    // Area blasts skip the friendly-fire prompt: the card lists friendlies hit instead.
+    if (!blast && !(await this._confirmFriendlyFire())) return;
     const mods = coverMod + other;
     const locPenalty = closeTarget ? closeCalledPenalty(MELEE_STRIKE_TARGETS, closeTarget) : 0;
 
@@ -3124,8 +3163,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
     const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty;
 
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
@@ -3134,7 +3171,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const waLabel = effectiveWa !== wa
       ? `WA ${effectiveWa} (${wa} ${optionsEffect.combatWaBonus >= 0 ? '+' : ''}${optionsEffect.combatWaBonus} options${waResult.capped ? ', capped' : ''})`
       : (waResult.capped ? `WA ${wa} (options capped)` : `WA ${wa}`);
-    const modParts = [`(${plusStr}${minusStr})`, `Skill ${skillTotal}`, waLabel];
+    const modParts = [chainText(plusDice, minusDice), `Skill ${skillTotal}`, waLabel];
     if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
     if (aim) modParts.push(`Aim +${aim}`);
     if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
@@ -3147,7 +3184,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const burst = fireMode === 'burst' && bv > 1;
     const hitCount = burst && margin !== null ? Math.max(0, Math.min(margin, bv)) : 1;
 
-    let flavor = `<strong>${this.actor.name}</strong> attacks with ${weaponName}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+    let flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), weaponName)}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
     // --- On a hit (success !== false -- a miss is the only thing that skips this) ---
     if (success !== false && MektonActorSheet._blastOf(weapon)) {
@@ -3178,7 +3215,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             ? this.constructor._closeHit(closeTarget)
             : await this.constructor._rollHitLocationKey();
           const hitTag = hitCount > 1 ? `Hit ${h}: ` : '';
-          flavor += `<br>${hitTag}Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+          flavor += `<br>${hitTag}Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
 
           // Apply to the TARGET only, never the attacker. Exactly one targeted
           // token -> apply now; otherwise defer via a chat-card button per hit.
@@ -3186,7 +3223,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }
@@ -3319,26 +3356,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (_) { return; } // dialog cancelled
 
     const { m, target, position, locPenalty, other, skill, defense, arcMod, difficulty } = dlg;
+    if (!(await this._confirmFriendlyFire())) return;
     const s = skills[skill];
     if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
 
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
     const attackTotal = base + s.total + m.wa + locPenalty + other;
-    const dice = plusDice.join(' + ') + (minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '');
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
-    const parts = [`(${dice})`, `${s.name} ${s.total}`, `WA ${m.wa}`, `${CLOSE_TARGETS[target].label} ${sign(locPenalty)}`];
+    const parts = [chainText(plusDice, minusDice), `${s.name} ${s.total}`, `WA ${m.wa}`, `${CLOSE_TARGETS[target].label} ${sign(locPenalty)}`];
     if (other) parts.push(`Mods ${sign(other)}`);
 
     const { targetActor, success, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
-    let flavor = `<strong>${this.actor.name}</strong> attacks: ${m.label}${position ? ` (${MOUTH_POSITIONS[position].toLowerCase()})` : ''}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+    const what = `${m.label}${position ? ` (${MOUTH_POSITIONS[position].toLowerCase()})` : ''}`;
+    let flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), what)}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
     if (success !== false) {
       const { key, label: locLabel } = this.constructor._closeHit(target);
       if (!m.damage) {
-        flavor += `<br>Hits <strong>${locLabel}</strong>: <strong>${m.effect ?? 'no damage'}</strong> <em style="font-size:0.85em; color:#999;">(resolve per MZ core; not automated)</em>`;
+        flavor += `<br>Hits ${targetLocation(targetActor?.name, locLabel)}: <strong>${m.effect ?? 'no damage'}</strong> <em style="font-size:0.85em; color:#999;">(resolve per MZ core; not automated)</em>`;
       } else {
         const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, { system: { skill } });
         let dmg = null;
@@ -3349,12 +3387,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         }
         if (dmg) {
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
-          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> to <strong>${locLabel}</strong>`;
+          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
           if (targetActor) {
             const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }
@@ -3426,6 +3464,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.warn(row.canReload ? `${row.name}: empty -- reload (1 Action).` : `${row.name}: empty, no spare clips.`);
       return;
     }
+    if (!(await this._confirmFriendlyFire())) return;           // cancelled: no roll, no spend
     const isSalvo = !!row.canSalvo;
 
     // Same attack math as _rollMechaArmamentRow: 1d10(exploding) + MR + skill rank + WA.
@@ -3481,7 +3520,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const applyBtn = hits > 0 && dmg > 0
         ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmg}" data-hits="${hits}" data-margin="${margin}" data-missile="1" title="GM: walk the hit chart and apply damage to the targeted mech">Apply hit</button>`
         : '';
-      const content = `<strong>${who}</strong> fires a ${fired}-missile salvo from ${row.name}: attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${salvoTag}${applyBtn}`;
+      const content = `${attackHeader(who, MektonActorSheet._targetNames(), `${fired}-missile salvo from ${row.name}`)}: attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${salvoTag}${applyBtn}`;
       await ChatMessage.create({ speaker, content, rolls: [roll] });
       return;
     }
@@ -3522,7 +3561,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         : !servo ? `<li>Hit ${i}: d10 ${r.total} → no servo there</li>`
         : `<li>Hit ${i}: ${escapeHtml(servo.servo || servo.id)} (d10 ${r.total})${kindTag} <button type="button" class="mf-apply-mecha-hit" data-loc="${escapeHtml(servo.id)}" data-dmg="${dmg}"${kind === 'mega' ? ' data-mega="1"' : ''}>Apply ${dmg}K</button></li>`);
     }
-    const content = `<strong>${who}</strong> bursts ${row.name} (BV ${row.bv}): attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${critTag(c)}`
+    const content = `${attackHeader(who, targets.map(t => t.name), `${row.name} burst (BV ${row.bv})`)}: attack ${attack} vs ${defense} → <strong>${hits} hit${hits === 1 ? '' : 's'}</strong>${critTag(c)}`
       + (targetServos.length ? '' : ' <small>(no mech targeted: default humanoid chart)</small>')
       + (lines.length ? `<ul>${lines.join('')}</ul>` : '');
     await ChatMessage.create({ speaker, content, rolls });
@@ -3671,6 +3710,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ui.notifications.warn('Pick a weapon before rolling.');
       return;
     }
+    if (!(await this._confirmFriendlyFire())) return;           // cancelled: no roll, no spend
     if (!(await this._spendMechaAmmo(idx))) return;
 
     // Weapon category -> the Mecha Combat Skill that attack rolls with it.
@@ -3690,8 +3730,6 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
     const finalTotal = base + mr + rank + wa;
 
-    const plusStr = plusDice.join(' + ');
-    const minusStr = minusDice.length ? ' - (' + minusDice.join(' + ') + ')' : '';
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
@@ -3705,7 +3743,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const locStr = row.loc ? escapeHtml(row.locLabel) : 'unassigned';
     const dmgNum = Number(row.damage) || 0;
     const applyBtn = dmgNum > 0 ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmgNum}" title="GM: roll hit location(s) and apply damage to the targeted mech">Apply hit</button>` : '';
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${weaponName} (${skillLabel})${tag}${capTag} = (${plusStr}${minusStr}) + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
+    const flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), `${weaponName} (${skillLabel})`)}${tag}${capTag} = ${chainText(plusDice, minusDice)} + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
 
     const shown = await this.constructor._rollWithMods(roll, [mr, rank, wa]);
     await shown.toMessage({ speaker, flavor });

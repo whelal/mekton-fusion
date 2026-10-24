@@ -12,6 +12,7 @@ import { BODY_PLANS } from "../../module/data/body-values.js";
 import { OPTIONS } from "../../module/data/mecha-options.js";
 import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant.js";
 import { escapeHtml } from "../../module/util/escape.js";
+import { damageTo } from "../../module/data/attack-card.js";
 import { critTier, salvoCritCounts } from "../../module/data/mecha-damage.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
@@ -522,7 +523,8 @@ Hooks.once("ready", () => {
     const targetActor = targets[0].actor;
     const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal);
     const speaker = ChatMessage.getSpeaker({ actor: targetActor });
-    const content = `Applied <strong>${dmgTotal}</strong> damage to <strong>${targetActor.name}'s ${locLabel}</strong>: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
+    const from = btn.dataset.attacker ? ` from <strong>${escapeHtml(btn.dataset.attacker)}</strong>` : '';
+    const content = `Applied <strong>${dmgTotal}</strong> damage${from} ${damageTo(targetActor.name, locLabel)}: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
     await ChatMessage.create({ speaker, content });
   });
 
