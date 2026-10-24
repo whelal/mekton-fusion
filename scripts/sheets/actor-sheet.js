@@ -2,9 +2,9 @@
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../../module/data/armor-coverage.js";
-import { deriveArmorByLocation, seedZoneSP } from "../../module/data/armor.js";
+import { deriveArmorByLocation, seedZoneSP, ablatePersonalArmor } from "../../module/data/armor.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
-import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
+import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
@@ -335,9 +335,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * (never the attacker -- caller passes the target explicitly). Damage
    * chain: subtract that location's SP, apply the remainder to hits (may go
    * negative). Flat to every location, head included -- no armor head-double.
-   * Staged penetration (MZ p.103): any hit of 1+ damage ablates that
-   * location's current SP by 1, whether or not anything gets through. Not
-   * applied with ignoreSp (burning is already past the armor, not a new hit).
+   * Staged penetration: a hit of at least the personal ablation threshold
+   * (ablatePersonalArmor) ablates that location's current SP by 1, whether or
+   * not anything gets through. Not applied with ignoreSp (burning is already
+   * past the armor, not a new hit).
    * Also resolves a Stun/Shock save when this single hit's post-armor damage
    * exceeds half the location's hits BEFORE the hit (1d10 <= substats.stun to
    * stay conscious).
@@ -353,7 +354,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const before = MektonActorSheet._num(loc?.hits, 0);
     const after = Math.max(0, dmgTotal - sp);
     const hitsNow = before - after;
-    const spNow = (!ignoreSp && dmgTotal >= 1 && sp > 0) ? sp - 1 : sp;
+    const { spNow, belowThreshold } = ignoreSp
+      ? { spNow: sp, belowThreshold: false }
+      : ablatePersonalArmor(sp, dmgTotal);
     const update = { [`system.body.locations.${key}.hits`]: hitsNow };
     if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
     await targetActor.update(update);
@@ -373,15 +376,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
     }
 
-    return { sp, spNow, before, after, hitsNow, state, stun };
+    return { sp, spNow, belowThreshold, before, after, hitsNow, state, stun };
   }
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, spNow, before, after, hitsNow, state, stun } = applied;
+    const { sp, spNow, belowThreshold, before, after, hitsNow, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
-    const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})` : '';
+    const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
+      : belowThreshold ? `, no ablation (&lt;${TABLE_RULINGS.personalArmorAblationThreshold})` : '';
     let html = `SP ${sp} soaked${ablated}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
     if (stun) {
       const stunColor = stun.conscious ? '#2a2' : '#c0392b';
@@ -3220,12 +3224,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skillOptions = Object.entries(skills)
       .map(([k, s]) => `<option value="${k}"${k === defaultSkill ? ' selected' : ''}>${s.name} (${sign(s.total)})</option>`).join('');
 
+    const positionOptions = Object.entries(MOUTH_POSITIONS)
+      .map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
+
     const read = html => {
       const m = CLOSE_MANEUVERS[html.find("[name='maneuver']").val()];
       const target = html.find("[name='closeTarget']").val();
+      const position = m.positions ? html.find("[name='position']").val() : null;
       return {
-        m, target,
-        locPenalty: closeCalledPenalty(m.targets, target, m.defaultGroup),
+        m, target, position,
+        locPenalty: closeCalledPenalty(maneuverTargets(m, position), target, m.defaultGroup),
         other: Number(html.find("[name='other']").val()) || 0,
         skill: html.find("[name='skill']").val() || defaultSkill
       };
@@ -3245,6 +3253,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             <div class="form-group">
               <label>Maneuver</label>
               <select name="maneuver" style="width:100%">${maneuverOptions}</select>
+            </div>
+            <div class="form-group mf-close-position" style="display:none;">
+              <label>Mouth Position</label>
+              <select name="position" style="width:100%">${positionOptions}</select>
             </div>
             <div class="form-group">
               <label>Skill</label>
@@ -3280,13 +3292,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         label: "Attack",
         render: html => {
           this.constructor._bindDifficultyPresetListeners(html);
-          // Location list follows the maneuver, pre-selected to its free location.
+          // Location list follows the maneuver (and Bite's mouth position),
+          // pre-selected to its free location.
           const fillTargets = () => {
             const m = CLOSE_MANEUVERS[html.find("[name='maneuver']").val()];
-            html.find("[name='closeTarget']").html(this.constructor._closeTargetOptions(m.targets, m.defaultGroup));
+            html.find('.mf-close-position').toggle(!!m.positions);
+            const groups = maneuverTargets(m, m.positions ? html.find("[name='position']").val() : null);
+            html.find("[name='closeTarget']").html(this.constructor._closeTargetOptions(groups, m.defaultGroup));
             refreshTotal(html);
           };
-          html.find("[name='maneuver']").on('change', fillTargets);
+          html.find("[name='maneuver'], [name='position']").on('change', fillTargets);
           html.find("[name='closeTarget'], [name='other']").on('change input', () => refreshTotal(html));
           fillTargets();
         },
@@ -3303,7 +3318,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { m, target, locPenalty, other, skill, defense, arcMod, difficulty } = dlg;
+    const { m, target, position, locPenalty, other, skill, defense, arcMod, difficulty } = dlg;
     const s = skills[skill];
     if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
 
@@ -3318,7 +3333,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (other) parts.push(`Mods ${sign(other)}`);
 
     const { targetActor, success, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
-    let flavor = `<strong>${this.actor.name}</strong> attacks: ${m.label}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+    let flavor = `<strong>${this.actor.name}</strong> attacks: ${m.label}${position ? ` (${MOUTH_POSITIONS[position].toLowerCase()})` : ''}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
     if (success !== false) {
       const { key, label: locLabel } = this.constructor._closeHit(target);

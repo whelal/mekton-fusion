@@ -1,6 +1,22 @@
 import { ARMOR_ZONES, ZONE_KEYS, ARMOR_KINDS, LEGACY_COVERAGE, cleanZones, effectiveCoverage, defaultHardness } from "./armor-coverage.js";
+import { TABLE_RULINGS } from "../rules/table-rulings.js";
 
 const LOCATIONS = ["head", "torso", "rArm", "lArm", "rLeg", "lLeg"];
+
+/**
+ * Personal armor SP after one hit (TABLE_RULINGS.personalArmorAblationThreshold):
+ * -1 SP only when the hit's pre-armor damage meets the threshold, never more
+ * than 1 per hit. Soft and hard armor alike. Mecha armor doesn't use this.
+ * @param {number} sp - current SP
+ * @param {number} dmg - the hit's damage before armor
+ * @returns {{spNow:number, ablated:boolean, belowThreshold:boolean}}
+ */
+export function ablatePersonalArmor(sp, dmg) {
+  const threshold = TABLE_RULINGS.personalArmorAblationThreshold;
+  const belowThreshold = sp > 0 && dmg >= 1 && dmg < threshold;
+  const ablated = sp > 0 && dmg >= threshold;
+  return { spNow: ablated ? sp - 1 : sp, ablated, belowThreshold };
+}
 
 /**
  * Per body location, the armor Item that currently provides its SP: the

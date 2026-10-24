@@ -1,3 +1,13 @@
+## [0.3.26] - 2026-10-23
+### Added
+- **Bite** close combat maneuver (MZ core Hand-to-Hand Attack Table): WA 0 (MZ core errata p.99), 1D3 + BODY damage. A **Mouth Position** choice appears in the Close Combat dialog for Bite. Level with target reaches torso, head or arms like a Punch (torso free, head -4, arm -2: the table's called-shot ruling overrides core's no-penalty Bite); On the ground reaches the legs only (free, either leg).
+- Table ruling (house), `biteReach` in table-rulings.js: the locations each mouth position can reach.
+- Table ruling (interpretation), `personalArmorAblationThreshold: 5` in table-rulings.js (MZ ATM Scaling, human-scale ablation rate).
+### Changed
+- Personal armor ablates 1 SP only when a hit's damage (before armor) is 5 or more, never more than 1 SP per hit. It used to lose 1 SP on any hit of 1+, so a 3-damage punch wore down SP 25 plate. Applies to all personal armor, soft and hard; each burst hit is checked separately; burning still never ablates. Mecha armor is unchanged (any 1K+ hit ablates).
+- Damage cards say when a hit was under the threshold, e.g. "SP 25 soaked, no ablation (<5), 0 through."
+- ROADMAP.md: Bite and the ablation threshold are 0.3.26; armor protection moves to 0.3.27 and bruise damage to 0.3.28. The human-scale ablation ruling is now an interpretation, not RAW. The 0.3.27 and 0.3.28 items now include their ablation specs. Parking lot: head-mounted melee weapons for humanoid mecha.
+
 ## [0.3.25] - 2026-10-23
 ### Added
 - Close combat (MZ core, brawling and melee): a **Close Combat** button on the Combat tab opens a dialog to pick the maneuver (Punch, Claw, Elbow, Backhand, Chop, Crescent, Kick, Wheel, Thrust, Spin, Jab), the skill (Hand to Hand or Martial Art), and a location the maneuver can reach. The dialog shows the total modifier (WA + location penalty) before rolling, and the chosen location is the hit location (no location roll).

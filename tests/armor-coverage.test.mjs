@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { armorTotals, presetForZones, effectiveCoverage, COVERAGE_PRESETS, ZONE_KEYS } from "../module/data/armor-coverage.js";
-import { seedZoneSP, migrateArmorSource } from "../module/data/armor.js";
+import { seedZoneSP, migrateArmorSource, ablatePersonalArmor } from "../module/data/armor.js";
 import { ARMOR_CATALOG } from "../module/data/armor-catalog.js";
 
 const heavyMesh = ARMOR_CATALOG.find(a => a.name === "Heavy Mesh").system;
@@ -62,4 +62,17 @@ test("migrateArmorSource reports what it can't map instead of guessing", () => {
 test("migrateArmorSource leaves current-format data alone", () => {
   const cur = { name: "Heavy Mesh", kind: "mesh", baseSP: 15, coverage: ["torso"], hardness: "soft" };
   assert.deepEqual(migrateArmorSource({ ...cur }), cur);
+});
+
+test("personal armor ablates 1 SP only on hits of 5+", () => {
+  assert.deepEqual(ablatePersonalArmor(25, 3), { spNow: 25, ablated: false, belowThreshold: true });
+  assert.equal(ablatePersonalArmor(25, 5).spNow, 24);
+  assert.equal(ablatePersonalArmor(10, 17).spNow, 9); // never more than 1 per hit
+  assert.equal(ablatePersonalArmor(0, 9).spNow, 0);
+});
+
+test("each burst hit is checked separately", () => {
+  let sp = 20;
+  for (const dmg of [3, 6, 4, 9]) sp = ablatePersonalArmor(sp, dmg).spNow;
+  assert.equal(sp, 18);
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../module/data/close-combat.js";
+import { CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../module/data/close-combat.js";
 
 const total = (m, target) => m.wa + closeCalledPenalty(m.targets, target, m.defaultGroup);
 
@@ -51,6 +51,22 @@ test("leg hits split thigh / lower leg on the chosen side", () => {
   assert.equal(closeHitZone("lLeg", () => 0.9), "lLowerLeg");
   assert.equal(closeHitZone("eyes"), "head");
   assert.equal(closeHitZone("torso"), "torso");
+});
+
+test("Bite: level reaches like a Punch; from the ground, legs only and free", () => {
+  const b = CLOSE_MANEUVERS.bite;
+  const level = maneuverTargets(b, "level");
+  assert.deepEqual(closeTargetsFor(level), closeTargetsFor(CLOSE_MANEUVERS.punch.targets));
+  assert.equal(defaultCloseTarget(level), "torso");
+  assert.equal(b.wa + closeCalledPenalty(level, "head"), -4);
+  const ground = maneuverTargets(b, "ground");
+  assert.deepEqual(closeTargetsFor(ground), ["rLeg", "lLeg"]);
+  assert.equal(b.wa + closeCalledPenalty(ground, "lLeg"), 0);
+  assert.equal(b.damage, "1D3+");
+});
+
+test("maneuvers without positions ignore the position", () => {
+  assert.equal(maneuverTargets(CLOSE_MANEUVERS.kick, "level"), CLOSE_MANEUVERS.kick.targets);
 });
 
 test("every maneuver has damage or a named effect", () => {

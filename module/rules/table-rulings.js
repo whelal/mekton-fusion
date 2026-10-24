@@ -47,6 +47,24 @@ export const TABLE_RULINGS = {
    * attack's default location (torso, or legs for sweeps) is free and any other
    * reachable location costs this much, on top of the maneuver's WA.
    * Single-location maneuvers take no extra penalty (see module/data/close-combat.js).
+   * Bite included: this overrides core's no-penalty Bite.
    */
-  closeCombatCalledPenalty: { head: -4, arm: -2, leg: -2, torso: 0 }
+  closeCombatCalledPenalty: { head: -4, arm: -2, leg: -2, torso: 0 },
+
+  /**
+   * Bite reach by where the attacker's mouth is (HOUSE). Level with the target
+   * (e.g. two standing humans): reaches like a Punch, torso free. On the ground
+   * below a standing target: legs only, so legs are free. Either leg.
+   */
+  biteReach: { level: ["torso", "head", "arm"], ground: ["leg"] },
+
+  /**
+   * Personal armor ablation (INTERPRETATION, MZ ATM Scaling, human scale: armor
+   * loses 1 per successful attack of 5 Hit-increments, read as a threshold, the
+   * way the Corvette-scale line restates MZ core's 1K rule). A human-scale hit
+   * ablates 1 SP only if its pre-armor damage is >= this many Hits; never more
+   * than 1 per hit. All personal armor, soft and hard. Burning never ablates.
+   * Mecha armor is unchanged (MZ core RAW: any 1K+ hit). Table may tune it.
+   */
+  personalArmorAblationThreshold: 5
 };

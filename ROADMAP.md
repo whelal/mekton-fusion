@@ -22,9 +22,9 @@ sentence goes in the Parking lot.
 - Mecha ammo: a burst spends 1 ammo regardless of BV. Missile salvos spend 1 ammo per missile fired. Spare clips are tracked per weapon, reloading takes an Action, and full rearm happens at a depot. Infinite-shot beams use no ammo.
 - Mecha damage: excess damage past a servo's 0 Kills is lost. A hit-location roll of 9 (Other) rerolls if the mecha has no wing or tail. In a missile salvo walk, a 9 with no wing or tail is skipped (the walk moves on to 10), not rerolled.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
-- Human-scale: no armor bypass for characters. Armor ablation and burst fire play RAW. The GM Difficulty option stays, for sneak attacks with no evade or dodge.
+- Human-scale: no armor bypass for characters. Burst fire plays RAW. Armor ablation uses the 5-Hit threshold (see Interpretations). The GM Difficulty option stays, for sneak attacks with no evade or dodge.
 - Hard armor: helmets, plate, Military Suit, Powered Armor. Everything else is soft.
-- Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values.
+- Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values. Bite included (overrides core's no-penalty Bite).
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -38,6 +38,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Chop and Crescent have no free location (they can't reach the torso).
 - Melee leg hits split thigh / lower leg 50/50, on the side the attacker chose.
 - Eyes/sensors (Jab) damage the head.
+- Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
 
 ## Versioning
 
@@ -56,14 +57,21 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 
 ### 0.4 — Human-scale polish ◀ CURRENT
 **Done when:** a human-scale fight runs without paper.
-- [x] Armor ablation (staged penetration), RAW
+- [x] Armor ablation (staged penetration); 5-Hit threshold at human scale (0.3.26)
 - [x] Burst fire, RAW
 - [x] No armor bypass (ruling)
 - [x] GM Difficulty option retained
 - [x] Human-scale armor coverage: 8 zones, garment presets, drop-on-zone, per-zone weight/cost (0.3.24)
 - [x] Human-scale close combat: called locations, maneuver picker, maneuver damage (0.3.25)
-- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.26)
-- [ ] Bruise damage, Fists From Hell core rule (0.3.27)
+- [x] Bite maneuver with mouth position (0.3.26)
+- [x] Human-scale armor ablation threshold: 1 SP only on hits of 5+ (0.3.26)
+- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.27)
+  - The active piece loses 1 SP on that zone only, and only for a hit of >= `personalArmorAblationThreshold` (before armor); never more than 1 per hit. Use `ablatePersonalArmor()`.
+  - Check: Heavy Mesh (15) + Light Mesh (10) on the torso, hits of 6 damage. After 6 hits the torso is at 9 (still Heavy Mesh); after 15 hits Light Mesh's 10 takes over.
+- [ ] Bruise damage, Fists From Hell core rule (0.3.28)
+  - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
+  - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
+  - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -112,5 +120,6 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Force screens (3D6 SP, 10 attacks/round)
 - Powered Armor extras (+4 BODY, +4H damage, -3 non-ablative)
 - Custom hard Flight Jacket (built as plate)
-- Remaining Hand-to-Hand Attack Table maneuvers in the Close Combat dialog: Bite (errata: WA 0, not +1), Slam, Throw, Trip/Sweep, Grab, Pin, Bearhug, Dismember; and Chop's Stun effect
+- Remaining Hand-to-Hand Attack Table maneuvers in the Close Combat dialog: Slam, Throw, Trip/Sweep, Grab, Pin, Bearhug, Dismember; and Chop's Stun effect
 - Mecha-scale brawling (the table's Mecha column, + by servo size)
+- (0.6 Mecha combat loop) Head-mounted melee weapons for humanoid mecha, WA +0 (MZ core errata p.99; also simulates jaws).

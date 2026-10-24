@@ -32,6 +32,8 @@ export const CLOSE_TARGETS = {
  * `damage`: men-scale formula (MZ core, Hand-to-Hand Attack Table; "Punch,
  * etc." covers Claw/Elbow/Backhand); a trailing "+" adds the BODY damage
  * modifier. `effect`: what a no-damage maneuver (Chop) does instead; not automated.
+ * `positions`: reach that depends on the attacker's position (Bite), keyed by
+ * MOUTH_POSITIONS; `targets` is then the default position's reach.
  */
 export const CLOSE_MANEUVERS = {
   punch:    { label: "Punch",    wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+" },
@@ -45,8 +47,19 @@ export const CLOSE_MANEUVERS = {
   wheel:    { label: "Wheel",    wa: -1, targets: ["torso"],                damage: "1D6+" },
   thrust:   { label: "Thrust",   wa: -3, targets: ["torso"],                damage: "1D6+2+" },
   spin:     { label: "Spin",     wa: -4, targets: ["head"],                 damage: "1D6+3+" },
-  jab:      { label: "Jab",      wa: -5, targets: ["eyes"],                 damage: "1D3+" }
+  jab:      { label: "Jab",      wa: -5, targets: ["eyes"],                 damage: "1D3+" },
+  // MZ core Hand-to-Hand Attack Table, 1D3 + BODY. WA 0 per MZ core errata p.99
+  // (the table's +1 is wrong; the text's +0 is correct).
+  bite:     { label: "Bite",     wa: 0,  targets: TABLE_RULINGS.biteReach.level, positions: TABLE_RULINGS.biteReach, damage: "1D3+" }
 };
+
+/** Where the attacker's mouth is, for a maneuver with `positions` (Bite). */
+export const MOUTH_POSITIONS = { level: "Level with target", ground: "On the ground" };
+
+/** Location groups a maneuver reaches from `position` (ignored without `positions`). */
+export function maneuverTargets(m, position) {
+  return m.positions?.[position] ?? m.targets;
+}
 
 /** A melee weapon strike: any location, torso free. WA comes from the weapon. */
 export const MELEE_STRIKE_TARGETS = ["torso", "head", "arm", "leg"];
