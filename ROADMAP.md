@@ -129,3 +129,5 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Mook/NPC creation: new mook actors get a Hostile prototype token disposition (the friendly-fire guard reads token dispositions; Foundry's Token Config works but is clunky at the table).
 - (0.6 Mecha combat loop) Head-mounted melee weapons for humanoid mecha, WA +0 (MZ core errata p.99; also simulates jaws).
 - Paperdoll icon shows the active armor piece (currently the highest base SP).
+- Creature natural armor as worn plate or mesh pieces (currently a flat location SP from the preset).
+- Quadruped and hexapod creatures (non-humanoid body locations and hit charts).
