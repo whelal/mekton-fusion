@@ -1,3 +1,17 @@
+## [0.3.28] - 2026-10-23
+### Changed
+- Personal armor protects per zone, one piece at a time (no layering). Each zone has an **active piece**: the covering piece with the most SP left on that zone (ties: list order). It stays active until its SP there reaches 0, even after it wears below a backup piece; then the next piece takes over. Example: Heavy Mesh (15) over Light Mesh (10) on the torso, hit six times for 6: the torso is still on Heavy Mesh at 9; once Heavy Mesh is worn to 0, Light Mesh's 10 takes over.
+- A hit wears only the active piece, only on the zone hit (thigh and lower leg are separate), by 1 SP at the 5-damage threshold. The damage card names the piece: "SP 9 (Heavy Mesh) soaked".
+- Random hit locations now name the leg zone ("Right Lower Leg") and resolve armor there; the hit roll picks it (7/8, 9/10).
+- ROADMAP.md: armor piercing ([AP] weapons and AP ammo) added to 0.4 as 0.3.30.
+- Body tab: for worn armor, SP, Max SP and Armor show each zone's active piece and its own SP (both zones for a leg). The SP adjust button repairs or wears those pieces. Locations no piece covers (natural armor, creatures) keep their editable location SP, which hits still use.
+### Added
+- Actor field `system.body.armorZones.<zone>.activeArmorId` (empty until a zone is first hit).
+- Update Characters macro: moves armor wear recorded on body locations (0.3.24–0.3.27) onto the piece that was providing it, so existing characters keep their damaged armor. It also gives per-zone SP to any piece that never had it (every zone at 0), and now runs its armor steps on unlinked tokens on every scene, not just world actors. Run it once after updating; re-running is safe.
+- Table ruling (house), `maxArmorLayers: 2` in table-rulings.js: at most 2 armor pieces may cover any one zone. Adding a piece, or changing a piece's coverage or kind, that would make a third layer is refused with a message naming the zones. Characters already wearing more keep their armor.
+### Removed
+- `HIT_LOCATION_CHART` (replaced by `zoneForHitRoll` in armor-coverage.js).
+
 ## [0.3.27] - 2026-10-23
 ### Added
 - Friendly-fire guard (human scale and mecha): attacking a targeted token when both it and the attacker's token are Friendly asks "<Target> is friendly. Attack anyway?" first, with Cancel as the default. Cancel stops the attack with no roll and no ammo spent. The GM gets the prompt too. Covers weapon attacks, close combat, mecha Armament rolls, bursts and missile salvos.

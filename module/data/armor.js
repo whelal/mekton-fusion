@@ -19,13 +19,125 @@ export function ablatePersonalArmor(sp, dmg) {
 }
 
 /**
+ * The armor pieces an actor wears, in list order (Item sort), as the plain
+ * shape pickActivePiece/resolveZoneHit read.
+ * @returns {{id:string, name:string, baseSP:number, coverage:string[], currentSP:Record<string,number>}[]}
+ */
+export function armorPieces(actor) {
+  return actor.items.filter(i => i.type === "armor")
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+    .map(i => ({
+      id: i.id, name: i.name, baseSP: Number(i.system?.baseSP) || 0,
+      coverage: effectiveCoverage(i.system), currentSP: { ...(i.system?.currentSP ?? {}) }
+    }));
+}
+
+/**
+ * Sticky active piece for a zone (ROADMAP 0.3.28, spec G): the stored piece
+ * while it still covers the zone with SP > 0 there, even if it has worn below a
+ * backup; otherwise the covering piece with the highest current SP > 0 (tie:
+ * list order). Layers never add. "" when nothing on the zone has SP left.
+ */
+export function pickActivePiece(pieces, zone, activeId) {
+  const sp = p => Number(p.currentSP?.[zone]) || 0;
+  const covering = pieces.filter(p => p.coverage.includes(zone));
+  const current = covering.find(p => p.id === activeId);
+  if (current && sp(current) > 0) return current.id;
+  let best = null;
+  for (const p of covering) if (sp(p) > 0 && (!best || sp(p) > sp(best))) best = p;
+  return best?.id ?? "";
+}
+
+/**
+ * One wound hit on a zone: the active piece's current SP there soaks the hit,
+ * the rest goes to the body location, and the piece ablates per
+ * ablatePersonalArmor (1 SP at most, only at the threshold). Pure: the caller
+ * writes `activeId` back to the actor and `spNow` to the piece.
+ * @returns {{activeId:string, piece:object|null, sp:number, spNow:number, belowThreshold:boolean, through:number}}
+ */
+export function resolveZoneHit(pieces, zone, activeId, dmg) {
+  const id = pickActivePiece(pieces, zone, activeId);
+  const piece = pieces.find(p => p.id === id) ?? null;
+  const sp = piece ? Number(piece.currentSP?.[zone]) || 0 : 0;
+  const { spNow, belowThreshold } = ablatePersonalArmor(sp, dmg);
+  return { activeId: id, piece, sp, spNow, belowThreshold, through: Math.max(0, dmg - sp) };
+}
+
+/**
+ * Per-zone current SP for a piece that never had it (every covered zone 0, as
+ * armor from before 0.3.24 is): base SP everywhere, except that the piece that
+ * was providing a body location's SP (locations.*.itemId) keeps that
+ * location's ablated SP on its zones there. null when the piece already has SP
+ * on some zone (worn or not) -- it's left alone, so this is safe to re-run.
+ * @param {object} sys - the armor Item's system source
+ * @param {string} itemId
+ * @param {Record<string, {sp:number, itemId:string}>} [locations] - the wearer's body locations
+ * @returns {Record<string, number>|null}
+ */
+export function seedUnfilledPiece(sys, itemId, locations = {}) {
+  const zones = effectiveCoverage(sys);
+  const base = Number(sys?.baseSP) || 0;
+  if (base <= 0 || !zones.length || zones.some(z => Number(sys?.currentSP?.[z]) > 0)) return null;
+  const sp = seedZoneSP(zones, base);
+  for (const z of zones) {
+    const loc = locations?.[ARMOR_ZONES[z].location];
+    if (loc?.itemId === itemId) sp[z] = Math.min(base, Math.max(0, Number(loc.sp) || 0));
+  }
+  return sp;
+}
+
+/**
+ * Two-layer limit (TABLE_RULINGS.maxArmorLayers): the zones where adding a
+ * piece with `coverage` would put more than the limit of pieces on one zone.
+ * `excludeId` leaves out the piece being re-covered. Empty = allowed.
+ * @param {{id:string, coverage:string[]}[]} pieces - the wearer's current pieces
+ * @param {string[]} coverage - the new or changed piece's zones
+ * @returns {string[]} ZONE_KEYS over the limit
+ */
+export function armorLayerViolations(pieces, coverage, excludeId) {
+  const max = TABLE_RULINGS.maxArmorLayers;
+  return cleanZones(coverage).filter(z =>
+    pieces.filter(p => p.id !== excludeId && p.coverage.includes(z)).length >= max);
+}
+
+/**
+ * 0.3.28 migration: before per-piece SP, wear was recorded on the body
+ * location (locations.*.sp below spMax) against the piece providing it
+ * (locations.*.itemId). Move it onto that piece's zones there and make that
+ * piece the zones' active piece; the location then reads intact, so re-running
+ * finds nothing to move. Pure: returns the writes for the caller.
+ * @param {Record<string, {sp:number, spMax:number, itemId:string}>} locations
+ * @param {ReturnType<typeof armorPieces>} pieces
+ * @returns {{itemUpdates: object[], actorUpdate: object, moved: number}}
+ */
+export function locationWearMoves(locations, pieces) {
+  const itemUpdates = {};
+  const actorUpdate = {};
+  let moved = 0;
+  for (const [loc, l] of Object.entries(locations ?? {})) {
+    const sp = Number(l?.sp) || 0;
+    const max = Number(l?.spMax) || 0;
+    const piece = pieces.find(p => p.id === l?.itemId);
+    if (!piece || sp >= max) continue;
+    for (const z of ZONE_KEYS.filter(z => ARMOR_ZONES[z].location === loc && piece.coverage.includes(z))) {
+      (itemUpdates[piece.id] ??= { _id: piece.id })[`system.currentSP.${z}`] = Math.min(Number(piece.currentSP?.[z]) || 0, sp);
+      actorUpdate[`system.body.armorZones.${z}.activeArmorId`] = piece.id;
+    }
+    actorUpdate[`system.body.locations.${loc}.sp`] = max;
+    moved++;
+  }
+  return { itemUpdates: Object.values(itemUpdates), actorUpdate, moved };
+}
+
+/**
  * Per body location, the armor Item that currently provides its SP: the
  * highest `baseSP` among all armor Items covering any of that location's
  * zones (no stacking, no proportional layering). Owning an armor Item =
  * wearing it (no separate equipped flag in v1).
- * Interim (0.3.24): a leg counts as covered if either of its zones is, and
- * ablation still lives on system.body.locations.*.sp. Per-zone protection
- * from each piece's currentSP replaces this in 0.3.25.
+ * A leg counts as covered if either of its zones is. Since 0.3.28 hits resolve
+ * per zone on each piece's currentSP (resolveZoneHit); this location-level view
+ * only feeds the paperdoll icon and the natural-armor fallback (a location no
+ * piece covers uses system.body.locations.*.sp).
  * @param {Actor} actor
  * @param {string} [excludeId] - ignore this Item id (a delete hook can fire
  *   before/after the collection drops the Item; excluding it makes the

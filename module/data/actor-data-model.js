@@ -318,6 +318,13 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                         itemId: new fields.StringField({ initial: "" })
                     })
                 }),
+                // Per armor zone, the sticky active armor piece (resolveZoneHit in
+                // module/data/armor.js). "" = not chosen yet: the next hit picks the
+                // best covering piece, so existing actors need no migration.
+                armorZones: new fields.SchemaField(Object.fromEntries(
+                    ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"].map(z =>
+                        [z, new fields.SchemaField({ activeArmorId: new fields.StringField({ initial: "" }) })])
+                )),
                 notes: new fields.StringField({ initial: "" })
             }),
             // Non-mecha enemy/creature stat block (character body-plan/enemy model,

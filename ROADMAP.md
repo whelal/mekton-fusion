@@ -24,6 +24,7 @@ sentence goes in the Parking lot.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
 - Human-scale: no armor bypass for characters. Burst fire plays RAW. Armor ablation uses the 5-Hit threshold (see Interpretations). The GM Difficulty option stays, for sneak attacks with no evade or dodge.
 - Hard armor: helmets, plate, Military Suit, Powered Armor. Everything else is soft.
+- Personal armor: at most 2 pieces per zone (`maxArmorLayers`). Layers never add; one active piece protects a zone.
 - Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values. Bite included (overrides core's no-penalty Bite).
 
 ### Interpretations
@@ -66,13 +67,14 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [x] Bite maneuver with mouth position (0.3.26)
 - [x] Human-scale armor ablation threshold: 1 SP only on hits of 5+ (0.3.26)
 - [x] Attack card clarity + friendly-fire guard: cards name attacker and target, exploding chains in words, confirm before attacking a friendly token (0.3.27)
-- [ ] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.28)
+- [x] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.28)
   - The active piece loses 1 SP on that zone only, and only for a hit of >= `personalArmorAblationThreshold` (before armor); never more than 1 per hit. Use `ablatePersonalArmor()`.
   - Check: Heavy Mesh (15) + Light Mesh (10) on the torso, hits of 6 damage. After 6 hits the torso is at 9 (still Heavy Mesh); after 15 hits Light Mesh's 10 takes over.
 - [ ] Bruise damage, Fists From Hell core rule (0.3.29)
   - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
   - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
+- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.30)
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -117,6 +119,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - CP2020-only mechanics (BTM, cyberware/Humanity, netrunning)
 - Localization
 - Public release (manifest, compendium packs, docs)
+  - Pinned releases: each `vX.Y.Z` tag gets a GitHub Release with a built `mekton-fusion.zip` (and its `system.json`) attached; that release's manifest `download` points at its own zip, and `manifest` points at `releases/latest/download/system.json`, so Foundry installs and updates by version instead of tracking the `main` branch. Needs `gh auth login` (or a GitHub Actions workflow that builds the zip on tag push).
 - Shields at human scale
 - Force screens (3D6 SP, 10 attacks/round)
 - Powered Armor extras (+4 BODY, +4H damage, -3 non-ablative)
@@ -125,3 +128,4 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Mecha-scale brawling (the table's Mecha column, + by servo size)
 - Mook/NPC creation: new mook actors get a Hostile prototype token disposition (the friendly-fire guard reads token dispositions; Foundry's Token Config works but is clunky at the table).
 - (0.6 Mecha combat loop) Head-mounted melee weapons for humanoid mecha, WA +0 (MZ core errata p.99; also simulates jaws).
+- Paperdoll icon shows the active armor piece (currently the highest base SP).

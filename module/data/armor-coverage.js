@@ -24,6 +24,16 @@ export const ARMOR_ZONES = {
 
 export const ZONE_KEYS = Object.keys(ARMOR_ZONES);
 
+/** Armor zone for a Human Random Hit Chart roll (1-10): 1 head, 2-4 torso, ... 10 left lower leg. */
+export function zoneForHitRoll(n) {
+  return ["head", "torso", "torso", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"][n - 1] ?? "torso";
+}
+
+/** Zones that make up a body location (two for a leg). */
+export function zonesOfLocation(loc) {
+  return ZONE_KEYS.filter(z => ARMOR_ZONES[z].location === loc);
+}
+
 /** Garment shapes a mesh or plate piece can be worn as. Anything else is "custom". */
 export const COVERAGE_PRESETS = {
   hat:      { label: "Hat, Cap, Helmet",          zones: ["head"] },

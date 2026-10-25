@@ -1,8 +1,8 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
-import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../../module/data/armor-coverage.js";
-import { deriveArmorByLocation, seedZoneSP, ablatePersonalArmor } from "../../module/data/armor.js";
+import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
+import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit } from "../../module/data/armor.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
@@ -291,22 +291,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     group.find('.mf-situational-mod').on('change', recompute);
   }
 
-  // Human Random Hit Chart (body.hbs): 1d10 -> body location key + label.
-  static HIT_LOCATION_CHART = {
-    1: ['head', 'Head'],
-    2: ['torso', 'Torso'], 3: ['torso', 'Torso'], 4: ['torso', 'Torso'],
-    5: ['rArm', 'Right Arm'],
-    6: ['lArm', 'Left Arm'],
-    7: ['rLeg', 'Right Leg'], 8: ['rLeg', 'Right Leg'],
-    9: ['lLeg', 'Left Leg'], 10: ['lLeg', 'Left Leg']
-  };
-
-  /** Pure hit-location roll: 1d10 vs the Human Random Hit Chart. */
+  /**
+   * Pure hit-location roll: 1d10 vs the Human Random Hit Chart. The roll also
+   * picks the armor zone (7 right thigh, 8 right lower leg, ...); a leg hit's
+   * label names the zone.
+   */
   static async _rollHitLocationKey() {
     const roll = new Roll('1d10');
     await roll.evaluate();
-    const [key, label] = this.HIT_LOCATION_CHART[roll.total] ?? ['torso', 'Torso'];
-    return { key, label, roll };
+    const zone = zoneForHitRoll(roll.total);
+    return { key: ARMOR_ZONES[zone].location, label: ARMOR_ZONES[zone].label, zone, roll };
   }
 
   /**
@@ -334,33 +328,52 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /**
    * Apply already-rolled weapon damage to ONE location on the TARGET actor
    * (never the attacker -- caller passes the target explicitly). Damage
-   * chain: subtract that location's SP, apply the remainder to hits (may go
-   * negative). Flat to every location, head included -- no armor head-double.
-   * Staged penetration: a hit of at least the personal ablation threshold
-   * (ablatePersonalArmor) ablates that location's current SP by 1, whether or
-   * not anything gets through. Not applied with ignoreSp (burning is already
-   * past the armor, not a new hit).
+   * chain: the hit zone's armor soaks, the remainder goes to the location's
+   * hits (may go negative). Flat to every location, head included -- no armor
+   * head-double.
+   * Worn armor (0.3.28, spec G): the zone's sticky active piece soaks with its
+   * own current SP there (resolveZoneHit) and only that piece ablates, 1 SP at
+   * most and only at the personal ablation threshold. A location no armor
+   * piece covers (natural armor, creatures) uses its own location SP as before.
+   * Not applied with ignoreSp (burning is already past the armor, not a new hit).
    * Also resolves a Stun/Shock save when this single hit's post-armor damage
    * exceeds half the location's hits BEFORE the hit (1d10 <= substats.stun to
    * stay conscious).
    * @param {Actor} targetActor
    * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
    * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
-   * @param {{ignoreSp?: boolean}} [opts] - ignoreSp: damage is already post-armor (burning)
-   * @returns {{sp:number, spNow:number, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
+   * @param {{ignoreSp?: boolean, zone?: string}} [opts] - ignoreSp: damage is
+   *   already post-armor (burning). zone: the armor zone hit (ARMOR_ZONES key);
+   *   default the location's own zone, or thigh/lower leg 50/50 for a leg.
+   * @returns {{sp:number, spNow:number, belowThreshold:boolean, armorName:string, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
    */
-  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false } = {}) {
+  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
-    const sp = ignoreSp ? 0 : MektonActorSheet._num(loc?.sp, 0);
+    zone ??= closeHitZone(key);
+    const update = {};
+    let sp = 0, spNow = 0, belowThreshold = false, piece = null;
+    const pieces = armorPieces(targetActor);
+    const worn = pieces.some(p => zonesOfLocation(key).some(z => p.coverage.includes(z)));
+    if (ignoreSp) {
+      // burning: already past the armor
+    } else if (worn) {
+      const stored = targetActor.system?.body?.armorZones?.[zone]?.activeArmorId ?? '';
+      const r = resolveZoneHit(pieces, zone, stored, dmgTotal);
+      ({ sp, spNow, belowThreshold, piece } = r);
+      if (r.activeId !== stored) update[`system.body.armorZones.${zone}.activeArmorId`] = r.activeId;
+    } else {
+      sp = MektonActorSheet._num(loc?.sp, 0);
+      ({ spNow, belowThreshold } = ablatePersonalArmor(sp, dmgTotal));
+      if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
+    }
     const before = MektonActorSheet._num(loc?.hits, 0);
     const after = Math.max(0, dmgTotal - sp);
     const hitsNow = before - after;
-    const { spNow, belowThreshold } = ignoreSp
-      ? { spNow: sp, belowThreshold: false }
-      : ablatePersonalArmor(sp, dmgTotal);
-    const update = { [`system.body.locations.${key}.hits`]: hitsNow };
-    if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
+    update[`system.body.locations.${key}.hits`] = hitsNow;
     await targetActor.update(update);
+    if (piece && spNow !== sp) {
+      await targetActor.items.get(piece.id)?.update({ [`system.currentSP.${zone}`]: spNow });
+    }
 
     const state = MektonActorSheet._woundState(key, hitsNow);
 
@@ -377,17 +390,42 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
     }
 
-    return { sp, spNow, belowThreshold, before, after, hitsNow, state, stun };
+    return { sp, spNow, belowThreshold, armorName: piece?.name ?? '', before, after, hitsNow, state, stun };
+  }
+
+  /**
+   * Body tab view of worn armor, per location: each zone's active piece (the
+   * one the next hit would use, per pickActivePiece) and its current/base SP
+   * there. A zone whose pieces are all worn to 0 shows its first covering
+   * piece at 0. `worn` is false for a location no piece covers (natural armor:
+   * the location's own SP stays editable).
+   */
+  static _bodyArmorView(actor) {
+    const pieces = armorPieces(actor);
+    const stored = actor.system?.body?.armorZones ?? {};
+    const out = {};
+    for (const loc of Object.keys(actor.system?.body?.locations ?? {})) {
+      const zones = zonesOfLocation(loc).map(z => {
+        const id = pickActivePiece(pieces, z, stored[z]?.activeArmorId ?? '');
+        const p = pieces.find(x => x.id === id) ?? pieces.find(x => x.coverage.includes(z));
+        return { zone: z, label: ARMOR_ZONES[z].label, pieceId: p?.id ?? '', name: p?.name ?? '',
+          sp: p ? Number(p.currentSP?.[z]) || 0 : 0, spMax: p?.baseSP ?? 0 };
+      });
+      const sum = k => zones.reduce((n, z) => n + z[k], 0);
+      out[loc] = { worn: zones.some(z => z.pieceId), multi: zones.length > 1, zones, sp: sum('sp'), spMax: sum('spMax') };
+    }
+    return out;
   }
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, spNow, belowThreshold, before, after, hitsNow, state, stun } = applied;
+    const { sp, spNow, belowThreshold, armorName, before, after, hitsNow, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
     const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
       : belowThreshold ? `, no ablation (&lt;${TABLE_RULINGS.personalArmorAblationThreshold})` : '';
-    let html = `SP ${sp} soaked${ablated}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
+    const piece = armorName ? ` (${escapeHtml(armorName)})` : '';
+    let html = `SP ${sp}${piece} soaked${ablated}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
     if (stun) {
       const stunColor = stun.conscious ? '#2a2' : '#c0392b';
       html += `<br>Stun/Shock check (1d10 &le; ${stun.stunVal}): rolled <strong>${stun.total}</strong> &mdash; <strong style="color:${stunColor}">${stun.conscious ? 'CONSCIOUS' : 'DOWN'}</strong>`;
@@ -729,12 +767,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // ActorDataModel.prepareDerivedData -- templates read it directly rather than
     // through a shared context value, since MR is weight-dependent.
 
-    // Armor currently providing each body location's SP (highest wins), for the Body tab's Armor column.
-    ctx.armorByLoc = {};
-    for (const [loc, a] of Object.entries(deriveArmorByLocation(this.actor))) {
-      const item = a.itemId ? this.actor.items.get(a.itemId) : null;
-      if (item) ctx.armorByLoc[loc] = { id: item.id, name: item.name, sp: a.sp };
-    }
+    // Each body location's worn armor, per zone (Body tab SP / Armor columns).
+    ctx.bodyArmor = MektonActorSheet._bodyArmorView(this.actor);
 
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
@@ -842,9 +876,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const spInput = html.find('#mf-adjust-sp');
       const spAdjust = parseInt(spInput.val()) || 0;
       if (spAdjust !== 0) {
-        // current SP only: ablation/repair, clamped to the armor-derived spMax
-        const newSP = Math.min(Math.max((data.sp ?? 0) + spAdjust, 0), data.spMax ?? 0);
-        await this.actor.update({ [`${path}.sp`]: newSP });
+        const view = MektonActorSheet._bodyArmorView(this.actor)[loc];
+        if (view?.worn) {
+          // Worn armor: repair/ablate each of the location's zones on its active
+          // piece, clamped to that piece's base SP (a leg adjusts both zones).
+          const byPiece = {};
+          for (const z of view.zones.filter(z => z.pieceId)) {
+            (byPiece[z.pieceId] ??= { _id: z.pieceId })[`system.currentSP.${z.zone}`] = Math.min(Math.max(z.sp + spAdjust, 0), z.spMax);
+          }
+          await this.actor.updateEmbeddedDocuments('Item', Object.values(byPiece));
+        } else {
+          // Natural armor: the location's own SP, clamped to its spMax
+          const newSP = Math.min(Math.max((data.sp ?? 0) + spAdjust, 0), data.spMax ?? 0);
+          await this.actor.update({ [`${path}.sp`]: newSP });
+        }
         spInput.val('');
         this.render(false);
       }
@@ -2473,8 +2518,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       html += `<br>&bull; <strong>${foundry.utils.escapeHTML(token.name)}</strong>: `;
       try {
         if (effect === 'damage') {
-          const { key, label } = await this.constructor._rollHitLocationKey();
-          const applied = await this.constructor._applyLocationDamage(actor, key, shared.total);
+          const { key, label, zone } = await this.constructor._rollHitLocationKey();
+          const applied = await this.constructor._applyLocationDamage(actor, key, shared.total, { zone });
           html += `${label} -- ${this.constructor._formatDamageAppliedHtml(applied)}`;
         } else if (effect === 'perLocation') {
           const parts = [];
@@ -2512,8 +2557,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Roll hit location (1d10 vs the Human Random Hit Chart, see static
-   * HIT_LOCATION_CHART / _rollHitLocationKey). Used by both the weapon row's
+   * Roll hit location (1d10 vs the Human Random Hit Chart, see
+   * _rollHitLocationKey / zoneForHitRoll). Used by both the weapon row's
    * hit-location button (tags the weapon name) and the Body tab's crosshairs
    * button (generic, also flashes the rolled paperdoll zone).
    */
@@ -3211,7 +3256,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           }
 
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
-          const { key, label: locLabel } = closeTarget
+          const { key, label: locLabel, zone } = closeTarget
             ? this.constructor._closeHit(closeTarget)
             : await this.constructor._rollHitLocationKey();
           const hitTag = hitCount > 1 ? `Hit ${h}: ` : '';
@@ -3220,10 +3265,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           // Apply to the TARGET only, never the attacker. Exactly one targeted
           // token -> apply now; otherwise defer via a chat-card button per hit.
           if (targetActor) {
-            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone });
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }
@@ -3374,7 +3419,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     let flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), what)}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 
     if (success !== false) {
-      const { key, label: locLabel } = this.constructor._closeHit(target);
+      const { key, label: locLabel, zone } = this.constructor._closeHit(target);
       if (!m.damage) {
         flavor += `<br>Hits ${targetLocation(targetActor?.name, locLabel)}: <strong>${m.effect ?? 'no damage'}</strong> <em style="font-size:0.85em; color:#999;">(resolve per MZ core; not automated)</em>`;
       } else {
@@ -3389,10 +3434,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
           flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
           if (targetActor) {
-            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal);
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone });
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }

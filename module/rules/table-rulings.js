@@ -66,5 +66,14 @@ export const TABLE_RULINGS = {
    * than 1 per hit. All personal armor, soft and hard. Burning never ablates.
    * Mecha armor is unchanged (MZ core RAW: any 1K+ hit). Table may tune it.
    */
-  personalArmorAblationThreshold: 5
+  personalArmorAblationThreshold: 5,
+
+  /**
+   * Personal armor layers (HOUSE): at most this many armor pieces may cover any
+   * one zone. Layers still never add -- one active piece protects a zone (see
+   * resolveZoneHit) -- this only limits how many can be worn there. Adding or
+   * re-covering a piece past the limit is refused (preCreateItem/preUpdateItem
+   * hooks in mekton-fusion.js); pieces already worn are kept.
+   */
+  maxArmorLayers: 2
 };

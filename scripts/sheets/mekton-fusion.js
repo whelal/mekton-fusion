@@ -4,7 +4,9 @@ import { MektonFusionItemSheet } from "../../module/sheets/item-sheet.js";
 import { ActorDataModel } from "../../module/data/actor-data-model.js";
 import { WeaponDataModel, SkillDataModel, ArmorDataModel, MechaLoadoutDataModel } from "../../module/data/item-data-model.js";
 import { syncActorCoreItems } from "../../module/seed.js";
-import { recomputeActorArmorSp } from "../../module/data/armor.js";
+import { recomputeActorArmorSp, armorPieces, armorLayerViolations } from "../../module/data/armor.js";
+import { ARMOR_ZONES, effectiveCoverage } from "../../module/data/armor-coverage.js";
+import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { weaponSupportsOptions } from "../../module/data/weapon-options.js";
 import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT, SERVO_ROW_LOCATIONS, KIND_LABELS } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
@@ -260,6 +262,26 @@ for (const hook of ["createItem", "deleteItem", "updateItem"]) {
     return recomputeActorArmorSp(actor, { excludeId: hook === "deleteItem" ? item.id : undefined });
   });
 }
+
+// Two-layer limit (TABLE_RULINGS.maxArmorLayers): refuse a worn armor piece, or a
+// coverage/kind change, that would put one more piece than the limit on any zone.
+// Pieces already worn are never removed. Pre-hooks run only on the client making
+// the change, so the warning goes to that user.
+function armorLayerGuard(item, sys, excludeId) {
+  const actor = item.parent;
+  if (!actor || item.type !== "armor") return true;
+  const over = armorLayerViolations(armorPieces(actor), effectiveCoverage(sys), excludeId);
+  if (!over.length) return true;
+  ui.notifications.warn(`${actor.name}: ${item.name} would be one layer too many on ${over.map(z => ARMOR_ZONES[z].label).join(", ")} `
+    + `(at most ${TABLE_RULINGS.maxArmorLayers} armor pieces per zone). Remove a piece there first.`);
+  return false;
+}
+Hooks.on("preCreateItem", (item) => armorLayerGuard(item, item.system));
+Hooks.on("preUpdateItem", (item, changes) => {
+  const sys = changes?.system ?? {};
+  if (!("coverage" in sys) && !("kind" in sys)) return true;
+  return armorLayerGuard(item, foundry.utils.mergeObject(item.toObject().system, sys, { inplace: false }), item.id);
+});
 
 // Incendiary burning: at each new combat round, every burning actor on the scene
 // takes half its previous round's damage (see MektonActorSheet.tickBurning). Only
@@ -521,7 +543,8 @@ Hooks.once("ready", () => {
     btn.disabled = true;
 
     const targetActor = targets[0].actor;
-    const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal);
+    // data-zone: the armor zone the attack rolled (absent on cards from before 0.3.28).
+    const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal, { zone: btn.dataset.zone || undefined });
     const speaker = ChatMessage.getSpeaker({ actor: targetActor });
     const from = btn.dataset.attacker ? ` from <strong>${escapeHtml(btn.dataset.attacker)}</strong>` : '';
     const content = `Applied <strong>${dmgTotal}</strong> damage${from} ${damageTo(targetActor.name, locLabel)}: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
