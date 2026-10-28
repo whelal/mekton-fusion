@@ -33,6 +33,8 @@ export class WeaponDataModel extends ItemDataModel {
       // "wound" | "bruise" ("Fists From Hell" Bruise Damage addendum): bruise hits
       // ignore soft armor and go on the damage track as Bruises (damage-track.js).
       damageType: new fields.StringField({ initial: "wound", choices: ["wound", "bruise"] }),
+      // Quick (MZ+ ATM, Melee Weapons): a close-contact weapon may make two attacks in one Action.
+      quick: new fields.BooleanField({ initial: false }),
       scale: new fields.StringField({ initial: "human" }), // reserved for the future scale system; unused for now
       options: new fields.ArrayField(new fields.StringField(), { initial: [] }), // WEAPON_OPTIONS keys installed on this weapon
       // Which Combat tab table this weapon renders in (combat.hbs branches on

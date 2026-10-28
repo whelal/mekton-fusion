@@ -13,6 +13,7 @@ project; the actual editing/committing/pushing happens here.
 - Every change meets the Definition of done in ROADMAP.md.
 - Never add rulebook PDFs, scans, or verbatim rule text to the repo, including in code
   comments. Cite book + section/page only.
+- Never pre-assign version numbers to unbuilt work; the next shipped patch takes the next number.
 - A question ("what would it say?", "what would that look like?") is not approval. Answer it and wait;
   only make the change after an explicit yes.
 

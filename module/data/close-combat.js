@@ -63,6 +63,36 @@ export function maneuverTargets(m, position) {
   return m.positions?.[position] ?? m.targets;
 }
 
+/** Whether a CLOSE_MANEUVERS key is Quick (TABLE_RULINGS.quickManeuvers). */
+export function isQuickManeuver(key) {
+  return TABLE_RULINGS.quickManeuvers.includes(key);
+}
+
+/**
+ * The attacks one Action makes (MZ+ ATM, Melee Weapons, Quick): one, or two
+ * when `quick` is on. Each attack is its own called shot on its own target key
+ * (`targets[i]`; a missing second one repeats the first), so each carries its
+ * own location penalty.
+ * @returns {{target:string, locPenalty:number}[]}
+ */
+export function closeAttackPlan(quick, targets, groups, defaultGroup) {
+  const keys = quick ? [targets[0], targets[1] ?? targets[0]] : [targets[0]];
+  return keys.map(target => ({ target, locPenalty: closeCalledPenalty(groups, target, defaultGroup) }));
+}
+
+/**
+ * Run each planned attack in order, each on its own (its own attack roll,
+ * defense, location and damage): a miss never stops the next one. Sequential,
+ * so the second attack sees the first one's damage already applied.
+ * @param {object[]} plan - from closeAttackPlan
+ * @param {(attack:object, n:number) => Promise<any>} attackOnce - n is 1-based
+ */
+export async function runAttackPlan(plan, attackOnce) {
+  const out = [];
+  for (const [i, attack] of plan.entries()) out.push(await attackOnce(attack, i + 1));
+  return out;
+}
+
 /** A melee weapon strike: any location, torso free. WA comes from the weapon. */
 export const MELEE_STRIKE_TARGETS = ["torso", "head", "arm", "leg"];
 

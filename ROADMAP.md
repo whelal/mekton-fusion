@@ -26,6 +26,7 @@ sentence goes in the Parking lot.
 - Hard armor: helmets, plate, Military Suit, Powered Armor. Everything else is soft.
 - Personal armor: at most 2 pieces per zone (`maxArmorLayers`). Layers never add; one active piece protects a zone.
 - Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values. Bite included (overrides core's no-penalty Bite).
+- Quick applies to characters: fist strikes (Punch, Claw, Elbow, Backhand, Chop, Jab), Quarterstaff, Nunchaku/Tonfa.
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -47,6 +48,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - **Minor** (0.x.0) = a milestone is complete.
 - **Patch** (0.x.y) = work toward the next milestone; e.g. 0.3.y patches build toward 0.4.0.
 - Only one milestone is open at a time.
+- Patch numbers are assigned when a patch ships, never in advance. Unbuilt items are an ordered checklist under their milestone; when one ships, tick it and add its version, e.g. "[x] Quick melee attacks (0.3.31)".
 
 ## Definition of done (every change)
 
@@ -75,10 +77,12 @@ Where the book is silent or ambiguous and the table decided. These are not setti
   - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
   - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
-- [ ] Body tab redesign, UI only: Location | Armor | Hits | Status, one Hits bar per location, a location editor on row click; "SDP" renamed "Hits" (0.3.30)
-- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest (0.3.31)
-- [ ] Medical drugs (0.3.32)
-- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.33; spec pending)
+- [x] Body tab redesign, UI only: Location | Armor | Hits | Status, one Hits bar per location, a location editor on row click; "SDP" renamed "Hits" (0.3.30)
+- [x] Quick melee attacks, human scale: two attacks in one Action for Quick weapons and fist strikes (0.3.31)
+- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest
+- [ ] Medical drugs
+- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (spec pending)
+  - MZ+ ATM Armor-Piercing melee: armor at 1/2 SP; staged penetration and DC work as normal. Use this as the starting point.
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -101,6 +105,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Beam and Reactive shields (no staged penetration; overload/reset)
 - [ ] Streamline the shield parry flow (table finds it clunky)
 - [ ] Non-weapon systems (sensors, subassemblies, movement) go out of action with a destroyed servo, except flight systems and maneuver verniers (RAW)
+- [ ] Quick melee/EMW construction option and two attacks per Action in the Play view. Cost x2.0 per the Net Mekton Handbook summary; VERIFY against ATM's melee/EMW cost table before using it.
 
 ### 0.7 — Hardening
 **Done when:** schema changes can't silently break worlds.

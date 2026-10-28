@@ -59,6 +59,15 @@ export const TABLE_RULINGS = {
   biteReach: { level: ["torso", "head", "arm"], ground: ["leg"] },
 
   /**
+   * Quick brawling maneuvers (HOUSE: MZ+ ATM's Quick "Claws and Hands" applied to
+   * characters): these CLOSE_MANEUVERS keys may make two attacks in one Action
+   * (see closeAttackPlan in close-combat.js). Kicks and Bite are not Quick.
+   * Quick weapons are the weapon items' own `quick` field (catalog: Quarterstaff,
+   * Nunchaku/Tonfa).
+   */
+  quickManeuvers: ["punch", "claw", "elbow", "backhand", "chop", "jab"],
+
+  /**
    * Personal armor ablation (INTERPRETATION, MZ ATM Scaling, human scale: armor
    * loses 1 per successful attack of 5 Hit-increments, read as a threshold, the
    * way the Corvette-scale line restates MZ core's 1K rule). A human-scale hit

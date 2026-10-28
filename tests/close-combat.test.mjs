@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../module/data/close-combat.js";
+import { CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../module/data/close-combat.js";
 
 const total = (m, target) => m.wa + closeCalledPenalty(m.targets, target, m.defaultGroup);
 
@@ -73,4 +73,33 @@ test("every maneuver has damage or a named effect", () => {
   for (const [k, m] of Object.entries(CLOSE_MANEUVERS)) assert.ok(m.damage || m.effect, k);
   assert.equal(CLOSE_MANEUVERS.chop.effect, "Stun");
   assert.equal(CLOSE_MANEUVERS.spin.damage, "1D6+3+");
+});
+
+test("Quick maneuvers: fist strikes only; kicks and Bite are not", () => {
+  const quick = Object.keys(CLOSE_MANEUVERS).filter(isQuickManeuver);
+  assert.deepEqual(quick.sort(), ["backhand", "chop", "claw", "elbow", "jab", "punch"]);
+});
+
+test("Quick off is one attack; Quick on is two, each with its own location penalty", () => {
+  const p = CLOSE_MANEUVERS.punch;
+  assert.deepEqual(closeAttackPlan(false, ["torso", "head"], p.targets), [{ target: "torso", locPenalty: 0 }]);
+  assert.deepEqual(closeAttackPlan(true, ["torso", "head"], p.targets),
+    [{ target: "torso", locPenalty: 0 }, { target: "head", locPenalty: -4 }]);
+  assert.deepEqual(closeAttackPlan(true, ["rArm"], MELEE_STRIKE_TARGETS).map(a => a.target), ["rArm", "rArm"]);
+});
+
+test("Quick attacks resolve independently: one hits, one misses", async () => {
+  const plan = closeAttackPlan(true, ["torso", "head"], CLOSE_MANEUVERS.punch.targets);
+  const rolls = [12, 12], evades = [10, 10];                       // same roll and Evade for both
+  const seen = [];
+  const results = await runAttackPlan(plan, async (a, n) => {
+    seen.push(n);
+    const total = rolls[n - 1] + a.locPenalty;
+    return { target: a.target, total, hit: total > evades[n - 1] };  // ties go to the defender
+  });
+  assert.deepEqual(seen, [1, 2]);
+  assert.deepEqual(results, [{ target: "torso", total: 12, hit: true }, { target: "head", total: 8, hit: false }]);
+  // a miss first doesn't stop the second attack
+  const after = await runAttackPlan([...plan].reverse(), async a => 12 + a.locPenalty > 10);
+  assert.deepEqual(after, [false, true]);
 });

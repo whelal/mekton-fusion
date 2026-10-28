@@ -77,7 +77,8 @@ export async function migrateActorWeapons(actor, catalog, report) {
  * its skill, always, and its damageType ONCE. damageType (0.3.29) is set from
  * the catalog only while the item lacks the mekton-fusion.damageTypeSet flag,
  * then the flag is set, so a GM's later change (the item sheet sets the flag
- * too) survives re-running the macro.
+ * too) survives re-running the macro. quick (0.3.31) works the same way, with
+ * the mekton-fusion.quickSet flag.
  * @param {{system:object, flags?:object}} item
  * @param {{system:object}} entry - the WEAPON_CATALOG entry
  */
@@ -89,6 +90,11 @@ export function catalogWeaponUpdate(item, entry) {
     const type = entry.system?.damageType ?? "wound";
     if (item.system?.damageType !== type) update["system.damageType"] = type;
     update["flags.mekton-fusion.damageTypeSet"] = true;
+  }
+  if (!item.flags?.["mekton-fusion"]?.quickSet) {
+    const quick = !!entry.system?.quick;
+    if (!!item.system?.quick !== quick) update["system.quick"] = quick;
+    update["flags.mekton-fusion.quickSet"] = true;
   }
   return Object.keys(update).length ? update : null;
 }

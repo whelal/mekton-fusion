@@ -1,3 +1,14 @@
+## [0.3.31] - 2026-10-28
+### Added
+- Quick melee attacks, human scale (MZ+ ATM, Melee Weapons, Quick): two attacks in one Action. Weapons have a **Quick** checkbox on the item sheet; the catalog's Quarterstaff and Nunchaku/Tonfa are Quick. In Close Combat, Punch, Claw, Elbow, Backhand, Chop and Jab are Quick (table ruling `quickManeuvers`); kicks and Bite are not. The maneuver list marks them "Quick".
+- The attack dialog for a Quick weapon or maneuver has a **Quick: 2 attacks** checkbox, off by default. Ticked, it adds a second Location picker; each attack takes its own called-shot penalty, rolls its own attack, gets its own Evade (or is checked against the Difficulty), and rolls and applies its own damage (armor, Wound/Bruise, ablation and Stun/Shock each resolved separately, in order). Both attacks go on one chat card, "Attack 1" and "Attack 2", under a header naming the attacker and target. A Quick Chop reports Stun for each attack that lands (still not automated).
+- Update Characters macro: sets Quick on owned catalog weapons once (Quarterstaff, Nunchaku/Tonfa) and marks each weapon, as it does for Damage Type, so a GM's change on the item sheet survives re-running it.
+- Table ruling (house), `quickManeuvers` in table-rulings.js.
+- `isQuickManeuver`, `closeAttackPlan` and `runAttackPlan` in close-combat.js, with tests.
+### Changed
+- ROADMAP.md: patch numbers are no longer assigned in advance; unbuilt items are an ordered checklist and get their version when they ship. Remaining 0.4 order: GM recovery tools, medical drugs, armor piercing (with a starting note for MZ+ ATM Armor-Piercing melee). 0.6 adds the Quick melee/EMW construction option (cost to verify). New table ruling listed: Quick applies to characters.
+- CLAUDE.md: never pre-assign version numbers to unbuilt work.
+
 ## [0.3.30] - 2026-10-27
 ### Changed
 - Body tab redesign (display only; no rules or data changes). The location table has four columns: **Location | Armor | Hits | Status**, replacing ten (SP, Max SP, Armor, SDP, Max SDP, Bruises, Track, SP Bar, SDP Bar) and every input box.

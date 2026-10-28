@@ -1,7 +1,7 @@
 // Mekton Fusion: Update Characters macro
 // GM-only. Brings every character and NPC in the world up to the current
 // system: adds newly added CP2020 skills, fixes the skill on owned catalog
-// weapons and sets their damage type once (0.3.29), converts armor to the
+// weapons and sets their damage type (0.3.29) and Quick (0.3.31) once, converts armor to the
 // 8-zone coverage format (0.3.24), moves armor wear from body locations onto
 // each worn piece (0.3.28), and recomputes body-location armor SP from worn
 // armor -- for world actors and for unlinked tokens on every scene (their
@@ -13,7 +13,7 @@
   if (!game.user.isGM) { ui.notifications.warn("Only a GM can update characters."); return; }
   const confirmed = await Dialog.confirm({
     title: "Update all characters?",
-    content: `<p>This updates every character and NPC in the world: adds new skills, fixes weapon skills and damage types, converts armor to zone coverage, moves armor wear onto each worn piece, and recomputes armor SP.</p>
+    content: `<p>This updates every character and NPC in the world: adds new skills, fixes weapon skills, damage types and Quick, converts armor to zone coverage, moves armor wear onto each worn piece, and recomputes armor SP.</p>
       <p><strong>Note:</strong> body locations with no worn armor drop to 0 SP (previously they showed the schema default of 10). Creatures keep their natural armor. Back up the world first.</p>`
   });
   if (!confirmed) return;

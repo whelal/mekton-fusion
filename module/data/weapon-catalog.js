@@ -21,6 +21,8 @@
  *     blunt melee weapons (Mace, Nunchaku/Tonfa, Quarterstaff) and the thrown
  *     Boomerang; everything else defaults to "wound" (edged/pointed, energy,
  *     other thrown, ranged, grenades).
+ *   quick (MZ+ ATM, Melee Weapons, Quick: two attacks in one Action): true for
+ *     the Quarterstaff and Nunchaku/Tonfa, the weapons ATM names; GM-editable.
  *   Grenades (blast radius 6m): the book's "/6m" damage suffix is stored as a plain
  *     roll (Sleep Grenade: no damage). `blastRadius` (m) / `blastEffect` drive the
  *     automated area effect (see _resolveBlast in actor-sheet.js); `note` repeats the
@@ -54,12 +56,12 @@
  */
 
 /** Build one catalog entry; keeps the array below terse and reviewable. */
-function weapon(name, { wa, range, damage, damageNote = "", damageType = "wound", shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", blastRadius = 0, blastEffect = "", img }) {
+function weapon(name, { wa, range, damage, damageNote = "", damageType = "wound", quick = false, shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", blastRadius = 0, blastEffect = "", img }) {
   return {
     name,
     type: "weapon",
     img,
-    system: { name, wa, range, damage, damageNote, damageType, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note, blastRadius, blastEffect }
+    system: { name, wa, range, damage, damageNote, damageType, quick, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note, blastRadius, blastEffect }
   };
 }
 
@@ -77,8 +79,8 @@ export const WEAPON_CATALOG = [
   weapon("Mace",                { wa: -1, range: "2", damage: "3D6+", damageType: "bruise",  shots: "na", bv: "na", conc: "N", weight: 3.0,   cost: 60,   tl: 2, skill: "blade", img: "icons/weapons/maces/mace-round-steel.webp" }),
   weapon("Monoknife",           { wa: 0,  range: "1", damage: "2D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "J", weight: 0.5,   cost: 240,  tl: 6, skill: "blade", img: "icons/weapons/daggers/dagger-straight-thin-black.webp" }),
   weapon("Monosword",           { wa: 1,  range: "2", damage: "4D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "J", weight: 1.0,   cost: 600,  tl: 6, skill: "blade", img: "icons/weapons/swords/sword-hilt-steel-green.webp" }),
-  weapon("Nunchaku/Tonfa",      { wa: 0,  range: "2", damage: "1D10+", damageType: "bruise", shots: "na", bv: "na", conc: "L", weight: 0.75,  cost: 105,  tl: 2, skill: "blade", img: "icons/weapons/misc/nunchaku.webp" }),
-  weapon("Quarterstaff",        { wa: 2,  range: "4", damage: "1D6+", damageType: "bruise",  shots: "na", bv: "na", conc: "N", weight: 1.0,   cost: 120,  tl: 1, skill: "blade", img: "icons/weapons/staves/staff-simple-brown.webp" }),
+  weapon("Nunchaku/Tonfa",      { wa: 0,  range: "2", damage: "1D10+", damageType: "bruise", quick: true, shots: "na", bv: "na", conc: "L", weight: 0.75,  cost: 105,  tl: 2, skill: "blade", img: "icons/weapons/misc/nunchaku.webp" }),
+  weapon("Quarterstaff",        { wa: 2,  range: "4", damage: "1D6+", damageType: "bruise", quick: true, shots: "na", bv: "na", conc: "N", weight: 1.0,   cost: 120,  tl: 1, skill: "blade", img: "icons/weapons/staves/staff-simple-brown.webp" }),
   weapon("Rapier",              { wa: 1,  range: "2", damage: "1D10+", damageNote: "[AP]", shots: "na", bv: "na", conc: "L", weight: 0.75,  cost: 75,   tl: 3, skill: "blade", img: "icons/weapons/swords/sword-simple-white.webp" }),
   weapon("Shuriken",            { wa: 0,  range: "T", damage: "1D6/2+", damageNote: "[AP]", shots: "na", bv: "na", conc: "P", weight: 0.2,   cost: 21,   tl: 2, skill: "athletics", img: "icons/weapons/thrown/shuriken-blue.webp" }),
   weapon("Spear",               { wa: 2,  range: "4", damage: "2D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 2.0,   cost: 120,  tl: 1, skill: "blade", img: "icons/weapons/polearms/spear-flared-steel.webp" }),
