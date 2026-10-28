@@ -1,3 +1,15 @@
+## [0.3.30] - 2026-10-27
+### Changed
+- Body tab redesign (display only; no rules or data changes). The location table has four columns: **Location | Armor | Hits | Status**, replacing ten (SP, Max SP, Armor, SDP, Max SDP, Bruises, Track, SP Bar, SDP Bar) and every input box.
+  - Armor: the active piece and its SP, "Medium Mesh 12/12", with a thin bar. A leg shows Thigh and Lower on separate lines when their piece or SP differ. Natural armor reads "Natural 6/6"; no armor, "—".
+  - Hits: one bar per location, Wounds solid red, Bruises amber with a hatch, the rest neutral, then "8/16", plus "4W 4B" when there are Bruises. Negative Hits fill the bar red and show the negative value ("-3/12").
+  - Status: a badge only when it applies (Sprained, Broken, Shattered, Severed, Unconscious, Dead).
+- Editing moved into a location editor: the owner or GM clicks a row to get Wounds and Bruises steppers (adding one wraps a full track as a hit would; healing removes one), armor SP steppers per zone for the active piece (or natural SP), with the max shown, and Remove armor. It replaces the Location / ±SP / ±SDP / ±B row under the table and the × button in the Armor column.
+- "SDP" is now "Hits" on the Body tab. Data fields are unchanged.
+- ROADMAP.md: Body tab redesign is 0.3.30; GM recovery tools move to 0.3.31, medical drugs to 0.3.32, armor piercing to 0.3.33.
+### Added
+- `trackSegments(hitsMax, wounds, bruises)` in damage-track.js: the Hits bar's segment percentages and remaining Hits, with tests.
+
 ## [0.3.29] - 2026-10-27
 ### Added
 - Bruise damage ("Fists From Hell" Bruise Damage addendum, core rule only). Weapons have a **Damage Type** (Wound or Bruise) on the item sheet; a new edit button on each Combat-tab weapon row opens it (hover shows the current type). Melee and thrown weapon attacks (not blasts) have a Damage Type choice in the attack dialog, starting on the weapon's own type, to switch Wound/Bruise for that roll; guns, energy weapons and blasts always use the weapon's type. Bruise: the unarmed strikes and kicks in Close Combat (Punch, Elbow, Backhand, Jab, Kick, Wheel, Crescent, Thrust, Spin) and the blunt catalog weapons (Mace, Nunchaku/Tonfa, Quarterstaff, Boomerang). Claw, Bite, the Whip, edged and pointed weapons, ranged weapons and blasts stay Wound.

@@ -75,9 +75,10 @@ Where the book is silent or ambiguous and the table decided. These are not setti
   - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
   - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
-- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest (0.3.30)
-- [ ] Medical drugs (0.3.31)
-- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.32; spec pending)
+- [ ] Body tab redesign, UI only: Location | Armor | Hits | Status, one Hits bar per location, a location editor on row click; "SDP" renamed "Hits" (0.3.30)
+- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest (0.3.31)
+- [ ] Medical drugs (0.3.32)
+- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.33; spec pending)
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -135,4 +136,5 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Paperdoll icon shows the active armor piece (currently the highest base SP).
 - Creature natural armor as worn plate or mesh pieces (currently a flat location SP from the preset).
 - Quadruped and hexapod creatures (non-humanoid body locations and hit charts).
+- New characters show "Natural 10/10" on every location until armor is first dragged on; then every other location drops to 0 (the schema's initial `spMax` of 10 lingers until the armor recompute runs). New characters should start at 0 natural SP.
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).

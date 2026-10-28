@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyTrackDamage, woundState, sprainedLimbs, shownHits, woundsOf } from "../module/data/damage-track.js";
+import { applyTrackDamage, woundState, sprainedLimbs, shownHits, woundsOf, trackSegments } from "../module/data/damage-track.js";
 import { resolveBruiseZoneHit, resolveZoneHit, HARDNESS_BY_NAME } from "../module/data/armor.js";
 import { CLOSE_MANEUVERS } from "../module/data/close-combat.js";
 import { WEAPON_CATALOG } from "../module/data/weapon-catalog.js";
@@ -117,4 +117,21 @@ test("force screens are hard; the Shield stays unset", () => {
   assert.equal(ARMOR_CATALOG.find(a => a.name === "Shield").system.hardness, "");
   assert.equal(HARDNESS_BY_NAME["Personal Force Screen"], "hard");
   assert.equal(HARDNESS_BY_NAME.Shield, undefined);
+});
+
+test("trackSegments: Wounds, Bruises and free as shares of hitsMax", () => {
+  assert.deepEqual(trackSegments(16, 4, 4), { wound: 25, bruise: 25, free: 50, remaining: 8 });
+  assert.deepEqual(trackSegments(10, 0, 0), { wound: 0, bruise: 0, free: 100, remaining: 10 });
+  const full = trackSegments(13, 8, 5);
+  assert.deepEqual([full.wound, full.bruise, full.free].map(Math.round), [62, 38, 0]);
+  assert.equal(full.remaining, 0);
+});
+
+test("trackSegments: negative Hits fill the bar with Wounds and show the negative value", () => {
+  assert.deepEqual(trackSegments(12, 15, 0), { wound: 100, bruise: 0, free: 0, remaining: -3 });
+});
+
+test("trackSegments: no capacity (or junk input) is an empty bar, never NaN", () => {
+  assert.deepEqual(trackSegments(0, 0, 0), { wound: 0, bruise: 0, free: 100, remaining: 0 });
+  assert.deepEqual(trackSegments(undefined, -2, null), { wound: 0, bruise: 0, free: 100, remaining: 0 });
 });

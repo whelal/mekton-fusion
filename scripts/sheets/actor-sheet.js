@@ -3,7 +3,7 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
 import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit } from "../../module/data/armor.js";
-import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs } from "../../module/data/damage-track.js";
+import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments } from "../../module/data/damage-track.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
@@ -421,15 +421,34 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           sp: p ? Number(p.currentSP?.[z]) || 0 : 0, spMax: p?.baseSP ?? 0 };
       });
       const sum = k => zones.reduce((n, z) => n + z[k], 0);
-      out[loc] = { worn: zones.some(z => z.pieceId), multi: zones.length > 1, zones, sp: sum('sp'), spMax: sum('spMax') };
+      const worn = zones.some(z => z.pieceId);
+      out[loc] = { worn, multi: zones.length > 1, zones, sp: sum('sp'), spMax: sum('spMax'),
+        lines: MektonActorSheet._armorCellLines(zones, worn, actor.system.body.locations[loc]) };
     }
     return out;
   }
 
   /**
-   * Body tab view of each location's Wound/Bruise track (H6): marks for the
-   * track (X = Wound, / = Bruise, · = free; Wounds past capacity shown as +N),
-   * shown Hits (hits - bruises), and the wound state (Sprained etc.).
+   * Armor cell lines (0.3.30): "<piece> sp/max" with a bar percentage. A leg
+   * shows Thigh and Lower separately unless both zones have the same piece at
+   * the same SP. No piece: the location's own SP as "Natural" if it has any,
+   * else no lines ("—").
+   */
+  static _armorCellLines(zones, worn, loc) {
+    const line = (label, name, sp, spMax) => ({ label, name, sp, spMax, none: !name, pct: spMax ? Math.round((sp / spMax) * 100) : 0 });
+    if (!worn) {
+      const spMax = Number(loc?.spMax) || 0;
+      return spMax ? [line('', 'Natural', Number(loc?.sp) || 0, spMax)] : [];
+    }
+    const same = zones.every(z => z.pieceId === zones[0].pieceId && z.sp === zones[0].sp);
+    if (same) return [line('', zones[0].name, zones[0].sp, zones[0].spMax)];
+    return zones.map(z => line(z.zone.endsWith('Thigh') ? 'Thigh' : 'Lower', z.name, z.sp, z.spMax));
+  }
+
+  /**
+   * Body tab view of each location's Wound/Bruise track (0.3.30): the Hits
+   * bar's segments (trackSegments), "remaining/max" text with "4W 4B" once
+   * there are Bruises, and the wound state badge (empty when OK).
    */
   static _bodyTrackView(actor) {
     const out = {};
@@ -437,17 +456,25 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const cap = Math.max(0, Number(loc.hitsMax) || 0);
       const wounds = Math.max(0, woundsOf(loc));
       const bruises = Math.max(0, Number(loc.bruises) || 0);
-      const w = Math.min(wounds, cap);
-      const b = Math.min(bruises, cap - w);
-      const over = wounds - w;
+      const seg = trackSegments(cap, wounds, bruises);
       const state = woundState(key, loc);
       out[key] = {
-        marks: 'X'.repeat(w) + '/'.repeat(b) + '·'.repeat(Math.max(0, cap - w - b)) + (over ? ` +${over}` : ''),
-        wounds, bruises, shown: shownHits(loc), cap,
-        state, stateLabel: state === 'ok' ? '' : MektonActorSheet._woundStateLabel(state)
+        seg, cap, wounds, bruises, barHtml: MektonActorSheet._hitsBarHtml(seg, wounds, bruises),
+        text: `${seg.remaining}/${cap}${bruises ? ` ${wounds}W ${bruises}B` : ''}`,
+        state, badge: state === 'ok' ? '' : state[0].toUpperCase() + state.slice(1),
+        badgeTitle: MektonActorSheet._woundStateLabel(state)
       };
     }
     return out;
+  }
+
+  /**
+   * The Hits bar: Wounds solid red, Bruises amber with a hatch (not colour
+   * alone), the rest neutral. Shared by the Body tab and the location editor.
+   */
+  static _hitsBarHtml(seg, wounds, bruises) {
+    const part = (cls, pct) => pct > 0 ? `<span class="mf-seg ${cls}" style="width:${pct}%"></span>` : '';
+    return `<span class="mf-hits-bar" title="${wounds} Wounds, ${bruises} Bruises">${part('mf-seg-wound', seg.wound)}${part('mf-seg-bruise', seg.bruise)}${part('mf-seg-free', seg.free)}</span>`;
   }
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
@@ -804,9 +831,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // ActorDataModel.prepareDerivedData -- templates read it directly rather than
     // through a shared context value, since MR is weight-dependent.
 
-    // Each body location's worn armor, per zone (Body tab SP / Armor columns).
+    // Each body location's armor and Hits track (Body tab); rows open the
+    // location editor for the owner or GM only.
     ctx.bodyArmor = MektonActorSheet._bodyArmorView(this.actor);
     ctx.bodyTrack = MektonActorSheet._bodyTrackView(this.actor);
+    ctx.bodyEditable = this.actor.isOwner;
 
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
@@ -901,77 +930,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (row && row.length) row[0].focus();
     });
 
-    html.on('click', '.mf-remove-armor', ev => this._onUnequipBodyItem(ev));
-
-    // Quick actions for new single action row
-    html.on('click', '#mf-btn-adjust-sp', async ev => {
-      ev.preventDefault();
-      const loc = html.find('#mf-selected-loc').val();
-      if (!loc) return;
-      const path = `system.body.locations.${loc}`;
-      const data = foundry.utils.getProperty(this.actor, path);
-      if (!data) return;
-      const spInput = html.find('#mf-adjust-sp');
-      const spAdjust = parseInt(spInput.val()) || 0;
-      if (spAdjust !== 0) {
-        const view = MektonActorSheet._bodyArmorView(this.actor)[loc];
-        if (view?.worn) {
-          // Worn armor: repair/ablate each of the location's zones on its active
-          // piece, clamped to that piece's base SP (a leg adjusts both zones).
-          const byPiece = {};
-          for (const z of view.zones.filter(z => z.pieceId)) {
-            (byPiece[z.pieceId] ??= { _id: z.pieceId })[`system.currentSP.${z.zone}`] = Math.min(Math.max(z.sp + spAdjust, 0), z.spMax);
-          }
-          await this.actor.updateEmbeddedDocuments('Item', Object.values(byPiece));
-        } else {
-          // Natural armor: the location's own SP, clamped to its spMax
-          const newSP = Math.min(Math.max((data.sp ?? 0) + spAdjust, 0), data.spMax ?? 0);
-          await this.actor.update({ [`${path}.sp`]: newSP });
-        }
-        spInput.val('');
-        this.render(false);
-      }
-    });
-    html.on('click', '#mf-btn-adjust-sdp', async ev => {
-      ev.preventDefault();
-      const loc = html.find('#mf-selected-loc').val();
-      if (!loc) return;
-      const path = `system.body.locations.${loc}`;
-      const data = foundry.utils.getProperty(this.actor, path);
-      if (!data) return;
-      const sdpInput = html.find('#mf-adjust-sdp');
-      const sdpAdjust = parseInt(sdpInput.val()) || 0;
-      if (sdpAdjust !== 0) {
-        const hitsMax = data.hitsMax ?? 0;
-        // Heal (positive adjust) clamps at hitsMax; damage (negative) has no
-        // floor -- current wounds can go negative (BOD table's negative Hits tiers).
-        let newHits = (data.hits ?? 0) + sdpAdjust;
-        if (sdpAdjust > 0) newHits = Math.min(newHits, hitsMax);
-        console.log('mekton-fusion | Hits adjust:', { loc, path, sdpAdjust, hitsMax, oldHits: data.hits, newHits });
-        // Set the value directly in the input and trigger change event
-        const sdpInputField = html.find(`tr[data-loc="${loc}"] input[name="system.body.locations.${loc}.hits"]`);
-        if (sdpInputField.length) {
-          sdpInputField.val(newHits).trigger('change');
-          console.log('mekton-fusion | Hits input set and change triggered:', { loc, newHits });
-        } else {
-          console.warn('mekton-fusion | Hits input not found for location:', loc);
-        }
-        sdpInput.val('');
-      }
-    });
-
-    // Bruise healing (H3: 1 per full hour of rest, per location -- manual until
-    // the GM Rest tool). +N heals N Bruises, -N adds N; never below 0.
-    html.on('click', '#mf-btn-adjust-bruise', async ev => {
-      ev.preventDefault();
-      const loc = html.find('#mf-selected-loc').val();
-      const data = loc ? this.actor.system?.body?.locations?.[loc] : null;
-      if (!data) return;
-      const input = html.find('#mf-adjust-bruise');
-      const adjust = parseInt(input.val()) || 0;
-      if (!adjust) return;
-      await this.actor.update({ [`system.body.locations.${loc}.bruises`]: Math.max(0, (Number(data.bruises) || 0) - adjust) });
-      input.val('');
+    // Body tab: clicking a location row opens its editor (owner or GM only).
+    html.on('click', '.mf-body-row', ev => {
+      if (!this.actor.isOwner) return;
+      this._openLocationEditor(ev.currentTarget.dataset.loc);
     });
 
     // Mecha configuration selection
@@ -1347,9 +1309,97 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * then recomputes every location. If several pieces cover this location,
    * the user picks which.
    */
-  async _onUnequipBodyItem(ev) {
-    ev.preventDefault();
-    const loc = ev.currentTarget.dataset?.loc; if (!loc) return;
+  /**
+   * Location editor (0.3.30): a small v1 Dialog, like the sheet's other
+   * dialogs, for one body location -- Wounds and Bruises steppers, armor SP
+   * per zone on the active piece (or natural SP), and Remove armor. Each step
+   * saves at once and redraws the dialog.
+   */
+  _openLocationEditor(key) {
+    const loc = this.actor.system?.body?.locations?.[key];
+    if (!loc) return;
+    new Dialog({
+      title: `${this.actor.name}: ${loc.label ?? key}`,
+      content: `<div class="mf-loc-editor">${this._locationEditorHtml(key)}</div>`,
+      buttons: { close: { label: 'Close' } },
+      default: 'close',
+      render: html => {
+        const root = html.find('.mf-loc-editor');
+        let busy = false;
+        root.on('click', '[data-step]', async ev => {
+          ev.preventDefault();
+          if (busy) return;
+          busy = true;
+          try {
+            const { step, delta, zone } = ev.currentTarget.dataset;
+            await this._locationEditorStep(key, step, Number(delta) || 0, zone);
+            root.html(this._locationEditorHtml(key));
+          } finally { busy = false; }
+        });
+      }
+    }, { classes: ['dialog', 'mekton-fusion-dialog'], width: 340 }).render(true);
+  }
+
+  /** The location editor's body, from the actor's current data. */
+  _locationEditorHtml(key) {
+    const loc = this.actor.system.body.locations[key];
+    const tr = MektonActorSheet._bodyTrackView(this.actor)[key];
+    const ba = MektonActorSheet._bodyArmorView(this.actor)[key];
+    const stepper = (label, value, step, extra = '', title = '') => `
+      <div class="mf-loc-step"${title ? ` title="${escapeHtml(title)}"` : ''}>
+        <span class="mf-loc-step-label">${label}</span>
+        <button type="button" data-step="${step}" data-delta="-1"${extra}>&minus;</button>
+        <span class="mf-loc-step-value">${value}</span>
+        <button type="button" data-step="${step}" data-delta="1"${extra}>+</button>
+      </div>`;
+    let armor;
+    if (ba.worn) {
+      armor = ba.zones.map(z => z.pieceId
+        ? stepper(`${ba.multi ? `${escapeHtml(z.label)}: ` : ''}${escapeHtml(z.name)}`, `${z.sp} / ${z.spMax}`, 'sp', ` data-zone="${z.zone}"`)
+        : `<div class="mf-loc-step"><span class="mf-loc-step-label">${escapeHtml(z.label)}: &mdash;</span></div>`).join('')
+        + `<button type="button" class="mf-loc-remove" data-step="remove">Remove armor&hellip;</button>`;
+    } else if (Number(loc.spMax) > 0) {
+      armor = stepper('Natural', `${Number(loc.sp) || 0} / ${loc.spMax}`, 'natural');
+    } else {
+      armor = '<p class="mf-loc-none">No armor</p>';
+    }
+    return `
+      <div class="mf-loc-hits">${tr.barHtml}<span class="mf-hits-text">${tr.text}</span>${tr.badge ? ` <span class="mf-badge mf-badge-${tr.state}" title="${escapeHtml(tr.badgeTitle)}">${tr.badge}</span>` : ''}</div>
+      ${stepper('Wounds', tr.wounds, 'wound', '', '+ adds a Wound (a full track turns a Bruise into a Wound); − heals one')}
+      ${stepper('Bruises', tr.bruises, 'bruise', '', '+ adds a Bruise (a full track turns a Bruise into a Wound); − heals one')}
+      <h4>Armor</h4>
+      ${armor}`;
+  }
+
+  /**
+   * One location-editor step. Adding a Wound or Bruise goes through
+   * applyTrackDamage, so a full track wraps as a hit would; healing removes one,
+   * Wounds never past full Hits, Bruises never below 0. Armor SP stays within
+   * 0..max.
+   */
+  async _locationEditorStep(key, step, delta, zone) {
+    const path = `system.body.locations.${key}`;
+    const loc = this.actor.system.body.locations[key];
+    const clamp = (n, max) => Math.min(Math.max(n, 0), max);
+    if (step === 'wound' || step === 'bruise') {
+      let next;
+      if (delta > 0) next = applyTrackDamage(loc, 1, step);
+      else if (step === 'wound') next = { hits: Math.min((Number(loc.hits) || 0) + 1, Number(loc.hitsMax) || 0), bruises: loc.bruises };
+      else next = { hits: loc.hits, bruises: Math.max(0, (Number(loc.bruises) || 0) - 1) };
+      await this.actor.update({ [`${path}.hits`]: next.hits, [`${path}.bruises`]: next.bruises });
+    } else if (step === 'sp') {
+      const z = MektonActorSheet._bodyArmorView(this.actor)[key]?.zones.find(x => x.zone === zone && x.pieceId);
+      if (z) await this.actor.items.get(z.pieceId)?.update({ [`system.currentSP.${zone}`]: clamp(z.sp + delta, z.spMax) });
+    } else if (step === 'natural') {
+      await this.actor.update({ [`${path}.sp`]: clamp((Number(loc.sp) || 0) + delta, Number(loc.spMax) || 0) });
+    } else if (step === 'remove') {
+      await this._removeArmorAt(key);
+    }
+  }
+
+  /** Remove a worn armor piece covering a body location (asks which when several, then confirms). */
+  async _removeArmorAt(loc) {
+    if (!loc) return;
     try {
       const coveredLocs = i => new Set(effectiveCoverage(i.system).map(z => ARMOR_ZONES[z].location));
       const covering = this.actor.items.filter(i => i.type === 'armor' && coveredLocs(i).has(loc));

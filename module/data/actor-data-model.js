@@ -384,7 +384,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         this.substats.leap = jump;
         this.substats.swim = Math.round((ma / 3) * 100) / 100;
 
-        // Per-location hit points (labeled SDP on the Body tab) follow the same BOD table.
+        // Per-location hit points (labeled Hits on the Body tab) follow the same BOD table.
         // Only the max is derived here -- this runs every render, so writing current
         // hits would erase damage the player has already tracked.
         for (const [loc, group] of Object.entries(BODY_LOCATION_GROUPS)) {

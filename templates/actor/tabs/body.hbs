@@ -50,82 +50,37 @@
     </div>
     <div class="mf-body-col mf-body-right" style="flex: 2 1 0;">
       <section class="mf-body-table">
-        <table class="mf-table-horizontal">
+        {{!-- 0.3.30: four facts per location; a row click opens the location editor (owner/GM) --}}
+        <table class="mf-table-horizontal mf-body-locations">
           <thead>
             <tr>
               <th>Location</th>
-              <th>SP</th>
-              <th>Max SP</th>
               <th>Armor</th>
-              <th title="Hits after Wounds (Bruises not counted)">SDP</th>
-              <th>Max SDP</th>
-              <th title="Bruises on this location's track">Bruises</th>
-              <th title="X = Wound, / = Bruise, &middot; = free">Track</th>
-              <th>SP Bar</th>
-              <th>SDP Bar</th>
+              <th>Hits</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {{#each system.body.locations as |loc key|}}
               {{#with (lookup ../bodyArmor key) as |ba|}}
-              <tr data-loc="{{key}}">
+              {{#with (lookup @root.bodyTrack key) as |tr|}}
+              <tr class="mf-body-row{{#if @root.bodyEditable}} mf-editable{{/if}}" data-loc="{{key}}"{{#if @root.bodyEditable}} title="Click to edit {{loc.label}}"{{/if}}>
                 <td><span class="mf-dot mf-{{key}}"></span>{{loc.label}}</td>
-                {{#if ba.worn}}
-                  {{!-- Worn armor: each zone's active piece and its own current SP (repair with the SP button below) --}}
-                  <td class="mf-zone-sp">{{#each ba.zones as |z|}}<div title="{{z.label}}: {{z.name}}">{{#if ba.multi}}<small>{{z.label}}</small> {{/if}}{{z.sp}}</div>{{/each}}</td>
-                  <td class="mf-zone-sp">{{#each ba.zones as |z|}}<div title="{{z.name}} base SP">{{z.spMax}}</div>{{/each}}</td>
-                {{else}}
-                  {{!-- No armor piece here: the location's own SP (natural armor) --}}
-                  <td><input type="number" name="system.body.locations.{{key}}.sp" value="{{loc.sp}}" min="0" max="{{loc.spMax}}" title="Current SP (ablates); can't exceed Max SP" /></td>
-                  <td><input class="derived-input" type="number" value="{{loc.spMax}}" readonly title="Natural armor SP" /></td>
-                {{/if}}
-                <td>
-                  {{#if ba.worn}}
-                    <span class="mf-armor-name">{{#each ba.zones as |z|}}<div title="{{z.label}}: active piece">{{#if z.name}}{{z.name}}{{else}}&mdash;{{/if}}</div>{{/each}}</span>
-                    <button type="button" class="icon-btn mf-remove-armor" data-loc="{{key}}" title="Remove armor covering this location">&times;</button>
+                <td class="mf-armor-cell">
+                  {{#each ba.lines as |ln|}}
+                    <div class="mf-armor-line">{{#if ln.label}}<small>{{ln.label}}:</small> {{/if}}{{#if ln.none}}&mdash;{{else}}{{ln.name}} {{ln.sp}}/{{ln.spMax}}<span class="mf-sp-bar"><span style="width:{{ln.pct}}%"></span></span>{{/if}}</div>
                   {{else}}
                     <span class="mf-armor-none">&mdash;</span>
-                  {{/if}}
+                  {{/each}}
                 </td>
-                {{#with (lookup @root.bodyTrack key) as |tr|}}
-                <td><input type="number" name="system.body.locations.{{key}}.hits" value="{{loc.hits}}" title="Hits after Wounds; shown Hits (after Bruises too): {{tr.shown}}" /> </td>
-                <td><input class="derived-input" type="number" value="{{loc.hitsMax}}" readonly title="Derived from BODY" /> </td>
-                <td><input type="number" name="system.body.locations.{{key}}.bruises" value="{{loc.bruises}}" min="0" title="Bruises (heal 1 per full hour of rest, per location)" /></td>
-                <td class="mf-track-cell"><span class="mf-track" title="{{tr.wounds}} Wounds, {{tr.bruises}} Bruises; shown Hits {{tr.shown}}/{{tr.cap}}">{{tr.marks}}</span>{{#if tr.stateLabel}}<div class="mf-track-state"><strong>{{tr.stateLabel}}</strong></div>{{/if}}</td>
-                {{#if ba.worn}}
-                  <td><div class="bar sp" style="--val: {{percent ba.sp ba.spMax}}"></div></td>
-                {{else}}
-                  <td><div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div></td>
-                {{/if}}
-                <td><div class="bar hp" style="--val: {{percent tr.shown tr.cap}}"></div></td>
-                {{/with}}
+                <td class="mf-hits-cell">{{{tr.barHtml}}}<span class="mf-hits-text">{{tr.text}}</span></td>
+                <td>{{#if tr.badge}}<span class="mf-badge mf-badge-{{tr.state}}" title="{{tr.badgeTitle}}">{{tr.badge}}</span>{{/if}}</td>
               </tr>
+              {{/with}}
               {{/with}}
             {{/each}}
           </tbody>
         </table>
-
-        <!-- Single horizontal action row for selected location -->
-        <div class="mf-actions-row">
-          <label for="mf-selected-loc">Location:</label>
-          <select id="mf-selected-loc" name="mf-selected-loc">
-            {{#each system.body.locations as |loc key|}}
-              <option value="{{key}}">{{loc.label}}</option>
-            {{/each}}
-          </select>
-          <div class="mf-action-pair">
-            <input type="number" class="mf-adjust-input" id="mf-adjust-sp" data-type="sp" placeholder="±SP" title="Enter SP adjustment (+/-)" />
-            <button type="button" class="icon-btn" id="mf-btn-adjust-sp" title="Apply SP adjustment" data-action="adjust-sp">SP</button>
-          </div>
-          <div class="mf-action-pair">
-            <input type="number" class="mf-adjust-input" id="mf-adjust-sdp" data-type="sdp" placeholder="±SDP" title="Enter SDP adjustment (+/-)" />
-            <button type="button" class="icon-btn" id="mf-btn-adjust-sdp" title="Apply SDP adjustment" data-action="adjust-sdp">SDP</button>
-          </div>
-          <div class="mf-action-pair">
-            <input type="number" class="mf-adjust-input" id="mf-adjust-bruise" placeholder="±B" title="Heal Bruises (+N removes N; -N adds N)" />
-            <button type="button" class="icon-btn" id="mf-btn-adjust-bruise" title="Heal Bruises on the selected location">B</button>
-          </div>
-        </div>
 
         <div class="mf-body-notes">
           <label>{{localize "MF.Notes"}}</label>

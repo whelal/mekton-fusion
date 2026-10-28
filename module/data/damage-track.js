@@ -70,6 +70,25 @@ export function woundState(key, loc) {
   return trackFull(loc) && (Number(loc.bruises) || 0) > 0 ? "sprained" : "ok";
 }
 
+/**
+ * Body tab Hits bar (0.3.30): one bar whose segments are percentages of
+ * hitsMax -- Wounds, then Bruises, then what's left. `remaining` is
+ * hitsMax - wounds - bruises, negative once Wounds go past capacity (MZ
+ * negative Hits), when the bar is all Wounds.
+ * @returns {{wound:number, bruise:number, free:number, remaining:number}}
+ */
+export function trackSegments(hitsMax, wounds, bruises) {
+  const cap = Math.max(0, Number(hitsMax) || 0);
+  const w = Math.max(0, Number(wounds) || 0);
+  const b = Math.max(0, Number(bruises) || 0);
+  const remaining = cap - w - b;
+  if (!cap) return { wound: 0, bruise: 0, free: 100, remaining };
+  const wPart = Math.min(w, cap);
+  const bPart = Math.min(b, cap - wPart);
+  const pct = n => (n / cap) * 100;
+  return { wound: pct(wPart), bruise: pct(bPart), free: pct(cap - wPart - bPart), remaining };
+}
+
 /** Limb keys currently sprained, for the -3 per sprained limb roll modifier. */
 export function sprainedLimbs(locations) {
   return Object.entries(locations ?? {})

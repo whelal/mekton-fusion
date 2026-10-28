@@ -900,23 +900,6 @@ html.theme-dark .mekton-fusion {
   gap: 0.5rem;
 }
 
-.mekton-fusion .tab.body .mf-adjust-input {
-  width: 60px;
-  height: 28px;
-  padding: 0 0.35rem;
-  font-size: 0.8rem;
-  border: 1px solid var(--mf-soft-border);
-  border-radius: 4px;
-  text-align: center;
-  background: white;
-}
-
-.mekton-fusion .tab.body .mf-adjust-input:focus {
-  outline: none;
-  border-color: var(--mf-accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
-}
-
 .mekton-fusion .tab.body .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -1473,15 +1456,6 @@ html.theme-dark .mekton-fusion {
   stroke-width: 2;
 }
 
-/* Body tab: armor currently providing a location's SP */
-.mekton-fusion .tab.body .mf-armor-name {
-  display: inline-block;
-  max-width: 9em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-}
 .mekton-fusion .tab.body .mf-armor-none { opacity: 0.5; }
 
 /* Armor coverage editor (item sheet + drop picker) */
@@ -1646,23 +1620,6 @@ html.theme-dark .mekton-fusion {
   gap: 0.5rem;
 }
 
-.mekton-fusion .tab.body .mf-adjust-input {
-  width: 60px;
-  height: 28px;
-  padding: 0 0.35rem;
-  font-size: 0.8rem;
-  border: 1px solid var(--mf-soft-border);
-  border-radius: 4px;
-  text-align: center;
-  background: white;
-}
-
-.mekton-fusion .tab.body .mf-adjust-input:focus {
-  outline: none;
-  border-color: var(--mf-accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
-}
-
 .mekton-fusion .tab.body .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -1700,33 +1657,6 @@ html.theme-dark .mekton-fusion {
   gap: 0.5rem;
   align-items: stretch;
   width: 100%;
-}
-
-.mekton-fusion .tab.body .bar {
-  height: 6px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-  position: relative;
-  overflow: hidden;
-}
-
-.mekton-fusion .tab.body .bar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: calc(var(--val) * 1%);
-  background: var(--mf-accent);
-  transition: width 0.3s;
-}
-
-.mekton-fusion .tab.body .bar.sp::before {
-  background: linear-gradient(90deg, #4ecdc4, #45b7d1);
-}
-
-.mekton-fusion .tab.body .bar.hp::before {
-  background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
 }
 
 .mekton-fusion .tab.body .mf-body-notes {
@@ -1793,14 +1723,6 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .tab.body .mf-bars {
   gap: 1px;
 }
-.mf-actions-row {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0.2em;
-  margin: 0.1em 0;
-}
-.mf-action-pair { display: inline-flex; align-items: center; gap: 0.2em; }
 
 /* Further reduce vertical whitespace and button width in body tab */
 .mekton-fusion .tab.body .mf-body-table {
@@ -1823,8 +1745,6 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .tab.body .mf-bars {
   gap: 0.5px;
 }
-.mf-actions-row { gap: 0.1em; margin: 0.05em 0; }
-.mf-action-pair { display: inline-flex; align-items: center; gap: 0.1em; }
 .mekton-fusion .tab.body .icon-btn {
   min-width: 22px;
   padding: 0 0.15rem;
@@ -1882,48 +1802,65 @@ html.theme-dark .mekton-fusion {
   background: white;
 }
 
-.mekton-fusion .tab.body .mf-table-horizontal .bar {
-  height: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  position: relative;
+/* Body tab locations table (0.3.30): Location | Armor | Hits | Status */
+.mekton-fusion .tab.body .mf-body-row.mf-editable { cursor: pointer; }
+.mekton-fusion .tab.body .mf-body-row.mf-editable:hover { background: rgba(0, 0, 0, 0.05); }
+.mekton-fusion .tab.body .mf-table-horizontal .mf-armor-cell,
+.mekton-fusion .tab.body .mf-table-horizontal .mf-hits-cell { text-align: left; }
+.mekton-fusion .tab.body .mf-armor-line { line-height: 1.2; }
+.mekton-fusion .tab.body .mf-armor-line + .mf-armor-line { margin-top: 3px; }
+.mekton-fusion .tab.body .mf-sp-bar {
+  display: block;
+  height: 3px;
+  margin-top: 1px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
   overflow: hidden;
-  min-width: 48px;
 }
-
-.mekton-fusion .tab.body .mf-table-horizontal .bar::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: calc(var(--val) * 1%);
-  transition: width 0.3s;
-}
-
-.mekton-fusion .tab.body .mf-table-horizontal .bar.sp::before {
+.mekton-fusion .tab.body .mf-sp-bar > span {
+  display: block;
+  height: 100%;
   background: linear-gradient(90deg, #4ecdc4, #45b7d1);
 }
+.mekton-fusion .tab.body .mf-hits-cell { white-space: nowrap; }
 
-.mekton-fusion .tab.body .mf-table-horizontal .bar.hp::before {
-  background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
+/* Hits bar and status badge: Body tab and the location editor dialog */
+.mf-hits-bar {
+  display: inline-flex;
+  width: 7em;
+  height: 10px;
+  margin-right: 0.4em;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
 }
-
-/* Wound/Bruise track: wrap the marks in a narrow cell so the bar columns stay on the sheet */
-.mekton-fusion .tab.body .mf-table-horizontal .mf-track-cell {
-  max-width: 6.5em;
-}
-.mekton-fusion .tab.body .mf-table-horizontal .mf-track {
-  font-family: monospace;
+.mf-seg { display: block; height: 100%; }
+.mf-seg-wound { background: #c0392b; }
+/* Bruises: amber with a hatch, so they don't rely on colour alone */
+.mf-seg-bruise { background: repeating-linear-gradient(45deg, #d48a1a 0 2px, #f3cf7f 2px 5px); }
+.mf-seg-free { background: rgba(0, 0, 0, 0.08); }
+.mf-hits-text { font-size: 0.8rem; vertical-align: middle; }
+.mf-badge {
+  display: inline-block;
+  padding: 0 0.4em;
+  border-radius: 3px;
   font-size: 0.7rem;
-  line-height: 1.1;
-  word-break: break-all;
+  font-weight: 600;
+  color: #fff;
+  background: #c0392b;
 }
-.mekton-fusion .tab.body .mf-table-horizontal .mf-track-state {
-  font-size: 0.65rem;
-  line-height: 1.1;
-  color: #c0392b;
-}
+.mf-badge-sprained { background: #b9770e; }
+
+/* Location editor dialog */
+.mf-loc-editor .mf-loc-hits { margin-bottom: 0.5em; }
+.mf-loc-editor h4 { margin: 0.6em 0 0.2em; border-bottom: 1px solid rgba(0, 0, 0, 0.2); }
+.mf-loc-editor .mf-loc-step { display: flex; align-items: center; gap: 0.3em; margin: 0.2em 0; }
+.mf-loc-editor .mf-loc-step-label { flex: 1; }
+.mf-loc-editor .mf-loc-step button { flex: 0 0 26px; height: 24px; line-height: 1; padding: 0; }
+.mf-loc-editor .mf-loc-step-value { min-width: 4.5em; text-align: center; }
+.mf-loc-editor .mf-loc-remove { margin-top: 0.4em; }
+.mf-loc-editor .mf-loc-none { opacity: 0.6; margin: 0.2em 0; }
 
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
   margin: 0 !important;
