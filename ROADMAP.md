@@ -39,6 +39,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Chop and Crescent have no free location (they can't reach the torso).
 - Melee leg hits split thigh / lower leg 50/50, on the side the attacker chose.
 - Eyes/sensors (Jab) damage the head.
+- Sprained ("Fists From Hell" Bruise Damage addendum): a limb whose track is full and holds at least one Bruise; -3 per sprained limb on rolls that use it (`sprainedLimbPenalty`). Roll dialogs list sprained limbs and the player ticks the ones the roll uses.
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
 
 ## Versioning
@@ -70,11 +71,13 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [x] Human-scale armor protection: best single piece per zone, sticky ablation (0.3.28)
   - The active piece loses 1 SP on that zone only, and only for a hit of >= `personalArmorAblationThreshold` (before armor); never more than 1 per hit. Use `ablatePersonalArmor()`.
   - Check: Heavy Mesh (15) + Light Mesh (10) on the torso, hits of 6 damage. After 6 hits the torso is at 9 (still Heavy Mesh); after 15 hits Light Mesh's 10 takes over.
-- [ ] Bruise damage, Fists From Hell core rule (0.3.29)
+- [x] Bruise damage, Fists From Hell core rule (0.3.29)
   - Soft pieces are ignored by Bruise attacks (no protection, no ablation).
   - Hard pieces protect normally and ablate only at >= `personalArmorAblationThreshold`.
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
-- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.30)
+- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest (0.3.30)
+- [ ] Medical drugs (0.3.31)
+- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (0.3.32; spec pending)
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -121,7 +124,8 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Public release (manifest, compendium packs, docs)
   - Pinned releases: each `vX.Y.Z` tag gets a GitHub Release with a built `mekton-fusion.zip` (and its `system.json`) attached; that release's manifest `download` points at its own zip, and `manifest` points at `releases/latest/download/system.json`, so Foundry installs and updates by version instead of tracking the `main` branch. Needs `gh auth login` (or a GitHub Actions workflow that builds the zip on tag push).
 - Shields at human scale
-- Force screens (3D6 SP, 10 attacks/round)
+- Force screens (3D6 SP, 10 attacks/round); they're already hard vs Bruise (0.3.29)
+- Shield needs an explicit hardness when implemented.
 - Powered Armor extras (+4 BODY, +4H damage, -3 non-ablative)
 - Custom hard Flight Jacket (built as plate)
 - Remaining Hand-to-Hand Attack Table maneuvers in the Close Combat dialog: Slam, Throw, Trip/Sweep, Grab, Pin, Bearhug, Dismember; and Chop's Stun effect
@@ -131,3 +135,4 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Paperdoll icon shows the active armor piece (currently the highest base SP).
 - Creature natural armor as worn plate or mesh pieces (currently a flat location SP from the preset).
 - Quadruped and hexapod creatures (non-humanoid body locations and hit charts).
+- Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).

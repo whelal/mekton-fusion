@@ -174,6 +174,10 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
       formData["system.coverage"] = zones;
       formData["system.currentSP"] = seedZoneSP(zones, sys.baseSP, { oldCoverage: sys.coverage, oldSP: sys.currentSP });
     }
+    // A GM's Damage Type choice marks the weapon so Update Characters never resets it (catalogWeaponUpdate).
+    if (this.object.type === "weapon" && "system.damageType" in formData && formData["system.damageType"] !== this.object.system.damageType) {
+      formData["flags.mekton-fusion.damageTypeSet"] = true;
+    }
     // Handle the form submission and update the item
     return this.object.update(formData);
   }

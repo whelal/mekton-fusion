@@ -75,5 +75,14 @@ export const TABLE_RULINGS = {
    * re-covering a piece past the limit is refused (preCreateItem/preUpdateItem
    * hooks in mekton-fusion.js); pieces already worn are kept.
    */
-  maxArmorLayers: 2
+  maxArmorLayers: 2,
+
+  /**
+   * Sprained limb (INTERPRETATION of the "Fists From Hell" Bruise Damage
+   * addendum, H2): a limb whose damage track is full and holds at least one
+   * Bruise. This modifier applies to each roll that uses that limb, cumulative
+   * per sprained limb. Roll dialogs list the roller's sprained limbs; the player
+   * ticks the ones the roll uses (the sheet can't tell which limb a roll uses).
+   */
+  sprainedLimbPenalty: -3
 };

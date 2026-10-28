@@ -45,6 +45,13 @@
         <input type="text" name="system.damageNote" value="{{system.damageNote}}" placeholder="e.g. [AP], *"/>
       </div>
       <div class="form-group">
+        <label>Damage Type</label>
+        <select name="system.damageType" title="Bruise: blunt or unarmed -- ignores soft armor and goes on the track as Bruises">
+          <option value="wound" {{#if (eq system.damageType "wound")}}selected{{/if}}>Wound</option>
+          <option value="bruise" {{#if (eq system.damageType "bruise")}}selected{{/if}}>Bruise</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Shots</label>
         <input type="text" name="system.shots" value="{{system.shots}}" placeholder="e.g. 50, na, 10 turns"/>
       </div>

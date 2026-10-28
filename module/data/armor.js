@@ -27,9 +27,30 @@ export function armorPieces(actor) {
   return actor.items.filter(i => i.type === "armor")
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
     .map(i => ({
-      id: i.id, name: i.name, baseSP: Number(i.system?.baseSP) || 0,
+      id: i.id, name: i.name, baseSP: Number(i.system?.baseSP) || 0, hardness: i.system?.hardness ?? "",
       coverage: effectiveCoverage(i.system), currentSP: { ...(i.system?.currentSP ?? {}) }
     }));
+}
+
+/**
+ * One Bruise hit on a zone (0.3.29, H4): soft pieces are ignored completely (no
+ * protection, no ablation). The covering HARD piece with the highest current SP
+ * there (tie: list order) soaks and ablates per ablatePersonalArmor. It neither
+ * reads nor changes the zone's wound activeArmorId. A piece with no hardness set
+ * counts as soft. `softIgnored`: a soft piece covered the zone and was skipped.
+ * @returns {{piece:object|null, sp:number, spNow:number, belowThreshold:boolean, through:number, softIgnored:boolean}}
+ */
+export function resolveBruiseZoneHit(pieces, zone, dmg) {
+  const covering = pieces.filter(p => p.coverage.includes(zone));
+  const sp = p => Number(p.currentSP?.[zone]) || 0;
+  let piece = null;
+  for (const p of covering) if (p.hardness === "hard" && sp(p) > 0 && (!piece || sp(p) > sp(piece))) piece = p;
+  const cur = piece ? sp(piece) : 0;
+  const { spNow, belowThreshold } = ablatePersonalArmor(cur, dmg);
+  return {
+    piece, sp: cur, spNow, belowThreshold, through: Math.max(0, dmg - cur),
+    softIgnored: covering.some(p => p.hardness !== "hard")
+  };
 }
 
 /**
@@ -192,6 +213,15 @@ const KIND_BY_NAME = {
 const TIER_RE = /^(light|medium|heavy|flak|standard|industrial|military)\b/i;
 
 /**
+ * Hardness for "other"-kind pieces whose kind gives none (0.3.29): the force
+ * screens are hard. The Shield stays unset (parked) and counts as soft.
+ */
+export const HARDNESS_BY_NAME = {
+  "Personal Force Screen": "hard",
+  "Advanced Force Screen": "hard"
+};
+
+/**
  * Migrate a pre-0.3.24 armor `system` source in place (ArmorDataModel.migrateData):
  * sp -> baseSP, coverage string -> zone set, and kind/tier/hardness filled from
  * the category and name. Only touches legacy data, so it's safe to run on any
@@ -231,7 +261,7 @@ export function migrateArmorSource(src) {
   }
 
   if (!src.hardness) {
-    src.hardness = defaultHardness(src.kind, src.tier);
+    src.hardness = defaultHardness(src.kind, src.tier) || HARDNESS_BY_NAME[src.name] || "";
     if (!src.hardness && src.kind && src.kind !== "other") notes.push("hardness unknown");
   }
   if (notes.length) src.migrationNote = [src.migrationNote, ...notes].filter(Boolean).join("; ");

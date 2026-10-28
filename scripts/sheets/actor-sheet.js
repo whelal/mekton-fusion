@@ -2,14 +2,15 @@
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
-import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit } from "../../module/data/armor.js";
+import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit } from "../../module/data/armor.js";
+import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs } from "../../module/data/damage-track.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone } from "../../module/data/close-combat.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { escapeHtml } from "../../module/util/escape.js";
-import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire } from "../../module/data/attack-card.js";
+import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel } from "../../module/data/attack-card.js";
 
 // Tie-break picker for locationFromRoll (several equally valid servos, e.g. two right arms).
 const pickIndex = n => Math.floor(Math.random() * n);
@@ -303,24 +304,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return { key: ARMOR_ZONES[zone].location, label: ARMOR_ZONES[zone].label, zone, roll };
   }
 
-  /**
-   * MZ Human Damage Results wound state from a location's CURRENT hits (after
-   * damage). No BTM, no wound ladder -- just these threshold bands, flat to
-   * every location including the head (no head-doubling, no 12-point cap;
-   * both are BTM-coupled CP2020/IU rules MZ doesn't have).
-   * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
-   * @param {number} hitsNow
-   * @returns {"ok"|"unconscious"|"dead"|"broken"|"shattered"|"severed"}
-   */
-  static _woundState(key, hitsNow) {
-    const limb = key !== 'head' && key !== 'torso';
-    if (!limb) return hitsNow <= -2 ? 'dead' : hitsNow <= 0 ? 'unconscious' : 'ok';
-    return hitsNow <= -5 ? 'severed' : hitsNow <= -2 ? 'shattered' : hitsNow <= 0 ? 'broken' : 'ok';
-  }
-
+  // Wound states come from woundState() in module/data/damage-track.js: MZ Human
+  // Damage Results bands on Wounds, flat to every location including the head (no
+  // head-doubling, no 12-point cap -- both BTM-coupled CP2020/IU rules MZ doesn't
+  // have), plus the shared Wound/Bruise track (unconscious, sprained).
   static _woundStateLabel(state) {
     return {
-      ok: 'OK', unconscious: 'UNCONSCIOUS', dead: 'DEAD',
+      ok: 'OK', unconscious: 'UNCONSCIOUS', dead: 'DEAD', sprained: 'SPRAINED (-3 to rolls using it)',
       broken: 'BROKEN', shattered: 'SHATTERED (lost without care)', severed: 'SEVERED'
     }[state] ?? state;
   }
@@ -336,26 +326,35 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * most and only at the personal ablation threshold. A location no armor
    * piece covers (natural armor, creatures) uses its own location SP as before.
    * Not applied with ignoreSp (burning is already past the armor, not a new hit).
+   * Bruise damage (0.3.29, "Fists From Hell" Bruise Damage addendum): soft
+   * pieces are ignored, the best hard piece soaks (resolveBruiseZoneHit, leaving
+   * the wound activeArmorId alone), and what gets through goes on the shared
+   * Wound/Bruise track as Bruises (applyTrackDamage). Natural armor soaks both.
    * Also resolves a Stun/Shock save when this single hit's post-armor damage
-   * exceeds half the location's hits BEFORE the hit (1d10 <= substats.stun to
-   * stay conscious).
+   * exceeds half the location's shown Hits BEFORE the hit, Wound or Bruise
+   * (1d10 <= substats.stun to stay conscious).
    * @param {Actor} targetActor
    * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
    * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
-   * @param {{ignoreSp?: boolean, zone?: string}} [opts] - ignoreSp: damage is
-   *   already post-armor (burning). zone: the armor zone hit (ARMOR_ZONES key);
-   *   default the location's own zone, or thigh/lower leg 50/50 for a leg.
-   * @returns {{sp:number, spNow:number, belowThreshold:boolean, armorName:string, before:number, after:number, hitsNow:number, state:string, stun:object|null}}
+   * @param {{ignoreSp?: boolean, zone?: string, damageType?: "wound"|"bruise"}} [opts] -
+   *   ignoreSp: damage is already post-armor (burning). zone: the armor zone hit
+   *   (ARMOR_ZONES key); default the location's own zone, or thigh/lower leg
+   *   50/50 for a leg. damageType: default "wound".
+   * @returns {{sp:number, spNow:number, belowThreshold:boolean, armorName:string, damageType:string, softIgnored:boolean, before:number, after:number, hitsNow:number, wounds:number, bruises:number, state:string, stun:object|null}}
    */
-  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone } = {}) {
+  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone, damageType = 'wound' } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
     zone ??= closeHitZone(key);
     const update = {};
-    let sp = 0, spNow = 0, belowThreshold = false, piece = null;
+    let sp = 0, spNow = 0, belowThreshold = false, piece = null, softIgnored = false;
     const pieces = armorPieces(targetActor);
     const worn = pieces.some(p => zonesOfLocation(key).some(z => p.coverage.includes(z)));
     if (ignoreSp) {
       // burning: already past the armor
+    } else if (worn && damageType === 'bruise') {
+      const r = resolveBruiseZoneHit(pieces, zone, dmgTotal);
+      ({ sp, spNow, belowThreshold, piece } = r);
+      softIgnored = r.softIgnored && !piece;
     } else if (worn) {
       const stored = targetActor.system?.body?.armorZones?.[zone]?.activeArmorId ?? '';
       const r = resolveZoneHit(pieces, zone, stored, dmgTotal);
@@ -366,31 +365,41 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ({ spNow, belowThreshold } = ablatePersonalArmor(sp, dmgTotal));
       if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
     }
-    const before = MektonActorSheet._num(loc?.hits, 0);
+    const track = {
+      hits: MektonActorSheet._num(loc?.hits, 0),
+      hitsMax: MektonActorSheet._num(loc?.hitsMax, 0),
+      bruises: MektonActorSheet._num(loc?.bruises, 0)
+    };
+    const before = shownHits(track);
     const after = Math.max(0, dmgTotal - sp);
-    const hitsNow = before - after;
-    update[`system.body.locations.${key}.hits`] = hitsNow;
+    const next = { ...track, ...applyTrackDamage(track, after, damageType) };
+    const hitsNow = shownHits(next);
+    update[`system.body.locations.${key}.hits`] = next.hits;
+    if (next.bruises !== track.bruises) update[`system.body.locations.${key}.bruises`] = next.bruises;
     await targetActor.update(update);
     if (piece && spNow !== sp) {
       await targetActor.items.get(piece.id)?.update({ [`system.currentSP.${zone}`]: spNow });
     }
 
-    const state = MektonActorSheet._woundState(key, hitsNow);
+    const state = woundState(key, next);
 
-    // No Stun/Shock save for the dead -- head or torso at DEAD, from this hit or an earlier one.
+    // No Stun/Shock save for the dead or already unconscious -- head or torso at
+    // DEAD or UNCONSCIOUS (full track), from this hit or an earlier one.
     const locs = targetActor.system?.body?.locations ?? {};
-    const dead = ['head', 'torso'].some(k =>
-      MektonActorSheet._woundState(k, k === key ? hitsNow : MektonActorSheet._num(locs[k]?.hits, 0)) === 'dead');
+    const out = ['head', 'torso'].some(k => ['dead', 'unconscious'].includes(woundState(k, k === key ? next : locs[k] ?? {})));
 
     let stun = null;
-    if (!dead && after > 0 && after > before / 2) {
+    if (!out && after > 0 && after > before / 2) {
       const stunVal = MektonActorSheet._num(targetActor.system?.substats?.stun, 0);
       const stunRoll = new Roll('1d10');
       await stunRoll.evaluate();
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
     }
 
-    return { sp, spNow, belowThreshold, armorName: piece?.name ?? '', before, after, hitsNow, state, stun };
+    return {
+      sp, spNow, belowThreshold, armorName: piece?.name ?? '', damageType, softIgnored,
+      before, after, hitsNow, wounds: woundsOf(next), bruises: next.bruises, state, stun
+    };
   }
 
   /**
@@ -417,15 +426,43 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return out;
   }
 
+  /**
+   * Body tab view of each location's Wound/Bruise track (H6): marks for the
+   * track (X = Wound, / = Bruise, · = free; Wounds past capacity shown as +N),
+   * shown Hits (hits - bruises), and the wound state (Sprained etc.).
+   */
+  static _bodyTrackView(actor) {
+    const out = {};
+    for (const [key, loc] of Object.entries(actor.system?.body?.locations ?? {})) {
+      const cap = Math.max(0, Number(loc.hitsMax) || 0);
+      const wounds = Math.max(0, woundsOf(loc));
+      const bruises = Math.max(0, Number(loc.bruises) || 0);
+      const w = Math.min(wounds, cap);
+      const b = Math.min(bruises, cap - w);
+      const over = wounds - w;
+      const state = woundState(key, loc);
+      out[key] = {
+        marks: 'X'.repeat(w) + '/'.repeat(b) + '·'.repeat(Math.max(0, cap - w - b)) + (over ? ` +${over}` : ''),
+        wounds, bruises, shown: shownHits(loc), cap,
+        state, stateLabel: state === 'ok' ? '' : MektonActorSheet._woundStateLabel(state)
+      };
+    }
+    return out;
+  }
+
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, spNow, belowThreshold, armorName, before, after, hitsNow, state, stun } = applied;
+    const { sp, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
     const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
       : belowThreshold ? `, no ablation (&lt;${TABLE_RULINGS.personalArmorAblationThreshold})` : '';
     const piece = armorName ? ` (${escapeHtml(armorName)})` : '';
-    let html = `SP ${sp}${piece} soaked${ablated}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong> &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
+    const soak = softIgnored ? 'soft armor ignored' : `SP ${sp}${piece} soaked${ablated}`;
+    const prefix = damageType === 'bruise' ? '<strong>Bruise:</strong> ' : '';
+    // Once a location carries Bruises, show the track split (W = Wounds, B = Bruises).
+    const split = bruises ? ` (${wounds}W/${bruises}B)` : '';
+    let html = `${prefix}${soak}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong>${split} &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
     if (stun) {
       const stunColor = stun.conscious ? '#2a2' : '#c0392b';
       html += `<br>Stun/Shock check (1d10 &le; ${stun.stunVal}): rolled <strong>${stun.total}</strong> &mdash; <strong style="color:${stunColor}">${stun.conscious ? 'CONSCIOUS' : 'DOWN'}</strong>`;
@@ -769,6 +806,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // Each body location's worn armor, per zone (Body tab SP / Armor columns).
     ctx.bodyArmor = MektonActorSheet._bodyArmorView(this.actor);
+    ctx.bodyTrack = MektonActorSheet._bodyTrackView(this.actor);
 
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
@@ -920,6 +958,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         }
         sdpInput.val('');
       }
+    });
+
+    // Bruise healing (H3: 1 per full hour of rest, per location -- manual until
+    // the GM Rest tool). +N heals N Bruises, -N adds N; never below 0.
+    html.on('click', '#mf-btn-adjust-bruise', async ev => {
+      ev.preventDefault();
+      const loc = html.find('#mf-selected-loc').val();
+      const data = loc ? this.actor.system?.body?.locations?.[loc] : null;
+      if (!data) return;
+      const input = html.find('#mf-adjust-bruise');
+      const adjust = parseInt(input.val()) || 0;
+      if (!adjust) return;
+      await this.actor.update({ [`system.body.locations.${loc}.bruises`]: Math.max(0, (Number(data.bruises) || 0) - adjust) });
+      input.val('');
     });
 
     // Mecha configuration selection
@@ -1829,8 +1881,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
 
     let mod = 0;
+    let sprain = 0;
     let difficulty = null;
-    
+
     if (!ev.shiftKey) {
       try {
         const result = await Dialog.prompt({
@@ -1840,6 +1893,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Modifier:</label>
               <input type="number" name="mod" value="0" style="width:100%"/>
             </div>
+            ${this._sprainedLimbsHtml()}
             ${this.constructor._difficultyPresetHtml()}
           `,
           label: "Roll",
@@ -1848,10 +1902,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
-            return { mod: modVal, difficulty: diffVal ? Number(diffVal) : null };
+            return { mod: modVal, sprain: this.constructor._sprainPenalty(html), difficulty: diffVal ? Number(diffVal) : null };
           }
         });
         mod = result.mod || 0;
+        sprain = result.sprain || 0;
         difficulty = result.difficulty;
       } catch (_) { return; }
     }
@@ -1861,7 +1916,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Maneuver Value) instead of the raw REF stat.
     const isMecha = String(skill.system?.category || '').toUpperCase() === 'REF:MECHA' || /MECHA\s+(PILOTING|FIGHTING|MELEE|GUNNERY|MISSILES)/i.test(skill.name || '');
     const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.mecha?.config?.mr ?? 0) : statVal;
-    const finalTotal = base + mr + rank + (mod||0);
+    const finalTotal = base + mr + rank + (mod||0) + sprain;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
 
     const flavorParts = [chainText(plusDice, minusDice)];
@@ -1872,6 +1927,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     if (rank) flavorParts.push(`Rank ${rank}`);
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
+    if (sprain) flavorParts.push(`Sprained ${sprain}`);
     
     const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
     const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -1889,7 +1945,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: skill.name });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}`;
-    const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod]);
+    const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod, sprain]);
     await shown.toMessage({ speaker, flavor });
   }
 
@@ -2488,7 +2544,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     let html = `<br><strong>Blast</strong> (${radius}m around ${foundry.utils.escapeHTML(targets[0].name)}): ${inBlast.length} in radius`;
-    // No friendly-fire prompt for an area blast: everyone in the radius is hit, and the card says who.
+    // No friendly-fire prompt for an area blast: everyone in the radius is hit, and the
+    // card lists the tokens on the attacker's side (thrower included) that got caught.
     const mine = this._attackerDisposition();
     const friendlies = inBlast.filter(t => isFriendlyFire(mine, t.document?.disposition));
     if (friendlies.length) {
@@ -2949,6 +3006,25 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return { targetActor, success, margin, resultTag };
   }
 
+  /**
+   * Roll-dialog row listing this actor's sprained limbs (H2), each a checkbox
+   * for "this roll uses it", unticked by default. Empty when none are sprained.
+   */
+  _sprainedLimbsHtml() {
+    const locs = this.actor.system?.body?.locations ?? {};
+    const limbs = sprainedLimbs(locs);
+    if (!limbs.length) return '';
+    const p = TABLE_RULINGS.sprainedLimbPenalty;
+    return `<div class="form-group"><label>Sprained (${p} each, if this roll uses it)</label><div>`
+      + limbs.map(k => `<label><input type="checkbox" class="mf-sprained" data-limb="${k}"/> ${escapeHtml(locs[k].label ?? k)}</label>`).join(' ')
+      + `</div></div>`;
+  }
+
+  /** The ticked sprained limbs' total modifier in a roll dialog (0 when none). */
+  static _sprainPenalty(html) {
+    return TABLE_RULINGS.sprainedLimbPenalty * html.find('.mf-sprained:checked').length;
+  }
+
   /** Names of the user's targeted tokens, for attack-card headers. */
   static _targetNames() {
     return Array.from(game.user.targets).map(t => t.name);
@@ -2965,19 +3041,29 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
-   * Friendly-fire guard: when a targeted token and the attacker are both
-   * FRIENDLY, ask before resolving (Cancel is the default). The GM isn't
-   * exempt. Area blasts don't use this; they list friendlies hit instead.
+   * Friendly-fire guard: ask before resolving (Cancel is the default) when a
+   * targeted token is the attacker itself, or is on the attacker's side (both
+   * Friendly or both Hostile, isFriendlyFire). Friendly vs Hostile either way
+   * goes through. The GM isn't exempt. Area blasts don't use this; they list
+   * same-side tokens hit instead.
    * @returns {Promise<boolean>} true to go ahead with the attack
    */
   async _confirmFriendlyFire() {
     const mine = this._attackerDisposition();
-    const friendly = Array.from(game.user.targets).filter(t => isFriendlyFire(mine, t.document?.disposition));
-    if (!friendly.length) return true;
-    const names = friendly.map(t => escapeHtml(t.name)).join(', ');
+    const targets = Array.from(game.user.targets);
+    const isSelf = t => t.actor === this.actor || (!!this.actor.token && t.document === this.actor.token);
+    const self = targets.some(isSelf);
+    const sameSide = targets.filter(t => !isSelf(t) && isFriendlyFire(mine, t.document?.disposition));
+    if (!self && !sameSide.length) return true;
+    const lines = [];
+    if (self) lines.push(`${escapeHtml(this.actor.name)} is targeting themselves.`);
+    if (sameSide.length) {
+      const names = sameSide.map(t => escapeHtml(t.name)).join(', ');
+      lines.push(`${names} ${sameSide.length === 1 ? 'is' : 'are'} ${sideLabel(mine)}, the same side as ${escapeHtml(this.actor.name)}.`);
+    }
     const ok = await foundry.applications.api.DialogV2.confirm({
       window: { title: 'Friendly Fire' },
-      content: `<p>${names} ${friendly.length === 1 ? 'is' : 'are'} friendly. Attack anyway?</p>`,
+      content: `<p>${lines.join('<br>')}</p><p>Attack anyway?</p>`,
       yes: { label: 'Attack', default: false },
       no: { label: 'Cancel', default: true }
     });
@@ -3093,6 +3179,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Burst Value: a bare number > 1 enables Burst fire ("na", "1", "" = single only).
     const bv = parseInt(weapon.system?.bv, 10) || 1;
     const blast = !!MektonActorSheet._blastOf(weapon);
+    // Melee and thrown weapons (not blasts) let the attacker pick Wound or Bruise
+    // for this roll, starting on the weapon's own Damage Type; others use it as is.
+    const weaponDamageType = weapon.system?.damageType === 'bruise' ? 'bruise' : 'wound';
+    const damageTypeChoice = (closeContact || !!rangeInfo?.thrown) && !blast;
     const targetsAtRoll = Array.from(game.user.targets);
     const oneTarget = targetsAtRoll.length === 1 && !!targetsAtRoll[0].actor;
     // Area weapons resolve vs a Difficulty (indirect fire, MZ p.97), never Evade.
@@ -3154,6 +3244,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Location</label>
               <select name="closeTarget" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS)}</select>
             </div>` : ''}
+            ${damageTypeChoice ? `
+            <div class="form-group">
+              <label>Damage Type</label>
+              <select name="damageType" style="width:100%">
+                <option value="wound" ${weaponDamageType === 'wound' ? 'selected' : ''}>Wound</option>
+                <option value="bruise" ${weaponDamageType === 'bruise' ? 'selected' : ''}>Bruise</option>
+              </select>
+            </div>` : ''}
             <div class="form-group">
               <label>Aim (+1/action, max +4)</label>
               <input type="number" name="aim" value="0" min="0" max="4" style="width:100%"/>
@@ -3166,6 +3264,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Other Modifier</label>
               <input type="number" name="other" value="0" style="width:100%"/>
             </div>
+            ${this._sprainedLimbsHtml()}
             ${this.constructor._difficultyPresetHtml()}
           </form>
         `,
@@ -3173,6 +3272,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         render: html => this.constructor._bindDifficultyPresetListeners(html),
         options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
         callback: html => {
+          const sprain = this.constructor._sprainPenalty(html);
           const rangeMod = Number(html.find("[name='rangeChoice']").val()) || 0;
           const aim = Math.max(0, Math.min(4, Number(html.find("[name='aim']").val()) || 0));
           const other = Number(html.find("[name='other']").val()) || 0;
@@ -3186,12 +3286,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           const arcMod = Number(html.find("[name='arc']").val()) || 0;
           const fireMode = html.find("[name='fireMode']").val() || 'single';
           const closeTarget = html.find("[name='closeTarget']").val() || null;
-          return { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode, closeTarget };
+          const pickedDamageType = html.find("[name='damageType']").val() || null;
+          return { rangeMod, aim, coverMod, other, sprain, difficulty, defense, arcMod, fireMode, closeTarget, pickedDamageType };
         }
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { rangeMod, aim, coverMod, other, difficulty, defense, arcMod, fireMode, closeTarget } = dlg;
+    const { rangeMod, aim, coverMod, other, sprain, difficulty, defense, arcMod, fireMode, closeTarget, pickedDamageType } = dlg;
     // Area blasts skip the friendly-fire prompt: the card lists friendlies hit instead.
     if (!blast && !(await this._confirmFriendlyFire())) return;
     const mods = coverMod + other;
@@ -3206,7 +3307,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty;
+    const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty + sprain;
 
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -3220,6 +3321,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (rangeMod) modParts.push(`Range ${rangeMod >= 0 ? '+' : ''}${rangeMod}`);
     if (aim) modParts.push(`Aim +${aim}`);
     if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
+    if (sprain) modParts.push(`Sprained ${sprain}`);
     if (closeTarget) modParts.push(`${CLOSE_TARGETS[closeTarget].label} ${locPenalty >= 0 ? '+' : ''}${locPenalty}`);
 
     const { targetActor, success, margin, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
@@ -3246,6 +3348,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             : `<br><strong>Burst</strong>: ${hitCount} of ${bv} shots hit.`;
         }
         const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon);
+        const damageType = pickedDamageType === 'bruise' ? 'bruise' : pickedDamageType === 'wound' ? 'wound' : weaponDamageType;
         for (let h = 1; h <= hitCount; h++) {
           let dmg = null;
           try {
@@ -3260,22 +3363,22 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             ? this.constructor._closeHit(closeTarget)
             : await this.constructor._rollHitLocationKey();
           const hitTag = hitCount > 1 ? `Hit ${h}: ` : '';
-          flavor += `<br>${hitTag}Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
+          flavor += `<br>${hitTag}${damageType === 'bruise' ? 'Bruise damage' : 'Damage'}: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
 
           // Apply to the TARGET only, never the attacker. Exactly one targeted
           // token -> apply now; otherwise defer via a chat-card button per hit.
           if (targetActor) {
-            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone });
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone, damageType });
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-damage-type="${damageType}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }
     }
 
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
-    const shown = await this.constructor._rollWithMods(roll, [skillTotal, effectiveWa, rangeMod, aim, mods, locPenalty]);
+    const shown = await this.constructor._rollWithMods(roll, [skillTotal, effectiveWa, rangeMod, aim, mods, locPenalty, sprain]);
     await shown.toMessage({ speaker, flavor });
   }
 
@@ -3317,13 +3420,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         m, target, position,
         locPenalty: closeCalledPenalty(maneuverTargets(m, position), target, m.defaultGroup),
         other: Number(html.find("[name='other']").val()) || 0,
+        sprain: this.constructor._sprainPenalty(html),
         skill: html.find("[name='skill']").val() || defaultSkill
       };
     };
     const refreshTotal = html => {
-      const { m, locPenalty, other } = read(html);
+      const { m, locPenalty, other, sprain } = read(html);
       html.find('.mf-close-total').text(`Modifier: WA ${sign(m.wa)} + location ${sign(locPenalty)}`
-        + (other ? ` + other ${sign(other)}` : '') + ` = ${sign(m.wa + locPenalty + other)}`);
+        + (other ? ` + other ${sign(other)}` : '') + (sprain ? ` + sprained ${sign(sprain)}` : '')
+        + ` = ${sign(m.wa + locPenalty + other + sprain)}`);
     };
 
     let dlg;
@@ -3352,6 +3457,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Other Modifier</label>
               <input type="number" name="other" value="0" style="width:100%"/>
             </div>
+            ${this._sprainedLimbsHtml()}
             <p class="mf-close-total" style="font-weight:600; margin:6px 0;"></p>
             <div class="form-group">
               <label>Defense</label>
@@ -3384,7 +3490,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             refreshTotal(html);
           };
           html.find("[name='maneuver'], [name='position']").on('change', fillTargets);
-          html.find("[name='closeTarget'], [name='other']").on('change input', () => refreshTotal(html));
+          html.find("[name='closeTarget'], [name='other'], .mf-sprained").on('change input', () => refreshTotal(html));
           fillTargets();
         },
         options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
@@ -3400,19 +3506,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { m, target, position, locPenalty, other, skill, defense, arcMod, difficulty } = dlg;
+    const { m, target, position, locPenalty, other, sprain, skill, defense, arcMod, difficulty } = dlg;
     if (!(await this._confirmFriendlyFire())) return;
     const s = skills[skill];
     if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
 
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const attackTotal = base + s.total + m.wa + locPenalty + other;
+    const attackTotal = base + s.total + m.wa + locPenalty + other + sprain;
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
     const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
     const capTag = capped ? ` <span style="color: #999; font-size: 0.85em;">[Cap ${maxExtra}]</span>` : '';
     const parts = [chainText(plusDice, minusDice), `${s.name} ${s.total}`, `WA ${m.wa}`, `${CLOSE_TARGETS[target].label} ${sign(locPenalty)}`];
     if (other) parts.push(`Mods ${sign(other)}`);
+    if (sprain) parts.push(`Sprained ${sign(sprain)}`);
 
     const { targetActor, success, resultTag } = await this._resolveAttackDefense(attackTotal, { defense, difficulty, arcMod });
     const what = `${m.label}${position ? ` (${MOUTH_POSITIONS[position].toLowerCase()})` : ''}`;
@@ -3424,6 +3531,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         flavor += `<br>Hits ${targetLocation(targetActor?.name, locLabel)}: <strong>${m.effect ?? 'no damage'}</strong> <em style="font-size:0.85em; color:#999;">(resolve per MZ core; not automated)</em>`;
       } else {
         const skillBonus = MektonActorSheet._meleeSkillDamageBonus(this.actor, { system: { skill } });
+        const damageType = m.damageType ?? 'wound';
         let dmg = null;
         try {
           dmg = await this._rollDamageFormula(m.damage, skillBonus);
@@ -3432,18 +3540,18 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         }
         if (dmg) {
           const { formula: dmgFormula, roll: dmgRoll, total: dmgTotal, bodyModNote, skillBonusNote } = dmg;
-          flavor += `<br>Damage: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
+          flavor += `<br>${damageType === 'bruise' ? 'Bruise damage' : 'Damage'}: <em>${dmgFormula || 0}</em> = ${dmgRoll.total}${bodyModNote}${skillBonusNote} = <strong style="color:#c0392b;">${dmgTotal}</strong> ${damageTo(targetActor?.name, locLabel)}`;
           if (targetActor) {
-            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone });
+            const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone, damageType });
             flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
           } else {
-            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
+            flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-damage-type="${damageType}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
           }
         }
       }
     }
 
-    const shown = await this.constructor._rollWithMods(roll, [s.total, m.wa, locPenalty, other]);
+    const shown = await this.constructor._rollWithMods(roll, [s.total, m.wa, locPenalty, other, sprain]);
     await shown.toMessage({ speaker: ChatMessage.getSpeaker({ actor: this.actor }), flavor });
   }
 

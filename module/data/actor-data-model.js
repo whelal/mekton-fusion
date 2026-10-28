@@ -269,6 +269,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 6, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 6, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -278,6 +279,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 12, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 12, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -287,6 +289,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -296,6 +299,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -305,6 +309,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     }),
@@ -314,6 +319,7 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                             spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
+                            bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
                         ablates: new fields.BooleanField({ initial: true }),
                         itemId: new fields.StringField({ initial: "" })
                     })

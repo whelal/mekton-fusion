@@ -1909,6 +1909,22 @@ html.theme-dark .mekton-fusion {
   background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
 }
 
+/* Wound/Bruise track: wrap the marks in a narrow cell so the bar columns stay on the sheet */
+.mekton-fusion .tab.body .mf-table-horizontal .mf-track-cell {
+  max-width: 6.5em;
+}
+.mekton-fusion .tab.body .mf-table-horizontal .mf-track {
+  font-family: monospace;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  word-break: break-all;
+}
+.mekton-fusion .tab.body .mf-table-horizontal .mf-track-state {
+  font-size: 0.65rem;
+  line-height: 1.1;
+  color: #c0392b;
+}
+
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
   margin: 0 !important;
   padding: 0 !important;

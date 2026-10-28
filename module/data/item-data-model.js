@@ -30,6 +30,9 @@ export class WeaponDataModel extends ItemDataModel {
       ammoCost: new fields.NumberField({ initial: 0, min: 0 }), // cost per reload (generally per clip)
       tl: new fields.NumberField({ initial: 0, min: 0, integer: true }), // tech level
       damageNote: new fields.StringField({ initial: "" }), // [AP], *, etc. -- mirrors mecha-weapon damageNote
+      // "wound" | "bruise" ("Fists From Hell" Bruise Damage addendum): bruise hits
+      // ignore soft armor and go on the damage track as Bruises (damage-track.js).
+      damageType: new fields.StringField({ initial: "wound", choices: ["wound", "bruise"] }),
       scale: new fields.StringField({ initial: "human" }), // reserved for the future scale system; unused for now
       options: new fields.ArrayField(new fields.StringField(), { initial: [] }), // WEAPON_OPTIONS keys installed on this weapon
       // Which Combat tab table this weapon renders in (combat.hbs branches on

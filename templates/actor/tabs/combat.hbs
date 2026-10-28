@@ -110,6 +110,7 @@
                   {{#if (weaponSupportsOptions item)}}
                   <button type="button" class="weapon-options" title="Weapon Options{{#if item.system.options.length}} ({{item.system.options.length}} installed){{/if}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;{{#if item.system.options.length}} color: #2a7;{{/if}}"><i class="fas fa-sliders"></i></button>
                   {{/if}}
+                  <button type="button" class="item-control item-edit" title="Edit Weapon (Damage Type: {{#if (eq item.system.damageType 'bruise')}}Bruise{{else}}Wound{{/if}})" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-edit"></i></button>
                   <button type="button" class="item-delete" title="Delete Weapon" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; width: 18px;"><i class="fas fa-trash"></i></button>
                 </td>
               </tr>

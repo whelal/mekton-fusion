@@ -544,7 +544,10 @@ Hooks.once("ready", () => {
 
     const targetActor = targets[0].actor;
     // data-zone: the armor zone the attack rolled (absent on cards from before 0.3.28).
-    const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal, { zone: btn.dataset.zone || undefined });
+    const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal, {
+      zone: btn.dataset.zone || undefined,
+      damageType: btn.dataset.damageType === 'bruise' ? 'bruise' : 'wound'
+    });
     const speaker = ChatMessage.getSpeaker({ actor: targetActor });
     const from = btn.dataset.attacker ? ` from <strong>${escapeHtml(btn.dataset.attacker)}</strong>` : '';
     const content = `Applied <strong>${dmgTotal}</strong> damage${from} ${damageTo(targetActor.name, locLabel)}: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;

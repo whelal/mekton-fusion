@@ -22,8 +22,9 @@
  *     Helmets, suits, Flight Jacket and Powered Armor have fixed coverage
  *       and fixed table weight/cost.
  *   hardness: set explicitly per entry (table ruling, ROADMAP.md), never
- *     derived from SP. Shield and the force screens are parked (kind
- *     "other", hardness unset).
+ *     derived from SP. The force screens are hard (0.3.29: they stop Bruise
+ *     attacks like plate; their other mechanics stay parked). Shield is parked
+ *     (kind "other", hardness unset).
  *   Weight (kg) -> weight   Cost -> cost   TL -> not given per-item in this
  *     table (left 0; unlike the Personal Weapons Table, this table has no TL
  *     column).
@@ -78,6 +79,6 @@ export const ARMOR_CATALOG = [
   armor("Powered Armor", { category: "Other Armor", kind: "poweredArmor", hardness: "hard", baseSP: 28, weight: 43.0, cost: 1056, img: "icons/equipment/body/armor-coveralls.webp" }),
   // Parked (ROADMAP.md): shields at human scale and force screens. Kind "other", hardness unset.
   armor("Shield",                { category: "Other Armor", kind: "other", baseSP: 15, coverage: [], weight: 1.5, cost: 142,  img: "icons/equipment/shield/heater-steel-grey.webp" }),
-  armor("Personal Force Screen", { category: "Other Armor", kind: "other", baseSP: 0, spNote: "3D6", coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 5.0, cost: 1800, img: "icons/svg/shield.svg" }),
-  armor("Advanced Force Screen", { category: "Other Armor", kind: "other", baseSP: 18, coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 0.5, cost: 2500, img: "icons/svg/mage-shield.svg" })
+  armor("Personal Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 0, spNote: "3D6", coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 5.0, cost: 1800, img: "icons/svg/shield.svg" }),
+  armor("Advanced Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 18, coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 0.5, cost: 2500, img: "icons/svg/mage-shield.svg" })
 ];

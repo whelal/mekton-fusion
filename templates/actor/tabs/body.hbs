@@ -57,8 +57,10 @@
               <th>SP</th>
               <th>Max SP</th>
               <th>Armor</th>
-              <th>SDP</th>
+              <th title="Hits after Wounds (Bruises not counted)">SDP</th>
               <th>Max SDP</th>
+              <th title="Bruises on this location's track">Bruises</th>
+              <th title="X = Wound, / = Bruise, &middot; = free">Track</th>
               <th>SP Bar</th>
               <th>SDP Bar</th>
             </tr>
@@ -85,14 +87,18 @@
                     <span class="mf-armor-none">&mdash;</span>
                   {{/if}}
                 </td>
-                <td><input type="number" name="system.body.locations.{{key}}.hits" value="{{loc.hits}}" /> </td>
+                {{#with (lookup @root.bodyTrack key) as |tr|}}
+                <td><input type="number" name="system.body.locations.{{key}}.hits" value="{{loc.hits}}" title="Hits after Wounds; shown Hits (after Bruises too): {{tr.shown}}" /> </td>
                 <td><input class="derived-input" type="number" value="{{loc.hitsMax}}" readonly title="Derived from BODY" /> </td>
+                <td><input type="number" name="system.body.locations.{{key}}.bruises" value="{{loc.bruises}}" min="0" title="Bruises (heal 1 per full hour of rest, per location)" /></td>
+                <td class="mf-track-cell"><span class="mf-track" title="{{tr.wounds}} Wounds, {{tr.bruises}} Bruises; shown Hits {{tr.shown}}/{{tr.cap}}">{{tr.marks}}</span>{{#if tr.stateLabel}}<div class="mf-track-state"><strong>{{tr.stateLabel}}</strong></div>{{/if}}</td>
                 {{#if ba.worn}}
                   <td><div class="bar sp" style="--val: {{percent ba.sp ba.spMax}}"></div></td>
                 {{else}}
                   <td><div class="bar sp" style="--val: {{percent loc.sp loc.spMax}}"></div></td>
                 {{/if}}
-                <td><div class="bar hp" style="--val: {{percent loc.hits loc.hitsMax}}"></div></td>
+                <td><div class="bar hp" style="--val: {{percent tr.shown tr.cap}}"></div></td>
+                {{/with}}
               </tr>
               {{/with}}
             {{/each}}
@@ -114,6 +120,10 @@
           <div class="mf-action-pair">
             <input type="number" class="mf-adjust-input" id="mf-adjust-sdp" data-type="sdp" placeholder="±SDP" title="Enter SDP adjustment (+/-)" />
             <button type="button" class="icon-btn" id="mf-btn-adjust-sdp" title="Apply SDP adjustment" data-action="adjust-sdp">SDP</button>
+          </div>
+          <div class="mf-action-pair">
+            <input type="number" class="mf-adjust-input" id="mf-adjust-bruise" placeholder="±B" title="Heal Bruises (+N removes N; -N adds N)" />
+            <button type="button" class="icon-btn" id="mf-btn-adjust-bruise" title="Heal Bruises on the selected location">B</button>
           </div>
         </div>
 

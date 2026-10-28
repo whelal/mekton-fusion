@@ -32,25 +32,27 @@ export const CLOSE_TARGETS = {
  * `damage`: men-scale formula (MZ core, Hand-to-Hand Attack Table; "Punch,
  * etc." covers Claw/Elbow/Backhand); a trailing "+" adds the BODY damage
  * modifier. `effect`: what a no-damage maneuver (Chop) does instead; not automated.
+ * `damageType` ("Fists From Hell" Bruise Damage addendum, 0.3.29): unarmed
+ * strikes and kicks are "bruise"; Claw and Bite cut or puncture, so "wound".
  * `positions`: reach that depends on the attacker's position (Bite), keyed by
  * MOUTH_POSITIONS; `targets` is then the default position's reach.
  */
 export const CLOSE_MANEUVERS = {
-  punch:    { label: "Punch",    wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+" },
-  claw:     { label: "Claw",     wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+" },
-  elbow:    { label: "Elbow",    wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+" },
-  backhand: { label: "Backhand", wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+" },
+  punch:    { label: "Punch",    wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+",   damageType: "bruise" },
+  claw:     { label: "Claw",     wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+",   damageType: "wound" },
+  elbow:    { label: "Elbow",    wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+",   damageType: "bruise" },
+  backhand: { label: "Backhand", wa: 0,  targets: ["torso", "head", "arm"], damage: "1D2+",   damageType: "bruise" },
   // INTERPRETATION: Chop and Crescent can't reach the torso, so no location is free.
   chop:     { label: "Chop",     wa: -2, targets: ["head", "arm"],          damage: null, effect: "Stun" },
-  crescent: { label: "Crescent", wa: -2, targets: ["head", "arm"],          damage: "1D6+1+" },
-  kick:     { label: "Kick",     wa: 0,  targets: ["leg"],                  damage: "1D3+" },
-  wheel:    { label: "Wheel",    wa: -1, targets: ["torso"],                damage: "1D6+" },
-  thrust:   { label: "Thrust",   wa: -3, targets: ["torso"],                damage: "1D6+2+" },
-  spin:     { label: "Spin",     wa: -4, targets: ["head"],                 damage: "1D6+3+" },
-  jab:      { label: "Jab",      wa: -5, targets: ["eyes"],                 damage: "1D3+" },
+  crescent: { label: "Crescent", wa: -2, targets: ["head", "arm"],          damage: "1D6+1+", damageType: "bruise" },
+  kick:     { label: "Kick",     wa: 0,  targets: ["leg"],                  damage: "1D3+",   damageType: "bruise" },
+  wheel:    { label: "Wheel",    wa: -1, targets: ["torso"],                damage: "1D6+",   damageType: "bruise" },
+  thrust:   { label: "Thrust",   wa: -3, targets: ["torso"],                damage: "1D6+2+", damageType: "bruise" },
+  spin:     { label: "Spin",     wa: -4, targets: ["head"],                 damage: "1D6+3+", damageType: "bruise" },
+  jab:      { label: "Jab",      wa: -5, targets: ["eyes"],                 damage: "1D3+",   damageType: "bruise" },
   // MZ core Hand-to-Hand Attack Table, 1D3 + BODY. WA 0 per MZ core errata p.99
   // (the table's +1 is wrong; the text's +0 is correct).
-  bite:     { label: "Bite",     wa: 0,  targets: TABLE_RULINGS.biteReach.level, positions: TABLE_RULINGS.biteReach, damage: "1D3+" }
+  bite:     { label: "Bite",     wa: 0,  targets: TABLE_RULINGS.biteReach.level, positions: TABLE_RULINGS.biteReach, damage: "1D3+", damageType: "wound" }
 };
 
 /** Where the attacker's mouth is, for a maneuver with `positions` (Bite). */

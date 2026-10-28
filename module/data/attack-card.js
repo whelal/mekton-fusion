@@ -56,10 +56,21 @@ export function damageTo(targetName, locLabel) {
   return `to ${targetLocation(targetName, locLabel)}`;
 }
 
-/** Foundry's CONST.TOKEN_DISPOSITIONS.FRIENDLY (1 in v13/v14); a fallback keeps this testable outside Foundry. */
+/** Foundry's CONST.TOKEN_DISPOSITIONS (FRIENDLY 1, HOSTILE -1 in v13/v14); fallbacks keep this testable outside Foundry. */
 const FRIENDLY = globalThis.CONST?.TOKEN_DISPOSITIONS?.FRIENDLY ?? 1;
+const HOSTILE = globalThis.CONST?.TOKEN_DISPOSITIONS?.HOSTILE ?? -1;
 
-/** Friendly fire: attacker and target tokens are both FRIENDLY. Unknown dispositions never match. */
+/**
+ * Friendly fire: attacker and target are on the same side -- both FRIENDLY or
+ * both HOSTILE. Friendly vs Hostile (either way), Neutral, Secret and unknown
+ * dispositions never match.
+ */
 export function isFriendlyFire(attackerDisposition, targetDisposition) {
-  return attackerDisposition === FRIENDLY && targetDisposition === FRIENDLY;
+  return attackerDisposition === targetDisposition
+    && (attackerDisposition === FRIENDLY || attackerDisposition === HOSTILE);
+}
+
+/** "Friendly" / "Hostile" for the prompt, from a matching disposition. */
+export function sideLabel(disposition) {
+  return disposition === FRIENDLY ? "Friendly" : disposition === HOSTILE ? "Hostile" : "";
 }

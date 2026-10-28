@@ -1,26 +1,29 @@
 import { WEAPON_CATALOG } from "./data/weapon-catalog.js";
-import { recomputeActorArmorSp, seedUnfilledPiece, armorPieces, locationWearMoves } from "./data/armor.js";
+import { recomputeActorArmorSp, seedUnfilledPiece, armorPieces, locationWearMoves, HARDNESS_BY_NAME } from "./data/armor.js";
 import { effectiveCoverage } from "./data/armor-coverage.js";
 import { syncActorCoreItems } from "./seed.js";
 
 /**
  * One-time refresh of existing characters and NPCs after the 0.3.x changes:
  *   - adds any CP2020 skills added since the actor was created (existing ranks untouched)
- *   - sets the skill on owned weapons whose name matches a catalog entry
+ *   - sets the skill on owned weapons whose name matches a catalog entry, and
+ *     their damage type once (0.3.29, catalogWeaponUpdate)
+ *   - gives owned force screens hard hardness when unset (0.3.29)
  *   - writes armor Items in the 0.3.24 zone format (ArmorDataModel.migrateData
  *     converts them in memory on load; this persists them), seeds each piece's
  *     per-zone current SP, and reports anything the migration couldn't map
  *   - moves armor wear recorded on body locations onto the worn pieces' own
  *     per-zone SP (0.3.28, locationWearMoves)
  *   - recomputes body-location armor SP from worn armor Items
- *   - runs the armor steps on unlinked tokens on every scene too (0.3.28)
+ *   - runs the armor steps (0.3.28) and the weapon step (0.3.29) on unlinked
+ *     tokens on every scene too
  * Creatures (natural armor SP from a preset, system.creature.armorSP > 0) are
  * skipped by the armor step so their natural SP isn't zeroed.
  * Safe to re-run; each step only changes what differs.
  */
 export async function migrateAllActors() {
   const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [] };
-  const catalogSkill = new Map(WEAPON_CATALOG.map(w => [w.name, w.system?.skill ?? ""]));
+  const catalog = new Map(WEAPON_CATALOG.map(w => [w.name, w]));
 
   for (const actor of game.actors) {
     if (!["character", "npc"].includes(actor.type)) continue;
@@ -29,33 +32,65 @@ export async function migrateAllActors() {
     const seeded = await syncActorCoreItems(actor);
     report.skillsAdded += seeded.created ?? 0;
 
-    const weaponUpdates = [];
-    for (const item of actor.items) {
-      if (item.type !== "weapon" || !catalogSkill.has(item.name)) continue;
-      const want = catalogSkill.get(item.name);
-      if (!want || item.system?.skill === want) continue;
-      weaponUpdates.push({ _id: item.id, "system.skill": want });
-    }
-    if (weaponUpdates.length) {
-      await actor.updateEmbeddedDocuments("Item", weaponUpdates);
-      report.weaponsFixed += weaponUpdates.length;
-    }
-
+    await migrateActorWeapons(actor, catalog, report);
     await migrateActorArmor(actor, report);
   }
 
-  // Unlinked tokens carry their own copy of the actor (and its armor), which
-  // the world-actor loop above never touches: run the armor steps on each.
+  // Unlinked tokens carry their own copy of the actor (its weapons and armor),
+  // which the world-actor loop above never touches: run the weapon and armor
+  // steps on each.
   for (const scene of game.scenes) {
     for (const token of scene.tokens) {
       const actor = token.actorLink ? null : token.actor;
       if (!actor || !["character", "npc"].includes(actor.type)) continue;
       report.tokens++;
+      await migrateActorWeapons(actor, catalog, report);
       await migrateActorArmor(actor, report, { onlyChanged: true });
     }
   }
   await migrateArmorItems(game.items, null, report);
   return report;
+}
+
+/**
+ * The weapon step for one actor (world or unlinked token): each owned weapon
+ * whose name matches a catalog entry gets catalogWeaponUpdate's changes.
+ * @param {{items:Iterable<object>, updateEmbeddedDocuments:Function}} actor
+ * @param {Map<string, object>} catalog - WEAPON_CATALOG by name
+ * @param {{weaponsFixed:number}} report
+ */
+export async function migrateActorWeapons(actor, catalog, report) {
+  const weaponUpdates = [];
+  for (const item of actor.items) {
+    if (item.type !== "weapon" || !catalog.has(item.name)) continue;
+    const update = catalogWeaponUpdate(item, catalog.get(item.name));
+    if (update) weaponUpdates.push({ _id: item.id, ...update });
+  }
+  if (weaponUpdates.length) {
+    await actor.updateEmbeddedDocuments("Item", weaponUpdates);
+    report.weaponsFixed += weaponUpdates.length;
+  }
+}
+
+/**
+ * Update for an owned weapon matching a catalog entry (null = nothing to do):
+ * its skill, always, and its damageType ONCE. damageType (0.3.29) is set from
+ * the catalog only while the item lacks the mekton-fusion.damageTypeSet flag,
+ * then the flag is set, so a GM's later change (the item sheet sets the flag
+ * too) survives re-running the macro.
+ * @param {{system:object, flags?:object}} item
+ * @param {{system:object}} entry - the WEAPON_CATALOG entry
+ */
+export function catalogWeaponUpdate(item, entry) {
+  const update = {};
+  const want = entry.system?.skill;
+  if (want && item.system?.skill !== want) update["system.skill"] = want;
+  if (!item.flags?.["mekton-fusion"]?.damageTypeSet) {
+    const type = entry.system?.damageType ?? "wound";
+    if (item.system?.damageType !== type) update["system.damageType"] = type;
+    update["flags.mekton-fusion.damageTypeSet"] = true;
+  }
+  return Object.keys(update).length ? update : null;
 }
 
 /**
@@ -102,7 +137,10 @@ async function migrateArmorItems(items, actor, report, { onlyChanged = false } =
       sys.currentSP = seeded;
       report.armorSeeded++;
     }
-    if (onlyChanged && !seeded && !note) continue;
+    // 0.3.29: the force screens are hard. Only fills an empty hardness, so a GM's choice stays.
+    const hardened = !sys.hardness && !!HARDNESS_BY_NAME[item.name];
+    if (hardened) sys.hardness = HARDNESS_BY_NAME[item.name];
+    if (onlyChanged && !seeded && !note && !hardened) continue;
     sys.coverage = effectiveCoverage(sys);
     sys.migrationNote = "";
     updates.push({ _id: item.id, system: sys });
