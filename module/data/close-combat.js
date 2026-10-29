@@ -96,8 +96,11 @@ export async function runAttackPlan(plan, attackOnce) {
 /** A melee weapon strike: any location, torso free. WA comes from the weapon. */
 export const MELEE_STRIKE_TARGETS = ["torso", "head", "arm", "leg"];
 
-/** Weapon skills that make an attack close contact (thrown/Athletics is ranged). */
-export const CLOSE_COMBAT_SKILLS = new Set(["blade", "fencing", "whip", "hand-to-hand", "martial-art"]);
+/**
+ * Weapon skills that make an attack close contact (thrown/Athletics is ranged).
+ * Martial Art is unarmed-only: maneuvers use it, weapons don't.
+ */
+export const CLOSE_COMBAT_SKILLS = new Set(["blade", "fencing", "whip", "hand-to-hand"]);
 
 /** Target keys (CLOSE_TARGETS) reachable by a list of location groups. */
 export function closeTargetsFor(groups) {

@@ -35,6 +35,8 @@ export class WeaponDataModel extends ItemDataModel {
       damageType: new fields.StringField({ initial: "wound", choices: ["wound", "bruise"] }),
       // Quick (MZ+ ATM, Melee Weapons): a close-contact weapon may make two attacks in one Action.
       quick: new fields.BooleanField({ initial: false }),
+      // Drawn and ready (Combat tab toggle): only weapons in hand can parry (defense.js).
+      inHand: new fields.BooleanField({ initial: false }),
       scale: new fields.StringField({ initial: "human" }), // reserved for the future scale system; unused for now
       options: new fields.ArrayField(new fields.StringField(), { initial: [] }), // WEAPON_OPTIONS keys installed on this weapon
       // Which Combat tab table this weapon renders in (combat.hbs branches on

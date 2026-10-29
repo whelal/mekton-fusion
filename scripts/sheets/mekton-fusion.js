@@ -544,9 +544,12 @@ Hooks.once("ready", () => {
 
     const targetActor = targets[0].actor;
     // data-zone: the armor zone the attack rolled (absent on cards from before 0.3.28).
+    // data-knockout: a Knockout strike bypasses armor and always forces a Stun/Shock roll.
+    const knockout = btn.dataset.knockout === '1';
     const applied = await MektonActorSheet._applyLocationDamage(targetActor, key, dmgTotal, {
       zone: btn.dataset.zone || undefined,
-      damageType: btn.dataset.damageType === 'bruise' ? 'bruise' : 'wound'
+      damageType: btn.dataset.damageType === 'bruise' ? 'bruise' : 'wound',
+      ignoreSp: knockout, forceStun: knockout
     });
     const speaker = ChatMessage.getSpeaker({ actor: targetActor });
     const from = btn.dataset.attacker ? ` from <strong>${escapeHtml(btn.dataset.attacker)}</strong>` : '';

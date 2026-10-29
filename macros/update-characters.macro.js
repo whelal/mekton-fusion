@@ -13,7 +13,7 @@
   if (!game.user.isGM) { ui.notifications.warn("Only a GM can update characters."); return; }
   const confirmed = await Dialog.confirm({
     title: "Update all characters?",
-    content: `<p>This updates every character and NPC in the world: adds new skills, fixes weapon skills, damage types and Quick, converts armor to zone coverage, moves armor wear onto each worn piece, and recomputes armor SP.</p>
+    content: `<p>This updates every character and NPC in the world: adds new skills, fixes weapon skills, damage types and Quick, moves weapons off Martial Art, converts armor to zone coverage, moves armor wear onto each worn piece, and recomputes armor SP.</p>
       <p><strong>Note:</strong> body locations with no worn armor drop to 0 SP (previously they showed the schema default of 10). Creatures keep their natural armor. Back up the world first.</p>`
   });
   if (!confirmed) return;
@@ -25,6 +25,10 @@
     const r = await migrateAllActors();
     const skipped = r.skippedCreatures.length ? ` Skipped creatures (natural armor): ${r.skippedCreatures.join(", ")}.` : "";
     ui.notifications.info(`Updated ${r.actors} actors: ${r.skillsAdded} skills added, ${r.weaponsFixed} weapons fixed, ${r.armorMigrated} armor pieces converted (${r.armorSeeded} given per-zone SP), wear moved onto pieces at ${r.wearMoved} locations, ${r.tokens} unlinked tokens checked, armor recomputed on ${r.armorRecomputed}.${skipped}`);
+    if (r.martialArtWeapons.length) {
+      const list = r.martialArtWeapons.map(p => `<li>${foundry.utils.escapeHTML(p)}</li>`).join("");
+      ChatMessage.create({ whisper: [game.user.id], content: `<p><strong>Weapons moved from Martial Art to Hand to Hand</strong> (Martial Art is unarmed-only):</p><ul>${list}</ul>` });
+    }
     if (r.armorProblems.length) {
       const list = r.armorProblems.map(p => `<li>${foundry.utils.escapeHTML(p)}</li>`).join("");
       ChatMessage.create({ whisper: [game.user.id], content: `<p><strong>Armor the migration couldn't map</strong> (fix on the item sheet):</p><ul>${list}</ul>` });

@@ -1,3 +1,19 @@
+## [0.3.32] - 2026-10-28
+### Added
+- **In hand**: each Combat-tab weapon row has a hand button. Drawing is free and posts "<Actor> draws <weapon>" (honor system: draw on your own turn, not in reaction to an attack). Putting it away asks **Stow (1 Action)** or **Drop (free)** and logs which. More than 2 items in hand warns but isn't blocked. New weapon field `inHand` (false for existing weapons).
+- **Defense after a failed Evade** (MZ core, Evade Rolls / Parry Rolls): one further defense per attack (so per attack for Quick), on the same card.
+  - **Weapon Parry** (RAW), vs melee-weapon/EMW attacks only: the defender's best in-hand weapon (skill + DA) rolls 1D10 + REF + Blade + DA; swords (`fencingWeapons`, or a weapon on Fencing) use the better of Blade and Fencing. A melee weapon's DA is its WA; anything else (a gun, a thrown weapon) is an improvised parry at DA -2 (`improvisedParryDA`). A tie parries. No wear on the weapon. "Kara parries with Quarterstaff: 7 + REF 5 + Blade 3 + DA 2 = 17 — PARRIED".
+  - **Arm Block** (house, adapted from Interlock Unlimited), vs melee-weapon and unarmed attacks: 1D10 + REF + the better of Hand to Hand and Martial Art. The arm with the most Hits left blocks (then the best armor); a broken arm can't, a sprained one blocks at -3. By 5+ (`armBlockCleanMargin`): no damage. By 0-4: the hit lands on the blocking arm, through its armor. Under 0: the hit lands where it was going.
+  - Auto picks a weapon Parry when one is possible, else an Arm Block. The GM's attack dialogs have **After a failed Evade: Auto / Weapon Parry / Arm Block / None**. Ranged attacks and GM Difficulty attacks get no further defense.
+- **Club with it**: firearms have an Attack choice, Shoot or Club (WA -2, Bruise, 1D3+ handgun / 1D6+ long gun; Auto Weapons by concealability), rolled on Blade, the catalog blunt weapons' skill. It picks a location like a melee weapon and can be parried.
+- **Knockout strike** (MZ core, Knockout Damage): melee-weapon and club attacks can be declared a knockout at -3: 1 Hit as a Bruise that bypasses armor, and the target always rolls Stun/Shock.
+- Table rulings (house): `fencingWeapons`, `improvisedParryDA`, `improvisedMeleeWA`, `improvisedClub`, `armBlockCleanMargin`.
+- `module/data/defense.js` (parry weapon and skill, DA, blocking arm, defense choice, outcomes, club damage, knockout), with tests.
+### Removed
+- Martial Art as a weapon attack skill: gone from the Combat-tab weapon skill dropdown, along with its half-rank damage bonus on weapons. Close-combat maneuvers and the Arm Block keep it. Update Characters moves weapons on Martial Art to Hand to Hand and whispers the GM a list of the weapons moved.
+### Changed
+- ROADMAP.md: human-scale defense ticked (0.3.32); new table rulings and interpretations; Parking lot adds personal weapon Hits / attacking held weapons and shield parry.
+
 ## [0.3.31] - 2026-10-28
 ### Added
 - Quick melee attacks, human scale (MZ+ ATM, Melee Weapons, Quick): two attacks in one Action. Weapons have a **Quick** checkbox on the item sheet; the catalog's Quarterstaff and Nunchaku/Tonfa are Quick. In Close Combat, Punch, Claw, Elbow, Backhand, Chop and Jab are Quick (table ruling `quickManeuvers`); kicks and Bite are not. The maneuver list marks them "Quick".

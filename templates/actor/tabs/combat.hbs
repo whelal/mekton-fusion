@@ -97,7 +97,6 @@
                     <option value="fencing" {{#if (eq item.system.skill 'fencing')}}selected{{/if}} title="Alternative to Blade: adds half Fencing's rank (rounded down) to damage">Fencing (H)</option>
                     <option value="handgun" {{#if (eq item.system.skill 'handgun')}}selected{{/if}}>Handgun</option>
                     <option value="hand-to-hand" {{#if (eq item.system.skill 'hand-to-hand')}}selected{{/if}}>Hand to Hand</option>
-                    <option value="martial-art" {{#if (eq item.system.skill 'martial-art')}}selected{{/if}} title="Alternative to Hand to Hand: adds half Martial Art's rank (rounded down) to damage">Martial Art (H)</option>
                     <option value="rifle" {{#if (eq item.system.skill 'rifle')}}selected{{/if}}>Rifle</option>
                     <option value="whip" {{#if (eq item.system.skill 'whip')}}selected{{/if}}>Whip</option>
                   </select>
@@ -106,6 +105,7 @@
                   <input type="text" name="system.weapons.{{@index}}.note" class="weapon-field" value="{{item.system.note}}" style="width: 95%; font-size: 0.75rem; padding: 1px 2px;" data-field="note" placeholder="…"/>
                 </td>
                 <td style="padding: 2px 4px; text-align: center;">
+                  <button type="button" class="weapon-in-hand{{#if item.system.inHand}} mf-in-hand{{/if}}" title="{{#if item.system.inHand}}In hand (can parry) -- click to stow or drop{{else}}Not in hand -- click to draw (free){{/if}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-hand-paper"></i></button>
                   <button type="button" class="weapon-roll" title="Roll {{item.name}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-dice-d20"></i></button>
                   {{#if (weaponSupportsOptions item)}}
                   <button type="button" class="weapon-options" title="Weapon Options{{#if item.system.options.length}} ({{item.system.options.length}} installed){{/if}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;{{#if item.system.options.length}} color: #2a7;{{/if}}"><i class="fas fa-sliders"></i></button>

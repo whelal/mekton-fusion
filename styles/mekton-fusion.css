@@ -1906,3 +1906,6 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion-dialog .mf-difficulty-group details fieldset label,
 .mekton-fusion-dialog .mf-difficulty-group details label { display: block; width: auto; }
 .mekton-fusion-dialog .dialog-buttons button { font-size: 0.85rem; }
+
+/* Combat tab: weapon drawn and in hand (can parry) */
+.mekton-fusion .weapon-in-hand.mf-in-hand { color: #2a7; }

@@ -27,6 +27,12 @@ sentence goes in the Parking lot.
 - Personal armor: at most 2 pieces per zone (`maxArmorLayers`). Layers never add; one active piece protects a zone.
 - Close combat: default location (torso, or legs for sweeps) is free; other locations cost head -4, arm/leg -2 on top of maneuver WA; single-location maneuvers take no extra penalty. Playtest values. Bite included (overrides core's no-penalty Bite).
 - Quick applies to characters: fist strikes (Punch, Claw, Elbow, Backhand, Chop, Jab), Quarterstaff, Nunchaku/Tonfa.
+- Parry skill: Blade; swords use the higher of Blade and Fencing (`fencingWeapons`: Broadsword, Sword, Rapier, Monosword, Energy Sword, or any weapon on the Fencing skill).
+- Improvised parry DA -2; a weapon's shooting WA never applies to parrying.
+- Improvised clubbing with firearms: WA -2, Bruise, 1D3+ handgun / 1D6+ long gun (playtest), Blade skill. Auto Weapons club as handguns at Pocket/Jacket concealability, else as long guns.
+- No parry wear on personal weapons.
+- Martial Art is unarmed-only (not a weapon attack skill).
+- Arm Block (house, adapted from Interlock Unlimited): vs melee and unarmed attacks; uses the higher of HtH and Martial Art; margin 0-4 = damage to the blocking arm, 5+ = no damage (playtest).
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -41,6 +47,11 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Melee leg hits split thigh / lower leg 50/50, on the side the attacker chose.
 - Eyes/sensors (Jab) damage the head.
 - Sprained ("Fists From Hell" Bruise Damage addendum): a limb whose track is full and holds at least one Bruise; -3 per sprained limb on rolls that use it (`sprainedLimbPenalty`). Roll dialogs list sprained limbs and the player ticks the ones the roll uses.
+- Weapon parries only work against melee-weapon/EMW attacks (RAW); the Arm Block covers unarmed attacks.
+- One defense after a failed Evade: a weapon Parry or an Arm Block, not both. A GM Difficulty attack (unaware target) gets neither.
+- In hand: draw only on your own turn (honor system).
+- Blocking arm: the arm with the most Hits left, then the best armor; a broken arm can't block.
+- Knockout strike (MZ core, Knockout Damage): its 1 Hit is a Bruise that bypasses armor; the Stun/Shock roll always happens.
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
 
 ## Versioning
@@ -79,6 +90,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
   - A bruise hit uses the highest-currentSP hard piece covering the zone and doesn't change the wound `activeArmorId`.
 - [x] Body tab redesign, UI only: Location | Armor | Hits | Status, one Hits bar per location, a location editor on row click; "SDP" renamed "Hits" (0.3.30)
 - [x] Quick melee attacks, human scale: two attacks in one Action for Quick weapons and fist strikes (0.3.31)
+- [x] Human-scale defense: In hand, weapon Parry, Arm Block, improvised use, Martial Art unarmed-only (0.3.32)
 - [ ] GM recovery tools: Full Recovery, Repair Armor, Rest
 - [ ] Medical drugs
 - [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (spec pending)
@@ -142,4 +154,6 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Creature natural armor as worn plate or mesh pieces (currently a flat location SP from the preset).
 - Quadruped and hexapod creatures (non-humanoid body locations and hit charts).
 - New characters show "Natural 10/10" on every location until armor is first dragged on; then every other location drops to 0 (the schema's initial `spMax` of 10 lingers until the armor recompute runs). New characters should start at 0 natural SP.
+- Personal weapon Hits and attacking held weapons. Human-scale weapons are built at Mekton scale in Kills; 1K = 2.5 Hits (round down), and damage dice come from the K->D6 table (e.g. 7K = 3D6-1), but catalog weapons don't line up exactly (no 3D6-1 entries). Needs a design pass.
+- Shield parry (needs a DA; the MZ Personal Armor Table lists only SP 15).
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).

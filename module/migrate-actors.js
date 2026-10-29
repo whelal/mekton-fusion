@@ -8,6 +8,8 @@ import { syncActorCoreItems } from "./seed.js";
  *   - adds any CP2020 skills added since the actor was created (existing ranks untouched)
  *   - sets the skill on owned weapons whose name matches a catalog entry, and
  *     their damage type once (0.3.29, catalogWeaponUpdate)
+ *   - moves any weapon on the Martial Art skill to Hand to Hand, listing them
+ *     (Martial Art is unarmed-only, martialArtWeaponUpdate)
  *   - gives owned force screens hard hardness when unset (0.3.29)
  *   - writes armor Items in the 0.3.24 zone format (ArmorDataModel.migrateData
  *     converts them in memory on load; this persists them), seeds each piece's
@@ -22,7 +24,7 @@ import { syncActorCoreItems } from "./seed.js";
  * Safe to re-run; each step only changes what differs.
  */
 export async function migrateAllActors() {
-  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [] };
+  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [] };
   const catalog = new Map(WEAPON_CATALOG.map(w => [w.name, w]));
 
   for (const actor of game.actors) {
@@ -62,14 +64,28 @@ export async function migrateAllActors() {
 export async function migrateActorWeapons(actor, catalog, report) {
   const weaponUpdates = [];
   for (const item of actor.items) {
-    if (item.type !== "weapon" || !catalog.has(item.name)) continue;
-    const update = catalogWeaponUpdate(item, catalog.get(item.name));
-    if (update) weaponUpdates.push({ _id: item.id, ...update });
+    if (item.type !== "weapon") continue;
+    // Martial Art is unarmed-only: any weapon on it moves to Hand to Hand, catalog or not.
+    const update = { ...martialArtWeaponUpdate(item), ...(catalog.has(item.name) ? catalogWeaponUpdate(item, catalog.get(item.name)) : null) };
+    if (update["system.skill"] === "hand-to-hand" && item.system?.skill === "martial-art") {
+      (report.martialArtWeapons ??= []).push(`${actor.name}: ${item.name}`);
+    }
+    if (Object.keys(update).length) weaponUpdates.push({ _id: item.id, ...update });
   }
   if (weaponUpdates.length) {
     await actor.updateEmbeddedDocuments("Item", weaponUpdates);
     report.weaponsFixed += weaponUpdates.length;
   }
+}
+
+/**
+ * Martial Art stopped being a weapon attack skill: a weapon on "martial-art"
+ * moves to "hand-to-hand" (null = nothing to do). A catalog weapon's own skill,
+ * set by catalogWeaponUpdate, wins over this.
+ * @param {{system:object}} item
+ */
+export function martialArtWeaponUpdate(item) {
+  return item.system?.skill === "martial-art" ? { "system.skill": "hand-to-hand" } : null;
 }
 
 /**

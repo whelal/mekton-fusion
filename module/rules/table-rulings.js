@@ -68,6 +68,39 @@ export const TABLE_RULINGS = {
   quickManeuvers: ["punch", "claw", "elbow", "backhand", "chop", "jab"],
 
   /**
+   * Parry skill (HOUSE; MZ core, Parry Rolls): a human-scale weapon Parry uses
+   * Blade; these swords (or any weapon whose skill is Fencing) use the higher of
+   * Blade and Fencing. Catalog names.
+   */
+  fencingWeapons: ["Broadsword", "Sword", "Rapier", "Monosword", "Energy Sword"],
+
+  /**
+   * Improvised parry (HOUSE): an item not built for melee (firearm, thrown
+   * weapon, tool) parries at this DA, whatever its WA. A weapon's shooting WA
+   * never applies to parrying. See parryDA in defense.js.
+   */
+  improvisedParryDA: -2,
+
+  /**
+   * Improvised clubbing with a firearm (HOUSE, playtest values): WA, damage
+   * type, skill (Blade, the catalog's blunt weapons' skill) and damage by size.
+   * "small": handguns, and Auto Weapons of Pocket/Jacket concealability;
+   * "long": rifles, shotguns, larger Auto Weapons. "+" adds the BODY damage mod.
+   * It counts as a melee-weapon attack (it can be parried).
+   */
+  improvisedMeleeWA: -2,
+  improvisedClub: { skill: "blade", damageType: "bruise", damage: { small: "1D3+", long: "1D6+" } },
+
+  /**
+   * Arm Block (HOUSE, adapted from Interlock Unlimited's Block/Parry; MZ has no
+   * unarmed block). After a failed Evade vs a melee-weapon or unarmed attack:
+   * block total - attack total < 0 fails; 0 up to this margin (exclusive)
+   * blocks but the damage goes to the blocking arm; this margin or more blocks
+   * cleanly. Playtest value. See armBlockOutcome in defense.js.
+   */
+  armBlockCleanMargin: 5,
+
+  /**
    * Personal armor ablation (INTERPRETATION, MZ ATM Scaling, human scale: armor
    * loses 1 per successful attack of 5 Hit-increments, read as a threshold, the
    * way the Corvette-scale line restates MZ core's 1K rule). A human-scale hit
