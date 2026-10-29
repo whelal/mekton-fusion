@@ -98,7 +98,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Quick melee attacks, human scale: two attacks in one Action for Quick weapons and fist strikes (0.3.31)
 - [x] Human-scale defense: In hand, weapon Parry, Arm Block, improvised use, Martial Art unarmed-only (0.3.32)
 - [x] Armor piercing, melee: [AP] weapons meet armor at half SP (round down), ablation unchanged; Knockout no longer bypasses armor (0.3.33)
-- [ ] GM recovery tools: Full Recovery, Repair Armor, Rest
+- [x] GM recovery tools: Full Recovery, Repair Armor, Rest; natural Wound recovery stays manual (0.3.34)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
       scale and converted where an effect lands). Build steps, one patch each:

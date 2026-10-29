@@ -1,3 +1,15 @@
+## [0.3.34] - 2026-10-29
+### Added
+- **GM recovery tools** on the Body tab, the character counterpart of mecha Depot Maintenance: three GM-only buttons above the location table, each with a confirm dialog and a chat card listing exactly what changed. Players don't see them.
+  - **Full Recovery**: every location's Wounds and Bruises cleared (Sprained with them), burning put out. Armor unchanged.
+  - **Repair Armor**: every armor piece back to its base SP on every zone it covers, and every zone's active piece cleared so the next hit re-picks the best piece. Natural armor (a location no piece covers) goes back to its max. Wounds unchanged.
+  - **Rest**: the GM enters hours; each location heals 1 Bruise per full hour ("Fists From Hell" Bruise Damage), never below 0. Wounds unchanged.
+- Natural Wound recovery stays manual (the location editor's steppers, unchanged).
+- `module/data/recovery.js` (`fullRecoveryUpdate`, `repairArmorUpdates`, `restUpdate`), with tests.
+### Changed
+- ROADMAP.md: GM recovery tools ticked (0.3.34).
+- `.gitignore`: the packs' LevelDB `LOG` and `LOG.old` files are ignored and untracked, like `LOCK`.
+
 ## [0.3.33] - 2026-10-28
 ### Added
 - **Armor piercing**, melee (MZ core Personal Weapons Table [AP] + Armor Piercing Attacks; MZ+ ATM Armor-Piercing melee): an AP weapon's hit meets the zone's armor at half SP, rounded down (`armorPiercingDivisor`), for that hit only. This covers the active worn piece, the hard piece a Bruise meets (soft armor is still ignored), and natural armor, and it applies to a hit that still lands after a parry or Arm Block. Ablation is unchanged: 1 SP at most, only at 5+ damage before armor. The damage line reads "AP: SP 15 (Heavy Mesh) counts as 7, 9 through". Clubbing with a firearm and a Knockout strike never pierce.

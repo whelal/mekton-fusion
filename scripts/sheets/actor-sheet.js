@@ -10,6 +10,7 @@ import { DEFENSE_MODES, KNOCKOUT, bestParryWeapon, pickBlockingArm, chooseDefens
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
+import { fullRecoveryUpdate, repairArmorUpdates, restUpdate, BRUISES_HEALED_PER_HOUR } from "../../module/data/recovery.js";
 import { escapeHtml } from "../../module/util/escape.js";
 import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel } from "../../module/data/attack-card.js";
 
@@ -845,6 +846,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.bodyArmor = MektonActorSheet._bodyArmorView(this.actor);
     ctx.bodyTrack = MektonActorSheet._bodyTrackView(this.actor);
     ctx.bodyEditable = this.actor.isOwner;
+    ctx.isGM = game.user.isGM;
 
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
     ctx.mechaPresetOptions = Object.values(MECHA_PRESETS).map(p => ({ id: p.id, label: p.label }));
@@ -944,6 +946,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (!this.actor.isOwner) return;
       this._openLocationEditor(ev.currentTarget.dataset.loc);
     });
+
+    // Body tab: GM recovery tools.
+    html.on('click', '.mf-recovery-full', ev => this._onFullRecovery(ev));
+    html.on('click', '.mf-recovery-armor', ev => this._onRepairArmor(ev));
+    html.on('click', '.mf-recovery-rest', ev => this._onRest(ev));
 
     // Mecha configuration selection
     html.on('click', '[data-action="select-config"]', async ev => {
@@ -2793,6 +2800,96 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const weapons = foundry.utils.deepClone(src.weapons ?? []).map(w => ({ ...w, shotsUsed: 0, clipsUsed: 0, partialClips: '', killsUsed: 0 }));
     const shields = foundry.utils.deepClone(src.shields ?? []).map(s => ({ ...s, spUsed: 0 }));
     await this.actor.update({ 'system.mecha.damage': damage, 'system.mecha.weapons': weapons, 'system.mecha.shields': shields });
+  }
+
+  /**
+   * GM recovery card: one line per change, or a notification when nothing
+   * changed (no card).
+   */
+  async _postRecoveryCard(title, lines) {
+    if (!lines.length) {
+      ui.notifications.info(`${this.actor.name}: ${title} -- nothing to change.`);
+      return;
+    }
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+      content: `<strong>${escapeHtml(this.actor.name)}</strong>: ${title}<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`
+    });
+  }
+
+  /** The body location's label for a recovery card line. */
+  _locLabel(key) {
+    return escapeHtml(this.actor.system.body.locations[key]?.label ?? key);
+  }
+
+  /**
+   * GM: Full Recovery (recovery.js fullRecoveryUpdate): every location's Wounds
+   * and Bruises cleared (Sprained with them) and burning put out. Armor
+   * unchanged.
+   */
+  async _onFullRecovery(ev) {
+    ev.preventDefault();
+    if (!game.user.isGM) return;
+    const ok = await Dialog.confirm({ title: 'Full Recovery', content: `<p>Clear every Wound and Bruise on <strong>${escapeHtml(this.actor.name)}</strong> and put out any fire? Armor is unchanged.</p>` });
+    if (!ok) return;
+    const { update, changes } = fullRecoveryUpdate(this.actor.system.body.locations);
+    if (Object.keys(update).length) await this.actor.update(update);
+    const lines = changes.map(c => {
+      const parts = [c.wounds ? `${c.wounds} Wound${c.wounds === 1 ? '' : 's'}` : '', c.bruises ? `${c.bruises} Bruise${c.bruises === 1 ? '' : 's'}` : ''].filter(Boolean);
+      const was = c.state !== 'ok' ? ` (was ${MektonActorSheet._woundStateLabel(c.state).replace(/ \(.*\)$/, '')})` : '';
+      return `${this._locLabel(c.key)}: ${parts.join(', ')} cleared${was}`;
+    });
+    if (this.actor.getFlag('mekton-fusion', 'burning')) {
+      await this.actor.unsetFlag('mekton-fusion', 'burning');
+      lines.push('Burning: the fire is out');
+    }
+    try { await this.actor.toggleStatusEffect('burning', { active: false }); } catch (e) { /* visual aid only */ }
+    await this._postRecoveryCard('Full Recovery', lines);
+  }
+
+  /**
+   * GM: Repair Armor (recovery.js repairArmorUpdates): every piece back to base
+   * SP on every zone, every zone's active piece cleared (the next hit re-picks
+   * the best), natural armor back to max. Wounds unchanged.
+   */
+  async _onRepairArmor(ev) {
+    ev.preventDefault();
+    if (!game.user.isGM) return;
+    const ok = await Dialog.confirm({ title: 'Repair Armor', content: `<p>Restore every armor piece on <strong>${escapeHtml(this.actor.name)}</strong> to its base SP (natural armor to max)? Wounds are unchanged.</p>` });
+    if (!ok) return;
+    const body = this.actor.system.body;
+    const r = repairArmorUpdates(armorPieces(this.actor), body.locations, body.armorZones);
+    if (r.itemUpdates.length) await this.actor.updateEmbeddedDocuments('Item', r.itemUpdates);
+    if (Object.keys(r.actorUpdate).length) await this.actor.update(r.actorUpdate);
+    const lines = [
+      ...r.pieces.map(p => `${escapeHtml(p.name)}: ${p.zones.map(z => `${escapeHtml(ARMOR_ZONES[z.zone]?.label ?? z.zone)} ${z.from} &rarr; ${z.to}`).join(', ')}`),
+      ...r.natural.map(n => `${this._locLabel(n.key)} (natural): ${n.from} &rarr; ${n.to}`)
+    ];
+    await this._postRecoveryCard('Repair Armor', lines);
+  }
+
+  /**
+   * GM: Rest N hours (recovery.js restUpdate): each location heals
+   * BRUISES_HEALED_PER_HOUR Bruises per full hour. Wounds unchanged.
+   */
+  async _onRest(ev) {
+    ev.preventDefault();
+    if (!game.user.isGM) return;
+    let hours;
+    try {
+      hours = await Dialog.prompt({
+        title: 'Rest',
+        content: `<p>Hours of rest for <strong>${escapeHtml(this.actor.name)}</strong> (each location heals ${BRUISES_HEALED_PER_HOUR} Bruise per full hour; Wounds are unchanged):</p>`
+          + `<input type="number" name="hours" min="0" step="1" value="1" style="width:100%" autofocus/>`,
+        label: 'Rest',
+        callback: html => Number(html.find("[name='hours']").val()) || 0
+      });
+    } catch (_) { return; }
+    const r = restUpdate(this.actor.system.body.locations, hours);
+    if (!r.hours) return;
+    if (Object.keys(r.update).length) await this.actor.update(r.update);
+    const lines = r.healed.map(h => `${this._locLabel(h.key)}: ${h.from - h.to} Bruise${h.from - h.to === 1 ? '' : 's'} healed (${h.from} &rarr; ${h.to})`);
+    await this._postRecoveryCard(`Rest, ${r.hours} hour${r.hours === 1 ? '' : 's'}`, lines);
   }
 
   /**

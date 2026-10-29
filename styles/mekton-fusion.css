@@ -1862,6 +1862,10 @@ html.theme-dark .mekton-fusion {
 .mf-loc-editor .mf-loc-remove { margin-top: 0.4em; }
 .mf-loc-editor .mf-loc-none { opacity: 0.6; margin: 0.2em 0; }
 
+/* Body tab: GM recovery tools */
+.mekton-fusion .tab.body .mf-recovery { display: flex; gap: 0.4em; margin-bottom: 0.4em; }
+.mekton-fusion .tab.body .mf-recovery button { flex: 1 1 0; }
+
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
   margin: 0 !important;
   padding: 0 !important;
