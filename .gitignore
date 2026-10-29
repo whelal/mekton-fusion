@@ -2,3 +2,7 @@
 # pack is open, and meaningless outside that runtime (a fresh one is created
 # every time Foundry opens the store). Never meant to be version-controlled.
 packs/**/LOCK
+# LevelDB info logs (LOG, LOG.old) -- rewritten each time Foundry opens the
+# store; diagnostics only, not part of the pack data.
+packs/**/LOG
+packs/**/LOG.old
