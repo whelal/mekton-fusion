@@ -1,3 +1,15 @@
+## [0.3.33] - 2026-10-28
+### Added
+- **Armor piercing**, melee (MZ core Personal Weapons Table [AP] + Armor Piercing Attacks; MZ+ ATM Armor-Piercing melee): an AP weapon's hit meets the zone's armor at half SP, rounded down (`armorPiercingDivisor`), for that hit only. This covers the active worn piece, the hard piece a Bruise meets (soft armor is still ignored), and natural armor, and it applies to a hit that still lands after a parry or Arm Block. Ablation is unchanged: 1 SP at most, only at 5+ damage before armor. The damage line reads "AP: SP 15 (Heavy Mesh) counts as 7, 9 through". Clubbing with a firearm and a Knockout strike never pierce.
+- New weapon field `armorPiercing`, with an Armor Piercing checkbox on the item sheet. Catalog: true for every entry marked [AP] (Broadsword, Chainsaw, Combat Knife, Dagger, Monoknife, Monosword, Rapier, Shuriken, Spear, Sword) except the Battleaxe: MZ errata p.98 (Armor-Piercing Attacks) removes axes from AP, overriding its [AP] table marker. Update Characters sets it on owned copies once (flag `apSet`), so a GM's change survives re-running it. A Battleaxe already set true is cleared once under its own flag (`apErrataSet`), which the item sheet also sets, so a GM's later tick survives.
+- `piercedSP` in `module/data/armor.js`, with tests.
+### Fixed
+- **Knockout strike** no longer bypasses armor (added in 0.3.32): its 1 Hit is a normal Bruise against armor (hard armor stops it, soft armor is ignored, the ablation threshold applies). The Stun/Shock roll still always happens, even when armor stopped the Hit.
+### Changed
+- ROADMAP.md: armor piercing ticked (0.3.33); Knockout, AP and Battleaxe-errata interpretations; Parking lot adds AP ammunition for firearms, with a separate ammo system.
+- A burst spending 1 ammo whatever its BV is RAW (MZ+ ATM Ammunition: one burst is bought as one Shot), not a house ruling: `burstAmmoCost` is gone from `table-rulings.js`, the code comment cites ATM, and ROADMAP.md lists it under a new RAW notes section. No behavior change.
+- ROADMAP.md: 0.4 adds the ammunition system (four steps); 0.6 adds mecha projectile ammo on the same clip model, plus missile warhead types; the Parking lot weapon Hits item now covers personal-weapon Kill ratings.
+
 ## [0.3.32] - 2026-10-28
 ### Added
 - **In hand**: each Combat-tab weapon row has a hand button. Drawing is free and posts "<Actor> draws <weapon>" (honor system: draw on your own turn, not in reaction to an attack). Putting it away asks **Stow (1 Action)** or **Drop (free)** and logs which. More than 2 items in hand warns but isn't blocked. New weapon field `inHand` (false for existing weapons).

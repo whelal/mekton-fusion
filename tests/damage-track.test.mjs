@@ -86,12 +86,12 @@ const mace = WEAPON_CATALOG.find(w => w.name === "Mace");
 test("migration sets a catalog weapon's damage type once, then flags it", () => {
   const owned = { system: { skill: "blade", damageType: "wound" }, flags: {} };
   assert.deepEqual(catalogWeaponUpdate(owned, mace),
-    { "system.damageType": "bruise", "flags.mekton-fusion.damageTypeSet": true, "flags.mekton-fusion.quickSet": true });
+    { "system.damageType": "bruise", "flags.mekton-fusion.damageTypeSet": true, "flags.mekton-fusion.quickSet": true, "flags.mekton-fusion.apSet": true });
 });
 
 test("re-running the migration leaves an overridden Mace as Wound", () => {
   // the GM set it back to Wound on the item sheet, which also sets the flag
-  const overridden = { system: { skill: "blade", damageType: "wound" }, flags: { "mekton-fusion": { damageTypeSet: true, quickSet: true } } };
+  const overridden = { system: { skill: "blade", damageType: "wound" }, flags: { "mekton-fusion": { damageTypeSet: true, quickSet: true, apSet: true } } };
   assert.equal(catalogWeaponUpdate(overridden, mace), null);
 });
 
@@ -103,8 +103,8 @@ test("Quick catalog weapons: Quarterstaff and Nunchaku/Tonfa", () => {
 
 test("migration sets Quick once; a GM's change survives re-running", () => {
   const owned = { system: { skill: "blade", damageType: "bruise", quick: false }, flags: { "mekton-fusion": { damageTypeSet: true } } };
-  assert.deepEqual(catalogWeaponUpdate(owned, staff), { "system.quick": true, "flags.mekton-fusion.quickSet": true });
-  const unticked = { system: { skill: "blade", damageType: "bruise", quick: false }, flags: { "mekton-fusion": { damageTypeSet: true, quickSet: true } } };
+  assert.deepEqual(catalogWeaponUpdate(owned, staff), { "system.quick": true, "flags.mekton-fusion.quickSet": true, "flags.mekton-fusion.apSet": true });
+  const unticked = { system: { skill: "blade", damageType: "bruise", quick: false }, flags: { "mekton-fusion": { damageTypeSet: true, quickSet: true, apSet: true } } };
   assert.equal(catalogWeaponUpdate(unticked, staff), null);
 });
 
@@ -120,7 +120,7 @@ test("weapon step updates an unlinked token's own weapons", async () => {
   };
   const report = { weaponsFixed: 0 };
   await migrateActorWeapons(tokenActor, new Map(WEAPON_CATALOG.map(w => [w.name, w])), report);
-  assert.deepEqual(sent, [["Item", [{ _id: "w1", "system.damageType": "bruise", "flags.mekton-fusion.damageTypeSet": true, "flags.mekton-fusion.quickSet": true }]]]);
+  assert.deepEqual(sent, [["Item", [{ _id: "w1", "system.damageType": "bruise", "flags.mekton-fusion.damageTypeSet": true, "flags.mekton-fusion.quickSet": true, "flags.mekton-fusion.apSet": true }]]]);
   assert.equal(report.weaponsFixed, 1);
 });
 

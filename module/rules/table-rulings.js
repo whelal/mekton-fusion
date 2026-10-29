@@ -6,12 +6,6 @@
 
 export const TABLE_RULINGS = {
   /**
-   * Mecha ammo per burst (MZ core, Burst Fire): a burst spends this many shots,
-   * whatever its BV. Missile salvos are not bursts -- they spend 1 per missile fired.
-   */
-  burstAmmoCost: 1,
-
-  /**
    * Single-attack Hit Location Chart (MZ core, Resolving Damage) row 9 (Other) when
    * the target has no wing or tail.
    * "reroll" -- HOUSE: roll the location again.
@@ -109,6 +103,15 @@ export const TABLE_RULINGS = {
    * Mecha armor is unchanged (MZ core RAW: any 1K+ hit). Table may tune it.
    */
   personalArmorAblationThreshold: 5,
+
+  /**
+   * Armor piercing, human scale (MZ core Personal Weapons Table [AP] + Armor
+   * Piercing Attacks; MZ+ ATM Armor-Piercing melee; INTERPRETATION: AP at human
+   * scale = the melee weapons marked [AP]). The armor an AP hit meets counts
+   * as SP / this, rounded down, for that hit only. Ablation is unchanged.
+   * See piercedSP in armor.js.
+   */
+  armorPiercingDivisor: 2,
 
   /**
    * Personal armor layers (HOUSE): at most this many armor pieces may cover any

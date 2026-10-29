@@ -19,6 +19,14 @@ export function ablatePersonalArmor(sp, dmg) {
 }
 
 /**
+ * The SP an armor-piercing hit meets (TABLE_RULINGS.armorPiercingDivisor):
+ * half, rounded down. Not AP: the SP itself.
+ */
+export function piercedSP(sp, ap = false) {
+  return ap ? Math.floor(sp / TABLE_RULINGS.armorPiercingDivisor) : sp;
+}
+
+/**
  * The armor pieces an actor wears, in list order (Item sort), as the plain
  * shape pickActivePiece/resolveZoneHit read.
  * @returns {{id:string, name:string, baseSP:number, coverage:string[], currentSP:Record<string,number>}[]}
@@ -38,17 +46,19 @@ export function armorPieces(actor) {
  * there (tie: list order) soaks and ablates per ablatePersonalArmor. It neither
  * reads nor changes the zone's wound activeArmorId. A piece with no hardness set
  * counts as soft. `softIgnored`: a soft piece covered the zone and was skipped.
- * @returns {{piece:object|null, sp:number, spNow:number, belowThreshold:boolean, through:number, softIgnored:boolean}}
+ * `ap`: armor piercing, the hard piece counts at piercedSP (`counted`).
+ * @returns {{piece:object|null, sp:number, counted:number, spNow:number, belowThreshold:boolean, through:number, softIgnored:boolean}}
  */
-export function resolveBruiseZoneHit(pieces, zone, dmg) {
+export function resolveBruiseZoneHit(pieces, zone, dmg, { ap = false } = {}) {
   const covering = pieces.filter(p => p.coverage.includes(zone));
   const sp = p => Number(p.currentSP?.[zone]) || 0;
   let piece = null;
   for (const p of covering) if (p.hardness === "hard" && sp(p) > 0 && (!piece || sp(p) > sp(piece))) piece = p;
   const cur = piece ? sp(piece) : 0;
+  const counted = piercedSP(cur, ap);
   const { spNow, belowThreshold } = ablatePersonalArmor(cur, dmg);
   return {
-    piece, sp: cur, spNow, belowThreshold, through: Math.max(0, dmg - cur),
+    piece, sp: cur, counted, spNow, belowThreshold, through: Math.max(0, dmg - counted),
     softIgnored: covering.some(p => p.hardness !== "hard")
   };
 }
@@ -73,15 +83,18 @@ export function pickActivePiece(pieces, zone, activeId) {
  * One wound hit on a zone: the active piece's current SP there soaks the hit,
  * the rest goes to the body location, and the piece ablates per
  * ablatePersonalArmor (1 SP at most, only at the threshold). Pure: the caller
- * writes `activeId` back to the actor and `spNow` to the piece.
- * @returns {{activeId:string, piece:object|null, sp:number, spNow:number, belowThreshold:boolean, through:number}}
+ * writes `activeId` back to the actor and `spNow` to the piece. `ap`: armor
+ * piercing, the piece counts at piercedSP (`counted`) for this hit; it ablates
+ * exactly as for any hit.
+ * @returns {{activeId:string, piece:object|null, sp:number, counted:number, spNow:number, belowThreshold:boolean, through:number}}
  */
-export function resolveZoneHit(pieces, zone, activeId, dmg) {
+export function resolveZoneHit(pieces, zone, activeId, dmg, { ap = false } = {}) {
   const id = pickActivePiece(pieces, zone, activeId);
   const piece = pieces.find(p => p.id === id) ?? null;
   const sp = piece ? Number(piece.currentSP?.[zone]) || 0 : 0;
+  const counted = piercedSP(sp, ap);
   const { spNow, belowThreshold } = ablatePersonalArmor(sp, dmg);
-  return { activeId: id, piece, sp, spNow, belowThreshold, through: Math.max(0, dmg - sp) };
+  return { activeId: id, piece, sp, counted, spNow, belowThreshold, through: Math.max(0, dmg - counted) };
 }
 
 /**

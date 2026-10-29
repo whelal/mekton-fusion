@@ -140,7 +140,8 @@ export function clubDamage(sys) {
 /**
  * Knockout strike (MZ core, Knockout Damage, human scale): a melee-weapon or
  * gun-butt strike declared a knockout takes this WA and does this many Hits.
- * INTERPRETATION: the Hit is a Bruise that bypasses armor, and the target
- * always makes a Stun/Shock roll.
+ * INTERPRETATION (0.3.33): the Hit is a normal Bruise against armor (hard armor
+ * stops it, soft is ignored; never armor piercing), and the target always
+ * makes a Stun/Shock roll, even when armor stopped the Hit.
  */
 export const KNOCKOUT = { wa: -3, hits: 1, damageType: "bruise" };

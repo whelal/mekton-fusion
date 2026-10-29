@@ -7,7 +7,7 @@ import { syncActorCoreItems } from "./seed.js";
  * One-time refresh of existing characters and NPCs after the 0.3.x changes:
  *   - adds any CP2020 skills added since the actor was created (existing ranks untouched)
  *   - sets the skill on owned weapons whose name matches a catalog entry, and
- *     their damage type once (0.3.29, catalogWeaponUpdate)
+ *     their damage type, Quick and Armor Piercing once (0.3.29, catalogWeaponUpdate)
  *   - moves any weapon on the Martial Art skill to Hand to Hand, listing them
  *     (Martial Art is unarmed-only, martialArtWeaponUpdate)
  *   - gives owned force screens hard hardness when unset (0.3.29)
@@ -94,7 +94,11 @@ export function martialArtWeaponUpdate(item) {
  * the catalog only while the item lacks the mekton-fusion.damageTypeSet flag,
  * then the flag is set, so a GM's later change (the item sheet sets the flag
  * too) survives re-running the macro. quick (0.3.31) works the same way, with
- * the mekton-fusion.quickSet flag.
+ * the mekton-fusion.quickSet flag, and armorPiercing (0.3.33) with apSet.
+ * AP errata (MZ errata p.98, axes are not AP): an entry marked [AP] but with
+ * armorPiercing false has AP cleared ONCE, under its own apErrataSet flag, so a
+ * copy the 0.3.33 step already set true is still fixed; the item sheet sets
+ * apErrataSet too, so a GM's later choice survives.
  * @param {{system:object, flags?:object}} item
  * @param {{system:object}} entry - the WEAPON_CATALOG entry
  */
@@ -111,6 +115,16 @@ export function catalogWeaponUpdate(item, entry) {
     const quick = !!entry.system?.quick;
     if (!!item.system?.quick !== quick) update["system.quick"] = quick;
     update["flags.mekton-fusion.quickSet"] = true;
+  }
+  if (!item.flags?.["mekton-fusion"]?.apSet) {
+    const ap = !!entry.system?.armorPiercing;
+    if (!!item.system?.armorPiercing !== ap) update["system.armorPiercing"] = ap;
+    update["flags.mekton-fusion.apSet"] = true;
+  }
+  const errata = !!entry.system?.damageNote?.includes("[AP]") && !entry.system?.armorPiercing;
+  if (errata && !item.flags?.["mekton-fusion"]?.apErrataSet) {
+    if (item.system?.armorPiercing) update["system.armorPiercing"] = false;
+    update["flags.mekton-fusion.apErrataSet"] = true;
   }
   return Object.keys(update).length ? update : null;
 }

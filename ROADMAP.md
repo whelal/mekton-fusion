@@ -19,7 +19,7 @@ sentence goes in the Parking lot.
 
 ### Current table rulings
 - No knockback.
-- Mecha ammo: a burst spends 1 ammo regardless of BV. Missile salvos spend 1 ammo per missile fired. Spare clips are tracked per weapon, reloading takes an Action, and full rearm happens at a depot. Infinite-shot beams use no ammo.
+- Mecha ammo: missile salvos spend 1 ammo per missile fired. Spare clips are tracked per weapon, reloading takes an Action, and full rearm happens at a depot. Infinite-shot beams use no ammo.
 - Mecha damage: excess damage past a servo's 0 Kills is lost. A hit-location roll of 9 (Other) rerolls if the mecha has no wing or tail. In a missile salvo walk, a 9 with no wing or tail is skipped (the walk moves on to 10), not rerolled.
 - Players choose the hit location only on aimed shots. On a Crit, the attacker chooses the chart (RAW). Salvo walks are not chosen.
 - Human-scale: no armor bypass for characters. Burst fire plays RAW. Armor ablation uses the 5-Hit threshold (see Interpretations). The GM Difficulty option stays, for sneak attacks with no evade or dodge.
@@ -51,8 +51,14 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - One defense after a failed Evade: a weapon Parry or an Arm Block, not both. A GM Difficulty attack (unaware target) gets neither.
 - In hand: draw only on your own turn (honor system).
 - Blocking arm: the arm with the most Hits left, then the best armor; a broken arm can't block.
-- Knockout strike (MZ core, Knockout Damage): its 1 Hit is a Bruise that bypasses armor; the Stun/Shock roll always happens.
+- Knockout strike (MZ core, Knockout Damage): its 1 Hit is a normal Bruise against armor (hard armor stops it, soft is ignored, the ablation threshold applies); the Stun/Shock roll always happens, even if armor stopped the Hit. Never armor piercing.
+- AP at human scale = melee weapons marked [AP] in the core table; halved SP rounds down. It applies to natural armor, and to hits that still land after a parry or block. An AP weapon used for Bruise halves only hard armor. A firearm clubbing never pierces.
+- Battleaxe is not AP (errata p.98 removes axes from AP, which overrides its [AP] marker in the personal weapons table).
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
+
+### RAW notes
+Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
+- A burst spends 1 shot regardless of BV, at every scale (MZ+ ATM Ammunition: one burst is bought as one Shot).
 
 ## Versioning
 
@@ -91,10 +97,27 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [x] Body tab redesign, UI only: Location | Armor | Hits | Status, one Hits bar per location, a location editor on row click; "SDP" renamed "Hits" (0.3.30)
 - [x] Quick melee attacks, human scale: two attacks in one Action for Quick weapons and fist strikes (0.3.31)
 - [x] Human-scale defense: In hand, weapon Parry, Arm Block, improvised use, Martial Art unarmed-only (0.3.32)
+- [x] Armor piercing, melee: [AP] weapons meet armor at half SP (round down), ablation unchanged; Knockout no longer bypasses armor (0.3.33)
 - [ ] GM recovery tools: Full Recovery, Repair Armor, Rest
 - [ ] Medical drugs
-- [ ] Armor piercing (MZ core): [AP] melee weapons (already flagged in the weapon catalog's `damageNote`) and AP ammo, applied in `resolveZoneHit` (spec pending)
-  - MZ+ ATM Armor-Piercing melee: armor at 1/2 SP; staged penetration and DC work as normal. Use this as the starting point.
+- [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
+      scale and converted where an effect lands). Build steps, one patch each:
+  1. Clips and counting, HE only: clip items (capacity from the weapon's Shots), loading, firing
+     decrements, reload/clip swap costs 1 Action (ATM), the card shows rounds left, spare clips in
+     inventory. A personal-weapon burst uses 1 shot (same ATM rule as mecha; all scales).
+  2. Mixed loads + effect pipeline: a clip holds an ORDERED list of loads (e.g. 10 AP+Incendiary,
+     then 20 HE) and fires in load order. Ammo type cost multiplier = product of its effects.
+     Stages: on fire (Tracer +1 WA); on hit vs armor (A-P 1/2 SP, rounded down; Disruptor 1/2 SP vs
+     energy shields, parked); on damage (Incendiary, Shock Added); replaces damage (Shock Only,
+     Paintball, Foam, Tangler); area (Blast I-V). Stored, not automated: Kinetic (no knockback),
+     Scatter Shot, Nuclear. This step ships Tracer and A-P.
+  3. Incendiary and Shock. Shock (ATM): the weapon's original damage in KILLS is subtracted from
+     the target's consciousness roll, NOT scaled. For a character: Stun/Shock roll with the Stun
+     number reduced by the weapon's Kills. Blocked on personal-weapon Kill ratings (see the Parking
+     lot weapon Hits/Kills design pass).
+  4. Multi-Feed (ATM): several clips loaded at once; the attacker picks the feeding clip per attack
+     with no Action. Without Multi-Feed, the loaded clip fires in load order.
+- Out of scope for ammo: beam/energy weapons (charge) and missiles (own warhead types).
 
 ### 0.5 — Mecha sheet usability
 **Done when:** I can stat a book NPC mech in under ~10 minutes.
@@ -117,6 +140,9 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - [ ] Beam and Reactive shields (no staged penetration; overload/reset)
 - [ ] Streamline the shield parry flow (table finds it clunky)
 - [ ] Non-weapon systems (sensors, subassemblies, movement) go out of action with a destroyed servo, except flight systems and maneuver verniers (RAW)
+- [ ] Mecha projectile weapons use the same ammo/clip model (replaces the 0.3.13 clip counter);
+      missile warhead types. Spare clips become clip items; reload = clip swap = 1 Action (ATM);
+      depot rearm refills all clips.
 - [ ] Quick melee/EMW construction option and two attacks per Action in the Play view. Cost x2.0 per the Net Mekton Handbook summary; VERIFY against ATM's melee/EMW cost table before using it.
 
 ### 0.7 — Hardening
@@ -154,6 +180,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Creature natural armor as worn plate or mesh pieces (currently a flat location SP from the preset).
 - Quadruped and hexapod creatures (non-humanoid body locations and hit charts).
 - New characters show "Natural 10/10" on every location until armor is first dragged on; then every other location drops to 0 (the schema's initial `spMax` of 10 lingers until the armor recompute runs). New characters should start at 0 natural SP.
-- Personal weapon Hits and attacking held weapons. Human-scale weapons are built at Mekton scale in Kills; 1K = 2.5 Hits (round down), and damage dice come from the K->D6 table (e.g. 7K = 3D6-1), but catalog weapons don't line up exactly (no 3D6-1 entries). Needs a design pass.
+- Personal weapon Kill ratings, Hits, and attacking held weapons. Needed by Shock ammo. Human-scale weapons are built at Mekton scale in Kills (1K = 2.5 Hits, round down; dice from the K->D6 table), but catalog dice don't always map to a single K row (e.g. 3D6 sits between 6K = 2D6+3 and 7K = 3D6-1). Needs a rule for mapping.
 - Shield parry (needs a DA; the MZ Personal Armor Table lists only SP 15).
+- AP ammunition for firearms, as part of a separate personal ammo system (no AP-rounds toggle until then).
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).

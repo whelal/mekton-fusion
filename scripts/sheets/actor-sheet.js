@@ -2,7 +2,7 @@
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
-import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit } from "../../module/data/armor.js";
+import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit, piercedSP } from "../../module/data/armor.js";
 import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments } from "../../module/data/damage-track.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../../module/data/close-combat.js";
@@ -334,36 +334,41 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * Also resolves a Stun/Shock save when this single hit's post-armor damage
    * exceeds half the location's shown Hits BEFORE the hit, Wound or Bruise
    * (1d10 <= substats.stun to stay conscious).
+   * Armor piercing (0.3.33): the armor met (worn piece, hard piece for a Bruise,
+   * or natural armor) counts at piercedSP for this hit; ablation is unchanged.
    * @param {Actor} targetActor
    * @param {string} key - head/torso/rArm/lArm/rLeg/lLeg
    * @param {number} dmgTotal - rolled weapon damage (+ BODY mod if applicable), pre-armor
-   * @param {{ignoreSp?: boolean, zone?: string, damageType?: "wound"|"bruise", forceStun?: boolean}} [opts] -
-   *   ignoreSp: damage is already post-armor (burning) or bypasses it (Knockout).
+   * @param {{ignoreSp?: boolean, zone?: string, damageType?: "wound"|"bruise", forceStun?: boolean, armorPiercing?: boolean}} [opts] -
+   *   ignoreSp: damage is already post-armor (burning).
    *   zone: the armor zone hit (ARMOR_ZONES key); default the location's own
    *   zone, or thigh/lower leg 50/50 for a leg. damageType: default "wound".
    *   forceStun: always roll Stun/Shock (Knockout), still not for the dead or unconscious.
-   * @returns {{sp:number, spNow:number, belowThreshold:boolean, armorName:string, damageType:string, softIgnored:boolean, before:number, after:number, hitsNow:number, wounds:number, bruises:number, state:string, stun:object|null}}
+   *   armorPiercing: an [AP] weapon's hit (piercedSP).
+   * @returns {{sp:number, counted:number, ap:boolean, spNow:number, belowThreshold:boolean, armorName:string, damageType:string, softIgnored:boolean, before:number, after:number, hitsNow:number, wounds:number, bruises:number, state:string, stun:object|null}}
    */
-  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone, damageType = 'wound', forceStun = false } = {}) {
+  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone, damageType = 'wound', forceStun = false, armorPiercing = false } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
     zone ??= closeHitZone(key);
     const update = {};
-    let sp = 0, spNow = 0, belowThreshold = false, piece = null, softIgnored = false;
+    const ap = !!armorPiercing && !ignoreSp;
+    let sp = 0, counted = 0, spNow = 0, belowThreshold = false, piece = null, softIgnored = false;
     const pieces = armorPieces(targetActor);
     const worn = pieces.some(p => zonesOfLocation(key).some(z => p.coverage.includes(z)));
     if (ignoreSp) {
       // burning: already past the armor
     } else if (worn && damageType === 'bruise') {
-      const r = resolveBruiseZoneHit(pieces, zone, dmgTotal);
-      ({ sp, spNow, belowThreshold, piece } = r);
+      const r = resolveBruiseZoneHit(pieces, zone, dmgTotal, { ap });
+      ({ sp, counted, spNow, belowThreshold, piece } = r);
       softIgnored = r.softIgnored && !piece;
     } else if (worn) {
       const stored = targetActor.system?.body?.armorZones?.[zone]?.activeArmorId ?? '';
-      const r = resolveZoneHit(pieces, zone, stored, dmgTotal);
-      ({ sp, spNow, belowThreshold, piece } = r);
+      const r = resolveZoneHit(pieces, zone, stored, dmgTotal, { ap });
+      ({ sp, counted, spNow, belowThreshold, piece } = r);
       if (r.activeId !== stored) update[`system.body.armorZones.${zone}.activeArmorId`] = r.activeId;
     } else {
       sp = MektonActorSheet._num(loc?.sp, 0);
+      counted = piercedSP(sp, ap);
       ({ spNow, belowThreshold } = ablatePersonalArmor(sp, dmgTotal));
       if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
     }
@@ -373,7 +378,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       bruises: MektonActorSheet._num(loc?.bruises, 0)
     };
     const before = shownHits(track);
-    const after = Math.max(0, dmgTotal - sp);
+    const after = Math.max(0, dmgTotal - counted);
     const next = { ...track, ...applyTrackDamage(track, after, damageType) };
     const hitsNow = shownHits(next);
     update[`system.body.locations.${key}.hits`] = next.hits;
@@ -399,7 +404,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
 
     return {
-      sp, spNow, belowThreshold, armorName: piece?.name ?? '', damageType, softIgnored,
+      sp, counted, ap, spNow, belowThreshold, armorName: piece?.name ?? '', damageType, softIgnored,
       before, after, hitsNow, wounds: woundsOf(next), bruises: next.bruises, state, stun
     };
   }
@@ -481,13 +486,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, state, stun } = applied;
+    const { sp, ap, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
     const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
       : belowThreshold ? `, no ablation (&lt;${TABLE_RULINGS.personalArmorAblationThreshold})` : '';
     const piece = armorName ? ` (${escapeHtml(armorName)})` : '';
-    const soak = softIgnored ? 'soft armor ignored' : `SP ${sp}${piece} soaked${ablated}`;
+    // AP: "AP: SP 15 (Heavy Mesh) counts as 7, 9 through".
+    const soak = softIgnored ? 'soft armor ignored'
+      : ap ? `AP: SP ${sp}${piece} counts as ${applied.counted}${ablated}` : `SP ${sp}${piece} soaked${ablated}`;
     const prefix = damageType === 'bruise' ? '<strong>Bruise:</strong> ' : '';
     // Once a location carries Bruises, show the track split (W = Wounds, B = Bruises).
     const split = bruises ? ` (${wounds}W/${bruises}B)` : '';
@@ -3428,7 +3435,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             </div>` : ''}
             ${knockoutChoice ? `
             <div class="form-group mf-knockout"${closeContact ? '' : ' style="display:none;"'}>
-              <label><input type="checkbox" name="knockout"/> Knockout strike (${KNOCKOUT.wa}): ${KNOCKOUT.hits} Hit past armor + Stun/Shock roll</label>
+              <label><input type="checkbox" name="knockout"/> Knockout strike (${KNOCKOUT.wa}): ${KNOCKOUT.hits} Hit (Bruise) + Stun/Shock roll</label>
             </div>` : ''}
             ${quickChoice ? `
             <div class="form-group">
@@ -3567,11 +3574,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         // A hit puts the explosion on the targeted token; a miss (success === false) skips it.
         flavor += await this._resolveBlast(weapon, weaponName);
       } else if (success !== false && knockout) {
-        // Knockout: a fixed Bruise past armor, and always a Stun/Shock roll.
+        // Knockout: a fixed Bruise against armor as normal, and always a Stun/Shock roll.
         const { key, label: locLabel, zone } = await hitLocation();
-        flavor += `<br><strong>Knockout</strong>: ${KNOCKOUT.hits} Hit (Bruise, armor bypassed) ${damageTo(targetActor?.name, locLabel)}`;
+        flavor += `<br><strong>Knockout</strong>: ${KNOCKOUT.hits} Hit (Bruise) ${damageTo(targetActor?.name, locLabel)}`;
         if (targetActor) {
-          const applied = await this.constructor._applyLocationDamage(targetActor, key, KNOCKOUT.hits, { zone, damageType: KNOCKOUT.damageType, ignoreSp: true, forceStun: true });
+          const applied = await this.constructor._applyLocationDamage(targetActor, key, KNOCKOUT.hits, { zone, damageType: KNOCKOUT.damageType, forceStun: true });
           flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
         } else {
           flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-damage-type="${KNOCKOUT.damageType}" data-knockout="1" data-loc-label="${locLabel}" data-dmg="${KNOCKOUT.hits}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
@@ -3589,6 +3596,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           const skillBonus = club ? 0 : MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon);
           const damageType = club ? TABLE_RULINGS.improvisedClub.damageType
             : pickedDamageType === 'bruise' ? 'bruise' : pickedDamageType === 'wound' ? 'wound' : weaponDamageType;
+          // [AP]: the weapon's own strike; a gun-butt club never pierces.
+          const ap = !club && !!weapon.system?.armorPiercing;
           for (let h = 1; h <= hitCount; h++) {
             let dmg = null;
             try {
@@ -3606,10 +3615,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             // Apply to the TARGET only, never the attacker. Exactly one targeted
             // token -> apply now; otherwise defer via a chat-card button per hit.
             if (targetActor) {
-              const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone, damageType });
+              const applied = await this.constructor._applyLocationDamage(targetActor, key, dmgTotal, { zone, damageType, armorPiercing: ap });
               flavor += `<br>${escapeHtml(targetActor.name)}: ${this.constructor._formatDamageAppliedHtml(applied)}`;
             } else {
-              flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-damage-type="${damageType}" data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
+              flavor += `<br><button type="button" class="mf-apply-damage" data-loc-key="${key}" data-zone="${zone}" data-damage-type="${damageType}"${ap ? ' data-ap="1"' : ''} data-loc-label="${locLabel}" data-dmg="${dmgTotal}" data-attacker="${escapeHtml(this.actor.name)}">Apply to targeted token</button>`;
             }
           }
         }
@@ -3940,8 +3949,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     } catch (_) { return; }                                     // cancelled dialog: nothing fired
     const { defense } = form;
     const fired = isSalvo ? form.fired : 1;
-    // A salvo spends 1 per missile fired; a burst spends TABLE_RULINGS.burstAmmoCost whatever its BV.
-    const spend = isSalvo ? fired : TABLE_RULINGS.burstAmmoCost;
+    // A salvo spends 1 per missile fired; a burst spends 1 whatever its BV (RAW: MZ+ ATM
+    // Ammunition, one burst is bought as one Shot).
+    const spend = isSalvo ? fired : 1;
     if (!(await this._spendMechaAmmo(idx, spend))) return;     // fired: costs ammo, hit, miss or parried
 
     const margin = attack - defense;

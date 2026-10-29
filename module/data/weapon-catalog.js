@@ -23,6 +23,10 @@
  *     other thrown, ranged, grenades).
  *   quick (MZ+ ATM, Melee Weapons, Quick: two attacks in one Action): true for
  *     the Quarterstaff and Nunchaku/Tonfa, the weapons ATM names; GM-editable.
+ *   armorPiercing (MZ core Armor Piercing Attacks; MZ+ ATM Armor-Piercing melee):
+ *     true for the entries whose damageNote is "[AP]", except the Battleaxe (MZ
+ *     errata, p.98 Armor-Piercing Attacks: axes are not AP, which overrides the
+ *     table's [AP] marker; the marker stays in damageNote); GM-editable.
  *   Grenades (blast radius 6m): the book's "/6m" damage suffix is stored as a plain
  *     roll (Sleep Grenade: no damage). `blastRadius` (m) / `blastEffect` drive the
  *     automated area effect (see _resolveBlast in actor-sheet.js); `note` repeats the
@@ -56,18 +60,18 @@
  */
 
 /** Build one catalog entry; keeps the array below terse and reviewable. */
-function weapon(name, { wa, range, damage, damageNote = "", damageType = "wound", quick = false, shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", blastRadius = 0, blastEffect = "", img }) {
+function weapon(name, { wa, range, damage, damageNote = "", armorPiercing = damageNote.includes("[AP]"), damageType = "wound", quick = false, shots, bv, conc = "", weight = 0, cost = 0, ammoCost = 0, tl = 0, skill, note = "", blastRadius = 0, blastEffect = "", img }) {
   return {
     name,
     type: "weapon",
     img,
-    system: { name, wa, range, damage, damageNote, damageType, quick, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note, blastRadius, blastEffect }
+    system: { name, wa, range, damage, damageNote, damageType, quick, armorPiercing, shots, bv, conc, weight, cost, ammoCost, tl, skill, isMecha: false, note, blastRadius, blastEffect }
   };
 }
 
 export const WEAPON_CATALOG = [
   // --- MELEE WEAPONS -> "blade" except Whip -> "whip" ---
-  weapon("Battleaxe",           { wa: -1, range: "2", damage: "2D10+", damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 3.5,   cost: 70,   tl: 2, skill: "blade", img: "icons/weapons/axes/axe-battle-simple.webp" }),
+  weapon("Battleaxe",           { wa: -1, range: "2", damage: "2D10+", damageNote: "[AP]", armorPiercing: false /* MZ errata p.98 */, shots: "na", bv: "na", conc: "N", weight: 3.5,   cost: 70,   tl: 2, skill: "blade", img: "icons/weapons/axes/axe-battle-simple.webp" }),
   weapon("Boomerang",           { wa: -1, range: "T", damage: "1D6+",  damageType: "bruise", shots: "na", bv: "na", conc: "L", weight: 0.6,   cost: 48,   tl: 2, skill: "athletics", img: "icons/weapons/thrown/boomerang.webp" }),
   weapon("Broadsword",          { wa: 0,  range: "2", damage: "3D6+",  damageNote: "[AP]", shots: "na", bv: "na", conc: "N", weight: 3.0,   cost: 84,   tl: 2, skill: "blade", img: "icons/weapons/swords/sword-broad-worn.webp" }),
   weapon("Chainsaw",            { wa: -1, range: "2", damage: "3D6+",  damageNote: "[AP]", shots: "10", bv: "na", conc: "N", weight: 3.0,   cost: 54,   tl: 5, skill: "blade", img: "icons/weapons/swords/machete.webp" }),

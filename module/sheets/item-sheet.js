@@ -181,6 +181,10 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
     if (this.object.type === "weapon" && "system.quick" in formData && formData["system.quick"] !== this.object.system.quick) {
       formData["flags.mekton-fusion.quickSet"] = true;
     }
+    if (this.object.type === "weapon" && "system.armorPiercing" in formData && formData["system.armorPiercing"] !== this.object.system.armorPiercing) {
+      formData["flags.mekton-fusion.apSet"] = true;
+      formData["flags.mekton-fusion.apErrataSet"] = true;
+    }
     // Handle the form submission and update the item
     return this.object.update(formData);
   }
