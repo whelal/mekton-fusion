@@ -1866,6 +1866,14 @@ html.theme-dark .mekton-fusion {
 .mekton-fusion .tab.body .mf-recovery { display: flex; gap: 0.4em; margin-bottom: 0.4em; }
 .mekton-fusion .tab.body .mf-recovery button { flex: 1 1 0; }
 
+/* Recover dialog preview */
+.mf-recover .mf-recover-note { font-size: 0.8rem; opacity: 0.75; margin: 0.3em 0; }
+.mf-recover-table { width: 100%; font-size: 0.85rem; }
+.mf-recover-table th { text-align: left; }
+.mf-recover-table tr.mf-recover-worse td { background: rgba(192, 57, 43, 0.12); }
+.mf-recover-danger { color: #c0392b; }
+.mf-recover-held { opacity: 0.8; }
+
 .mekton-fusion.sheet.actor nav.sheet-tabs.tabs {
   margin: 0 !important;
   padding: 0 !important;

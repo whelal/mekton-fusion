@@ -7,12 +7,7 @@
 import { ZONE_KEYS, zonesOfLocation } from "./armor-coverage.js";
 import { woundsOf, woundState } from "./damage-track.js";
 import { seedZoneSP } from "./armor.js";
-
-/**
- * Bruises healed per full hour of rest, per location ("Fists From Hell" Bruise
- * Damage addendum).
- */
-export const BRUISES_HEALED_PER_HOUR = 1;
+import { TABLE_RULINGS } from "../rules/table-rulings.js";
 
 /**
  * Full Recovery: every location's Wounds and Bruises cleared (Hits back to
@@ -75,7 +70,7 @@ export function repairArmorUpdates(pieces, locations, armorZones = {}) {
 }
 
 /**
- * Rest: each location heals BRUISES_HEALED_PER_HOUR Bruises per full hour,
+ * Rest: each location heals TABLE_RULINGS.bruisesHealedPerHour Bruises per full hour,
  * never below 0. Wounds aren't touched.
  * @param {Record<string, {bruises?:number}>} locations
  * @param {number} hours - partial hours are dropped
@@ -87,7 +82,7 @@ export function restUpdate(locations, hours) {
   const healed = [];
   for (const [key, loc] of Object.entries(locations ?? {})) {
     const from = Math.max(0, Number(loc?.bruises) || 0);
-    const to = Math.max(0, from - full * BRUISES_HEALED_PER_HOUR);
+    const to = Math.max(0, from - full * TABLE_RULINGS.bruisesHealedPerHour);
     if (to === from) continue;
     update[`system.body.locations.${key}.bruises`] = to;
     healed.push({ key, from, to });

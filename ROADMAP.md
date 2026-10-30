@@ -33,6 +33,7 @@ sentence goes in the Parking lot.
 - No parry wear on personal weapons.
 - Martial Art is unarmed-only (not a weapon attack skill).
 - Arm Block (house, adapted from Interlock Unlimited): vs melee and unarmed attacks; uses the higher of HtH and Martial Art; margin 0-4 = damage to the blocking arm, 5+ = no damage (playtest).
+- Bruises heal 1 per hour of rest (Fists From Hell); MZ's Bruises rows are unused. Wounds heal per MZ Natural Recovery / Medical Attention tables.
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -55,6 +56,8 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - AP at human scale = melee weapons marked [AP] in the core table; halved SP rounds down. It applies to natural armor, and to hits that still land after a parry or block. An AP weapon used for Bruise halves only hard armor. A firearm clubbing never pierces.
 - Battleaxe is not AP (errata p.98 removes axes from AP, which overrides its [AP] marker in the personal weapons table).
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
+- Natural recovery injury type, re-read each day from the location's Wound Hits (from MZ human damage thresholds): Hits > 0 Wounds; a limb at 0 to -1 Broken, -2 or below Mangled, -5 or below severed (doesn't heal by the tables: needs prosthetic/regeneration); head or torso at 0 or below Internal, -2 or below dead (doesn't heal). Only a location with Wounds recovers or worsens.
+- Burns heal as Wounds (burn damage isn't tracked separately).
 
 ### RAW notes
 Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
@@ -99,6 +102,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Human-scale defense: In hand, weapon Parry, Arm Block, improvised use, Martial Art unarmed-only (0.3.32)
 - [x] Armor piercing, melee: [AP] weapons meet armor at half SP (round down), ablation unchanged; Knockout no longer bypasses armor (0.3.33)
 - [x] GM recovery tools: Full Recovery, Repair Armor, Rest; natural Wound recovery stays manual (0.3.34)
+- [x] Natural recovery: Recover N days, Wounds per MZ Natural Recovery / Medical Attention tables, Bruises per hour rested, preview first, deterioration only when ticked (0.3.35)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
       scale and converted where an effect lands). Build steps, one patch each:

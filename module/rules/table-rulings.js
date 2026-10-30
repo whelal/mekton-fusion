@@ -129,5 +129,14 @@ export const TABLE_RULINGS = {
    * per sprained limb. Roll dialogs list the roller's sprained limbs; the player
    * ticks the ones the roll uses (the sheet can't tell which limb a roll uses).
    */
-  sprainedLimbPenalty: -3
+  sprainedLimbPenalty: -3,
+
+  /**
+   * Bruise recovery (HOUSE, after the "Fists From Hell" Bruise Damage
+   * addendum): each location heals this many Bruises per full hour of rest.
+   * MZ core's Natural Recovery / Medical Attention tables' Bruises rows are
+   * unused; those tables heal Wounds only (natural-recovery.js). Used by Rest
+   * and Recover.
+   */
+  bruisesHealedPerHour: 1
 };

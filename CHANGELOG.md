@@ -1,3 +1,16 @@
+## [0.3.35] - 2026-10-29
+### Added
+- **Natural recovery** (MZ core, Recovery: Natural Healing / Medical Aid; Natural Recovery Table; Medical Attention Table): a GM-only **Recover…** button on the Body tab. The GM enters days, hours rested per day (0-24) and whether the character had medical attention; a preview lists every location's injury type and Hits/day, Wounds before → after and Bruises before → after, before anything is applied. A chat card logs the result.
+  - Wounds heal per day by injury type and BODY, from the Natural Recovery table or (medical attention) the Medical Attention table. The injury type is re-read each day: Wounds (Hits > 0), Broken (a limb at 0 to -1), Mangled (a limb at -2 or below), Internal (head or torso at 0 or below); burns heal as Wounds. A severed limb (-5 or below) and a dead location don't heal; the preview notes it.
+  - Fractional rates (0.5, 0.1) build up per location in the new `recoveryRemainder` field and give a whole Hit at 1; it resets when the location is fully healed. Healing never goes past full Hits.
+  - A negative rate (low BODY, no medical attention) makes a wounded location worse, only with **Apply deterioration** ticked; otherwise the location is held. The preview shows what deterioration would do and flags each MZ threshold crossed (Broken, Mangled, Severed, Internal, Dead) in red.
+  - Bruises heal 1 per hour rested, per location, as with Rest.
+- Medical-drug hooks in `natural-recovery.js` for the medical drugs patch: Speed Heal (x2) and Synthe-Flesh (+1/day) modify positive rates only. Not used yet.
+- `module/data/natural-recovery.js`, with tests.
+### Changed
+- The Bruise recovery rate is now a table ruling, `bruisesHealedPerHour` in `table-rulings.js` (was a constant in `recovery.js`); Rest uses it. No behavior change.
+- ROADMAP.md: natural recovery ticked (0.3.35), before medical drugs; Bruise/Wound recovery ruling; injury-type and burns interpretations.
+
 ## [0.3.34] - 2026-10-29
 ### Added
 - **GM recovery tools** on the Body tab, the character counterpart of mecha Depot Maintenance: three GM-only buttons above the location table, each with a confirm dialog and a chat card listing exactly what changed. Players don't see them.

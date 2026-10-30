@@ -10,7 +10,8 @@ import { DEFENSE_MODES, KNOCKOUT, bestParryWeapon, pickBlockingArm, chooseDefens
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
-import { fullRecoveryUpdate, repairArmorUpdates, restUpdate, BRUISES_HEALED_PER_HOUR } from "../../module/data/recovery.js";
+import { fullRecoveryUpdate, repairArmorUpdates, restUpdate } from "../../module/data/recovery.js";
+import { recoverActor, injuryType, INJURY_LABELS } from "../../module/data/natural-recovery.js";
 import { escapeHtml } from "../../module/util/escape.js";
 import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel } from "../../module/data/attack-card.js";
 
@@ -951,6 +952,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     html.on('click', '.mf-recovery-full', ev => this._onFullRecovery(ev));
     html.on('click', '.mf-recovery-armor', ev => this._onRepairArmor(ev));
     html.on('click', '.mf-recovery-rest', ev => this._onRest(ev));
+    html.on('click', '.mf-recovery-recover', ev => this._onRecover(ev));
 
     // Mecha configuration selection
     html.on('click', '[data-action="select-config"]', async ev => {
@@ -2870,7 +2872,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * GM: Rest N hours (recovery.js restUpdate): each location heals
-   * BRUISES_HEALED_PER_HOUR Bruises per full hour. Wounds unchanged.
+   * TABLE_RULINGS.bruisesHealedPerHour Bruises per full hour. Wounds unchanged.
    */
   async _onRest(ev) {
     ev.preventDefault();
@@ -2879,7 +2881,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     try {
       hours = await Dialog.prompt({
         title: 'Rest',
-        content: `<p>Hours of rest for <strong>${escapeHtml(this.actor.name)}</strong> (each location heals ${BRUISES_HEALED_PER_HOUR} Bruise per full hour; Wounds are unchanged):</p>`
+        content: `<p>Hours of rest for <strong>${escapeHtml(this.actor.name)}</strong> (each location heals ${TABLE_RULINGS.bruisesHealedPerHour} Bruise per full hour; Wounds are unchanged):</p>`
           + `<input type="number" name="hours" min="0" step="1" value="1" style="width:100%" autofocus/>`,
         label: 'Rest',
         callback: html => Number(html.find("[name='hours']").val()) || 0
@@ -2890,6 +2892,86 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (Object.keys(r.update).length) await this.actor.update(r.update);
     const lines = r.healed.map(h => `${this._locLabel(h.key)}: ${h.from - h.to} Bruise${h.from - h.to === 1 ? '' : 's'} healed (${h.from} &rarr; ${h.to})`);
     await this._postRecoveryCard(`Rest, ${r.hours} hour${r.hours === 1 ? '' : 's'}`, lines);
+  }
+
+  /**
+   * GM: Recover N days (natural-recovery.js recoverActor): Wounds heal per MZ's
+   * Natural Recovery or Medical Attention table, re-read each day; Bruises heal
+   * per hour rested. The dialog previews every location before anything is
+   * written; a negative rate applies only with "apply deterioration" ticked.
+   */
+  _onRecover(ev) {
+    ev.preventDefault();
+    if (!game.user.isGM) return;
+    const body = Number(this.actor.system.stats?.BODY?.value) || 0;
+    const read = html => ({
+      body,
+      days: Math.max(0, Math.floor(Number(html.find("[name='days']").val()) || 0)),
+      hoursPerDay: Math.min(24, Math.max(0, Math.floor(Number(html.find("[name='hours']").val()) || 0))),
+      medical: html.find("[name='medical']").is(':checked'),
+      allowDeterioration: html.find("[name='deteriorate']").is(':checked')
+    });
+    const preview = html => html.find('.mf-recover-preview').html(this._recoverPreviewHtml(recoverActor(this.actor.system.body.locations, read(html)).rows));
+    new Dialog({
+      title: `Recover: ${this.actor.name}`,
+      content: `<form class="mf-recover">
+          <div class="form-group"><label>Days</label><input type="number" name="days" min="0" step="1" value="1"/></div>
+          <div class="form-group"><label>Hours rested per day</label><input type="number" name="hours" min="0" max="24" step="1" value="8"/></div>
+          <div class="form-group"><label><input type="checkbox" name="medical"/> Medical attention (after a successful Medical roll)</label></div>
+          <div class="form-group"><label><input type="checkbox" name="deteriorate"/> Apply deterioration</label></div>
+          <p class="mf-recover-note">BODY ${body}. Wounds: MZ Natural Recovery / Medical Attention table, per day. Bruises: ${TABLE_RULINGS.bruisesHealedPerHour} per hour rested.</p>
+          <div class="mf-recover-preview"></div>
+        </form>`,
+      buttons: {
+        apply: { label: 'Apply', callback: html => this._applyRecover(read(html)) },
+        cancel: { label: 'Cancel' }
+      },
+      default: 'cancel',
+      render: html => {
+        html.find('input').on('change input', () => preview(html));
+        preview(html);
+      }
+    }, { classes: ['dialog', 'mekton-fusion-dialog'], width: 560 }).render(true);
+  }
+
+  /** Recover dialog's preview table, one row per location. */
+  _recoverPreviewHtml(rows) {
+    const label = t => INJURY_LABELS[t] ?? t;
+    const wounds = (r, hits) => r.hitsMax - hits;
+    const body = rows.map(r => {
+      const types = [...new Set(r.types.map((t, i) => `${label(t)} ${r.rates[i] > 0 ? '+' : ''}${r.rates[i]}`))].join(', ');
+      const type = r.skipped === 'severed' ? 'Severed: needs prosthetic/regeneration'
+        : r.skipped === 'dead' ? 'Dead' : types || (r.before.hits >= r.hitsMax ? '&mdash;' : label(injuryType(r.key, r.before.hits)) + ' 0');
+      const w0 = wounds(r, r.before.hits);
+      let w = w0 === wounds(r, r.hits) ? `${w0}` : `${w0} &rarr; ${wounds(r, r.hits)}`;
+      const crossed = r.crossed.length ? r.crossed : r.ifAllowed?.crossed ?? [];
+      if (r.held) w += ` <em class="mf-recover-held">held (would be ${wounds(r, r.ifAllowed.hits)}; tick Apply deterioration)</em>`;
+      const flag = crossed.length ? ` <strong class="mf-recover-danger">${r.held ? 'would cross' : 'crosses'}: ${crossed.join(', ')}</strong>` : '';
+      const b = r.before.bruises === r.bruises ? `${r.bruises}` : `${r.before.bruises} &rarr; ${r.bruises}`;
+      const rowClass = crossed.length || r.deteriorates ? ' class="mf-recover-worse"' : '';
+      return `<tr${rowClass}><td>${this._locLabel(r.key)}</td><td>${type}</td><td>${w}${flag}</td><td>${b}</td></tr>`;
+    }).join('');
+    return `<table class="mf-recover-table"><thead><tr><th>Location</th><th>Injury, Hits/day</th><th>Wounds</th><th>Bruises</th></tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  /** Apply the Recover dialog's result (recomputed from current data) and post the card. */
+  async _applyRecover(opts) {
+    if (!opts.days) return;
+    const { update, rows } = recoverActor(this.actor.system.body.locations, opts);
+    if (Object.keys(update).length) await this.actor.update(update);
+    const lines = [];
+    for (const r of rows) {
+      const parts = [];
+      const w0 = r.hitsMax - r.before.hits, w1 = r.hitsMax - r.hits;
+      if (w0 !== w1) parts.push(`Wounds ${w0} &rarr; ${w1}${r.types.length ? ` (${[...new Set(r.types.map(t => INJURY_LABELS[t]))].join(', ')})` : ''}`);
+      if (r.crossed.length) parts.push(`<strong style="color:#c0392b">${r.crossed.join(', ')}</strong>`);
+      if (r.held) parts.push('worsening held');
+      if (r.bruises !== r.before.bruises) parts.push(`Bruises ${r.before.bruises} &rarr; ${r.bruises}`);
+      if (r.skipped === 'severed') parts.push('severed: needs prosthetic/regeneration');
+      if (parts.length) lines.push(`${this._locLabel(r.key)}: ${parts.join('; ')}`);
+    }
+    const how = `${opts.days} day${opts.days === 1 ? '' : 's'}, ${opts.medical ? 'medical attention' : 'natural'}, ${opts.hoursPerDay} h rest/day`;
+    await this._postRecoveryCard(`Recover, ${how}`, lines);
   }
 
   /**
