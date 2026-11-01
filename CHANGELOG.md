@@ -1,3 +1,22 @@
+## [0.3.36] - 2026-11-01
+### Added
+- **Wound penalties** (MZ core, Referee's Section, Realistic Damage Table), automated on top of the core damage states, which are unchanged. From Wounds only; Bruises never cause them (Sprained is separate).
+  - Head or torso at exactly 1 Hit remaining: -1. A limb at 0 (broken): -1; at -1 to -4: -3; at -5 or below (blown off): -5, plus a Stun/Shock roll at the start of each of the character's turns in combat, posted to chat.
+  - An arm at 1 Hit remaining halves Lift; a leg at 1 Hit remaining halves MA, so all movement (Run, Leap, Walk, Running Jump, Anime Leap, Swim, Encumbered MA). Each halves once, however many limbs qualify.
+  - Penalties from different locations stack (a torso at 1 and a broken arm = -2) and apply to every roll the character makes: stats, skills, weapon and close-combat attacks, Evade, weapon Parry, Arm Block, and, as a pilot, mecha armament and mecha Parry rolls.
+  - Every roll dialog shows a ticked "Wounds -2 (…)" line the GM can untick for that roll. Rolls without a dialog (Evade, Parry and Arm Block on defense, mecha armament rows, shift-click rolls) always apply it and show it on the card.
+  - **Torso at 0 Hits** (table ruling `torsoZeroStunCheck`, overriding the core Human Damage Results): a torso at 0 or -1 Wound Hits is no longer automatically unconscious. The character takes -2 to all actions (stacking with the other penalties) and rolls Stun/Shock at the start of each of its turns in combat; only a failed roll knocks them out. A torso at -2 is still dead. A torso track filled with Bruises also rolls each turn instead of going unconscious (overriding "Fists From Hell" for the torso), with no -2. The head is unchanged: a full head track is unconscious.
+  - The Body tab's Status column shows each location's effect (-3, Lift halved, MA halved, …) and the total in its header; a torso at 0 shows "Stun/Shock each turn".
+- `module/data/wound-penalties.js`, with tests; `system.derived.wounds`.
+### Changed
+- New table rulings `realisticDamagePenalties` and `torsoZeroStunCheck` (both on) in `table-rulings.js`. `woundState()` returns the new `stun-check` state for a full torso track.
+- Hit-based Stun/Shock saves now still roll for a character whose torso is at 0 (they're conscious); only a dead or unconscious head or torso skips them.
+- A failed Stun/Shock roll (the per-turn roll or a save against a hit) now puts the core **Unconscious** status on the character's token: the token's own actor for an unlinked NPC, the world actor for a linked PC. While it's on, no further Stun/Shock rolls are made.
+- A hit that leaves the head's track full (0 Wound Hits, or full with Bruises) sets the Unconscious status at once, with no roll.
+- Waking is manual (table ruling): the character stays down until the GM removes the status from the token HUD; there are no wake-up rolls, and removing it doesn't change Hits. Full Recovery also clears it.
+- The per-turn decision is a pure function, `needsTurnStunRoll({ headState, torsoState, limbStates, isUnconscious })` (with `locationStates()`), with tests.
+- ROADMAP.md: wound penalties ticked (0.3.36); ruling and interpretation added.
+
 ## [0.3.35] - 2026-10-29
 ### Added
 - **Natural recovery** (MZ core, Recovery: Natural Healing / Medical Aid; Natural Recovery Table; Medical Attention Table): a GM-only **Recover…** button on the Body tab. The GM enters days, hours rested per day (0-24) and whether the character had medical attention; a preview lists every location's injury type and Hits/day, Wounds before → after and Bruises before → after, before anything is applied. A chat card logs the result.

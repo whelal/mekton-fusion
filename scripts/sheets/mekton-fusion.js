@@ -292,6 +292,16 @@ Hooks.on("updateCombat", (combat, changes, options) => {
   MektonActorSheet.tickBurning(combat);
 });
 
+// Realistic Damage: a blown-off limb forces a Stun/Shock roll at the start of
+// that character's turn (see MektonActorSheet.turnStunCheck). Same guards as
+// burning: active GM only, not when the tracker steps backwards.
+Hooks.on("updateCombat", (combat, changes, options) => {
+  if (!("turn" in changes) && !("round" in changes)) return;
+  if ((options?.direction ?? 1) < 0) return;
+  if (!game.users.activeGM?.isSelf) return;
+  MektonActorSheet.turnStunCheck(combat);
+});
+
 // Auto-seed skills when actors are created
 // Fresh-actor init: start each body location's current hits at full (BOD-derived
 // hitsMax). Schema `initial` can't reference BOD, so this happens once here, after

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { applyTrackDamage, woundState, sprainedLimbs, shownHits, woundsOf, trackSegments } from "../module/data/damage-track.js";
+import { TABLE_RULINGS } from "../module/rules/table-rulings.js";
 import { resolveBruiseZoneHit, resolveZoneHit, HARDNESS_BY_NAME } from "../module/data/armor.js";
 import { CLOSE_MANEUVERS } from "../module/data/close-combat.js";
 import { WEAPON_CATALOG } from "../module/data/weapon-catalog.js";
@@ -29,11 +30,22 @@ test("damage fits as its own type while there's room", () => {
   assert.deepEqual(wb({ hitsMax: 12, ...applyTrackDamage(loc(12, 0, 4), 3, "wound") }), [3, 4]);
 });
 
-test("a full Bruise track is unconscious, not dead; death counts Wounds only", () => {
-  assert.equal(woundState("torso", loc(10, 0, 10)), "unconscious");
+test("a full Bruise track is never dead; death counts Wounds only", () => {
+  assert.equal(woundState("torso", loc(10, 0, 10)), "stun-check");   // torsoZeroStunCheck
   assert.equal(woundState("head", loc(6, 3, 3)), "unconscious");
   assert.equal(woundState("torso", loc(10, 12)), "dead");
   assert.equal(woundState("torso", loc(10, 2, 3)), "ok");
+});
+
+test("torso at 0 Hits: stun-check at 0 and -1 Wound Hits, dead at -2; head unchanged", () => {
+  assert.equal(woundState("torso", loc(10, 10)), "stun-check");
+  assert.equal(woundState("torso", loc(10, 11)), "stun-check");
+  assert.equal(woundState("torso", loc(10, 12)), "dead");
+  assert.equal(woundState("head", loc(4, 4)), "unconscious");
+  const was = TABLE_RULINGS.torsoZeroStunCheck;
+  TABLE_RULINGS.torsoZeroStunCheck = false;
+  try { assert.equal(woundState("torso", loc(10, 0, 10)), "unconscious"); }
+  finally { TABLE_RULINGS.torsoZeroStunCheck = was; }
 });
 
 test("Sprained: a full limb with at least one Bruise; Wound results take priority", () => {

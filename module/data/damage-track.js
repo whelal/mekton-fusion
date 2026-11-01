@@ -7,6 +7,7 @@
  * Bruises. The track's capacity is hitsMax; shown current Hits = hits - bruises.
  * Pure helpers; the sheet reads and writes the actor.
  */
+import { TABLE_RULINGS } from "../rules/table-rulings.js";
 
 const LIMBS = new Set(["rArm", "lArm", "rLeg", "lLeg"]);
 
@@ -56,14 +57,20 @@ export function applyTrackDamage(loc, dmg, type) {
 /**
  * Wound state of a location. Death and limb results follow MZ's thresholds on
  * Wounds only (`hits`), so a track full of Bruises never kills or breaks.
- * Head or torso with a full track (any mix): unconscious. A limb whose track
- * is full and holds at least one Bruise, with no worse Wound result: sprained
- * (INTERPRETATION, H2).
- * @returns {"ok"|"unconscious"|"dead"|"sprained"|"broken"|"shattered"|"severed"}
+ * Head with a full track (any mix): unconscious. Torso with a full track (any
+ * mix): "stun-check", a Stun/Shock roll each turn instead
+ * (TABLE_RULINGS.torsoZeroStunCheck; unconscious when that's off). A limb
+ * whose track is full and holds at least one Bruise, with no worse Wound
+ * result: sprained (INTERPRETATION, H2).
+ * @returns {"ok"|"unconscious"|"stun-check"|"dead"|"sprained"|"broken"|"shattered"|"severed"}
  */
 export function woundState(key, loc) {
   const hits = Number(loc.hits) || 0;
-  if (!LIMBS.has(key)) return hits <= -2 ? "dead" : trackFull(loc) ? "unconscious" : "ok";
+  if (!LIMBS.has(key)) {
+    if (hits <= -2) return "dead";
+    if (!trackFull(loc)) return "ok";
+    return key === "torso" && TABLE_RULINGS.torsoZeroStunCheck ? "stun-check" : "unconscious";
+  }
   if (hits <= -5) return "severed";
   if (hits <= -2) return "shattered";
   if (hits <= 0) return "broken";

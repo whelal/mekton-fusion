@@ -1,3 +1,4 @@
+import { woundPenalties, halvedIf } from "./wound-penalties.js";
 import { getBodyValues, getMovementAllowance, getStandardMovement, getSkillPointMultiplier, encumberedMA } from "./body-values.js";
 import { deriveServo, deriveArmor, SENSORS, COCKPIT, DEFAULT_SERVO_ROWS, servoMeta, servoLabels } from "./mecha-construction.js";
 import { getWeapon, SHIELDS } from "./mecha-weapons.js";
@@ -374,21 +375,6 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
         const cool = this.stats?.COOL?.value ?? 5;
 
         const body = getBodyValues(bod);
-        // MA is keyed entirely off the MA stat -- BOD has no effect on movement.
-        // Above MA 10, the fixed ">10" table applies (Run/Jump/Anime Leap). At or
-        // below MA 10, it's the standard formula: Run = MA x3, Jump = MA/4
-        // (Mekton Zeta core movement rules).
-        const highMaMovement = getMovementAllowance(ma);
-        const standardMovement = getStandardMovement(ma);
-        const run = highMaMovement?.run ?? standardMovement.run;
-        const jump = highMaMovement?.jump ?? standardMovement.jump;
-
-        // Stun Save and Lift are plain NumberFields on substats -> overwrite directly.
-        this.substats.stun = body.stun;
-        this.substats.lift = body.lift;
-        this.substats.run = run;
-        this.substats.leap = jump;
-        this.substats.swim = Math.round((ma / 3) * 100) / 100;
 
         // Per-location hit points (labeled Hits on the Body tab) follow the same BOD table.
         // Only the max is derived here -- this runs every render, so writing current
@@ -397,6 +383,26 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
             const locData = this.body?.locations?.[loc];
             if (locData) locData.hitsMax = body.hits[group].hits;
         }
+
+        // Realistic Damage Table (wound-penalties.js): a leg at 1 Hit remaining halves
+        // MA (all movement), an arm at 1 Hit remaining halves Lift -- once each.
+        const wounds = woundPenalties(this.body?.locations);
+
+        // MA is keyed entirely off the MA stat -- BOD has no effect on movement.
+        // Above MA 10, the fixed ">10" table applies (Run/Jump/Anime Leap). At or
+        // below MA 10, it's the standard formula: Run = MA x3, Jump = MA/4
+        // (Mekton Zeta core movement rules).
+        const highMaMovement = getMovementAllowance(ma);
+        const standardMovement = getStandardMovement(ma);
+        const run = halvedIf(highMaMovement?.run ?? standardMovement.run, wounds.maHalved);
+        const jump = halvedIf(highMaMovement?.jump ?? standardMovement.jump, wounds.maHalved);
+
+        // Stun Save and Lift are plain NumberFields on substats -> overwrite directly.
+        this.substats.stun = body.stun;
+        this.substats.lift = halvedIf(body.lift, wounds.liftHalved);
+        this.substats.run = run;
+        this.substats.leap = jump;
+        this.substats.swim = Math.round(halvedIf(ma / 3, wounds.maHalved) * 100) / 100;
 
         // Values with no dedicated schema field (Throw, Dmg, EV, Walk, Running Jump,
         // Anime Leap, skill points, encumbrance-adjusted MA) are exposed read-only via
@@ -411,13 +417,16 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 jump,
                 walk: run / 3,
                 runningJump: run / 4,
-                animeLeap: highMaMovement?.animeLeap ?? standardMovement.animeLeap,
+                animeLeap: halvedIf(highMaMovement?.animeLeap ?? standardMovement.animeLeap, wounds.maHalved),
                 source: highMaMovement ? "ma-table" : "ma-formula"
             },
             // Stability: a Difficulty Number for how hard someone is to sway, frighten or
             // befuddle -- COOL x 2.5, rounded down (Interrogation/Intimidation/Leadership/
             // Seduction rolls are made against it; Persuasion is not).
             stability: Math.floor(cool * 2.5),
+            // Realistic Damage Table penalties (wound-penalties.js): total for every roll,
+            // per-location effects, MA/Lift halving, blown-off limbs.
+            wounds,
             skillPointMultiplier: getSkillPointMultiplier(intVal, edu),
             encumberedMA: encumberedMA(this.equipment?.totalWeight ?? 0, bod, run),
             mecha: this._deriveMecha(this.mecha)

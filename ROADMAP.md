@@ -34,6 +34,9 @@ sentence goes in the Parking lot.
 - Martial Art is unarmed-only (not a weapon attack skill).
 - Arm Block (house, adapted from Interlock Unlimited): vs melee and unarmed attacks; uses the higher of HtH and Martial Art; margin 0-4 = damage to the blocking arm, 5+ = no damage (playtest).
 - Bruises heal 1 per hour of rest (Fists From Hell); MZ's Bruises rows are unused. Wounds heal per MZ Natural Recovery / Medical Attention tables.
+- Realistic Damage Table penalties automated on the core damage states (`realisticDamagePenalties`).
+- Torso at 0 Hits: Stun/Shock roll each turn and -2 to all actions, not automatic unconsciousness (Realistic Damage Table) (`torsoZeroStunCheck`). A torso full of Bruises also rolls each turn, with no -2; the head is unchanged.
+- Waking from unconsciousness is manual: an unconscious character stays down until the GM removes the Unconscious status (an intervention by another character, or a hospital). No wake-up rolls. Removing the status doesn't change Hits.
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -58,6 +61,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
 - Natural recovery injury type, re-read each day from the location's Wound Hits (from MZ human damage thresholds): Hits > 0 Wounds; a limb at 0 to -1 Broken, -2 or below Mangled, -5 or below severed (doesn't heal by the tables: needs prosthetic/regeneration); head or torso at 0 or below Internal, -2 or below dead (doesn't heal). Only a location with Wounds recovers or worsens.
 - Burns heal as Wounds (burn damage isn't tracked separately).
+- Wound penalties stack across locations; Wounds only (Bruises never trigger them; Sprained is separate). "At 1 Hit remaining" needs at least one Wound. Rolls with no dialog (Evade, Parry, Arm Block, mecha armament rows, shift-click rolls) always take the penalty.
 
 ### RAW notes
 Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
@@ -103,6 +107,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Armor piercing, melee: [AP] weapons meet armor at half SP (round down), ablation unchanged; Knockout no longer bypasses armor (0.3.33)
 - [x] GM recovery tools: Full Recovery, Repair Armor, Rest; natural Wound recovery stays manual (0.3.34)
 - [x] Natural recovery: Recover N days, Wounds per MZ Natural Recovery / Medical Attention tables, Bruises per hour rested, preview first, deterioration only when ticked (0.3.35)
+- [x] Wound penalties: Realistic Damage Table on every roll (stacked, GM can untick per roll), MA/Lift halving, Stun/Shock every turn with a blown-off limb or a torso at 0 Hits (0.3.36)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
       scale and converted where an effect lands). Build steps, one patch each:

@@ -1851,6 +1851,9 @@ html.theme-dark .mekton-fusion {
   background: #c0392b;
 }
 .mf-badge-sprained { background: #b9770e; }
+/* Realistic Damage penalties (wound-penalties.js) */
+.mf-wound-total { font-weight: 600; color: #c0392b; }
+.mf-wound-effect { font-size: 0.75rem; color: #c0392b; }
 
 /* Location editor dialog */
 .mf-loc-editor .mf-loc-hits { margin-bottom: 0.5em; }

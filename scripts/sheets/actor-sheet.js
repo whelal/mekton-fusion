@@ -12,6 +12,7 @@ import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { fullRecoveryUpdate, repairArmorUpdates, restUpdate } from "../../module/data/recovery.js";
 import { recoverActor, injuryType, INJURY_LABELS } from "../../module/data/natural-recovery.js";
+import { woundPenalties, appliedWoundPenalty, turnStunCauses, needsTurnStunRoll, locationStates } from "../../module/data/wound-penalties.js";
 import { escapeHtml } from "../../module/util/escape.js";
 import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel } from "../../module/data/attack-card.js";
 
@@ -310,10 +311,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   // Wound states come from woundState() in module/data/damage-track.js: MZ Human
   // Damage Results bands on Wounds, flat to every location including the head (no
   // head-doubling, no 12-point cap -- both BTM-coupled CP2020/IU rules MZ doesn't
-  // have), plus the shared Wound/Bruise track (unconscious, sprained).
+  // have), plus the shared Wound/Bruise track (unconscious, sprained). A full
+  // torso track is "stun-check" (TABLE_RULINGS.torsoZeroStunCheck).
   static _woundStateLabel(state) {
     return {
       ok: 'OK', unconscious: 'UNCONSCIOUS', dead: 'DEAD', sprained: 'SPRAINED (-3 to rolls using it)',
+      'stun-check': 'STUN/SHOCK EACH TURN (unconscious only on a failed roll)',
       broken: 'BROKEN', shattered: 'SHATTERED (lost without care)', severed: 'SEVERED'
     }[state] ?? state;
   }
@@ -391,11 +394,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
 
     const state = woundState(key, next);
+    // An automatic-unconscious result (a full head track, Wounds or Bruises; a
+    // full torso only with torsoZeroStunCheck off) sets the Unconscious status
+    // at once, with no roll. Removing the status by hand leaves the Hits alone.
+    if (state === 'unconscious') await MektonActorSheet._knockOut(targetActor);
 
     // No Stun/Shock save for the dead or already unconscious -- head or torso at
-    // DEAD or UNCONSCIOUS (full track), from this hit or an earlier one.
+    // DEAD or UNCONSCIOUS (full track), from this hit or an earlier one, or the
+    // Unconscious status from a failed Stun/Shock roll.
     const locs = targetActor.system?.body?.locations ?? {};
-    const out = ['head', 'torso'].some(k => ['dead', 'unconscious'].includes(woundState(k, k === key ? next : locs[k] ?? {})));
+    const out = MektonActorSheet._isUnconscious(targetActor)
+      || ['head', 'torso'].some(k => ['dead', 'unconscious'].includes(woundState(k, k === key ? next : locs[k] ?? {})));
 
     let stun = null;
     if (!out && (forceStun || (after > 0 && after > before / 2))) {
@@ -403,6 +412,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const stunRoll = new Roll('1d10');
       await stunRoll.evaluate();
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
+      if (!stun.conscious) await MektonActorSheet._knockOut(targetActor);
     }
 
     return {
@@ -461,6 +471,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    */
   static _bodyTrackView(actor) {
     const out = {};
+    const effects = woundPenalties(actor.system?.body?.locations).byLocation;
     for (const [key, loc] of Object.entries(actor.system?.body?.locations ?? {})) {
       const cap = Math.max(0, Number(loc.hitsMax) || 0);
       const wounds = Math.max(0, woundsOf(loc));
@@ -470,8 +481,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       out[key] = {
         seg, cap, wounds, bruises, barHtml: MektonActorSheet._hitsBarHtml(seg, wounds, bruises),
         text: `${seg.remaining}/${cap}${bruises ? ` ${wounds}W ${bruises}B` : ''}`,
-        state, badge: state === 'ok' ? '' : state[0].toUpperCase() + state.slice(1),
-        badgeTitle: MektonActorSheet._woundStateLabel(state)
+        state, badge: state === 'ok' ? '' : state === 'stun-check' ? 'Stun/Shock each turn' : state[0].toUpperCase() + state.slice(1),
+        badgeTitle: MektonActorSheet._woundStateLabel(state),
+        // Realistic Damage effect (wound-penalties.js): "-3", "Lift halved", ...
+        effect: effects[key]?.penalty ? `${effects[key].penalty}${effects[key].blownOff ? ', Stun/Shock each turn' : ''}`
+          : effects[key]?.liftHalved ? 'Lift halved' : effects[key]?.maHalved ? 'MA halved' : ''
       };
     }
     return out;
@@ -510,7 +524,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * Defender's Evade roll, human scale (MZ p.92): 1D10 (exploding) + REF +
-   * Dodge & Escape, -1 if attacked from the flank, -2 from the rear. Free,
+   * Dodge & Escape, -1 if attacked from the flank, -2 from the rear, plus the
+   * defender's wound penalty (no dialog, so always applied). Free,
    * once per attack. Rolled on the attacker's client (no socket round-trip).
    * @param {Actor} targetActor
    * @param {number} [arcMod=0] - 0 front, -1 flank, -2 rear
@@ -521,9 +536,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skill = targetActor.items.find(i => i.type === 'skill' && i.name === 'Dodge & Escape');
     const dodge = skill ? MektonActorSheet._num(skill.system?.rank, 0) : 0;
     const { total: die, plusDice, minusDice } = await MektonActorSheet._rollBidirectionalExplodingD10();
-    const total = die + ref + dodge + arcMod;
+    const wounds = MektonActorSheet._woundInfo(targetActor).total;
+    const total = die + ref + dodge + arcMod + wounds;
     const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `Dodge ${dodge}`];
     if (arcMod) parts.push(`Arc ${arcMod}`);
+    if (wounds) parts.push(`Wounds ${wounds}`);
     return { total, label: `${parts.join(' + ')} = ${total}`, hasSkill: !!skill };
   }
 
@@ -847,6 +864,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.bodyArmor = MektonActorSheet._bodyArmorView(this.actor);
     ctx.bodyTrack = MektonActorSheet._bodyTrackView(this.actor);
     ctx.bodyEditable = this.actor.isOwner;
+    ctx.woundTotal = MektonActorSheet._woundInfo(this.actor).total;
     ctx.isGM = game.user.isGM;
 
     // Preset picker option lists (Mecha tab; Body tab's Creature section uses the other).
@@ -1869,6 +1887,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const statVal = typeof statSource === 'object' && statSource !== null ? Number(statSource.value) || 0 : Number(statSource) || 0;
     
     let mod = 0;
+    let wounds = MektonActorSheet._woundInfo(this.actor).total;   // shift-click: no dialog, full penalty
     let difficulty = null;
     
     if (!ev.shiftKey) {
@@ -1880,6 +1899,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <label>Modifier:</label>
               <input type="number" name="mod" value="0" style="width:100%"/>
             </div>
+            ${this._woundPenaltyHtml()}
             ${this.constructor._difficultyPresetHtml()}
           `,
           label: "Roll",
@@ -1888,20 +1908,22 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
-            return { mod: modVal, difficulty: diffVal ? Number(diffVal) : null };
+            return { mod: modVal, wounds: this._woundPenalty(html), difficulty: diffVal ? Number(diffVal) : null };
           }
         });
         mod = result.mod || 0;
+        wounds = result.wounds || 0;
         difficulty = result.difficulty;
       } catch (_) { return; }
     }
     
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + statVal + (mod||0);
+    const finalTotal = base + statVal + (mod||0) + wounds;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
     
     const flavorParts = [chainText(plusDice, minusDice), `${stat} ${statVal}`];
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
+    if (wounds) flavorParts.push(`Wounds ${wounds}`);
     
     const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
     const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -1919,7 +1941,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: stat });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
-    const shown = await this.constructor._rollWithMods(roll, [statVal, mod]);
+    const shown = await this.constructor._rollWithMods(roll, [statVal, mod, wounds]);
     await shown.toMessage({ speaker, flavor });
   }
 
@@ -1951,6 +1973,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     let mod = 0;
     let sprain = 0;
+    let wounds = MektonActorSheet._woundInfo(this.actor).total;   // shift-click: no dialog, full penalty
     let difficulty = null;
 
     if (!ev.shiftKey) {
@@ -1963,6 +1986,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <input type="number" name="mod" value="0" style="width:100%"/>
             </div>
             ${this._sprainedLimbsHtml()}
+            ${this._woundPenaltyHtml()}
             ${this.constructor._difficultyPresetHtml()}
           `,
           label: "Roll",
@@ -1971,11 +1995,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           callback: html => {
             const modVal = Number(html.find("[name='mod']").val() || 0);
             const diffVal = html.find("[name='difficulty']").val();
-            return { mod: modVal, sprain: this.constructor._sprainPenalty(html), difficulty: diffVal ? Number(diffVal) : null };
+            return { mod: modVal, sprain: this.constructor._sprainPenalty(html), wounds: this._woundPenalty(html), difficulty: diffVal ? Number(diffVal) : null };
           }
         });
         mod = result.mod || 0;
         sprain = result.sprain || 0;
+        wounds = result.wounds || 0;
         difficulty = result.difficulty;
       } catch (_) { return; }
     }
@@ -1985,7 +2010,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Maneuver Value) instead of the raw REF stat.
     const isMecha = String(skill.system?.category || '').toUpperCase() === 'REF:MECHA' || /MECHA\s+(PILOTING|FIGHTING|MELEE|GUNNERY|MISSILES)/i.test(skill.name || '');
     const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.mecha?.config?.mr ?? 0) : statVal;
-    const finalTotal = base + mr + rank + (mod||0) + sprain;
+    const finalTotal = base + mr + rank + (mod||0) + sprain + wounds;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
 
     const flavorParts = [chainText(plusDice, minusDice)];
@@ -1997,6 +2022,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (rank) flavorParts.push(`Rank ${rank}`);
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
     if (sprain) flavorParts.push(`Sprained ${sprain}`);
+    if (wounds) flavorParts.push(`Wounds ${wounds}`);
     
     const explodedUp = plusDice.some(d=>d===10) ? 'Up' : '';
     const explodedDown = minusDice.some(d=>d===1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -2014,7 +2040,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       game.i18n.format('MF.RollSimple', { name: skill.name });
     
     const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}`;
-    const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod, sprain]);
+    const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod, sprain, wounds]);
     await shown.toMessage({ speaker, flavor });
   }
 
@@ -2536,6 +2562,54 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
+   * Realistic Damage Table (wound-penalties.js): a character with a blown-off
+   * limb, or a torso at 0 Hits (TABLE_RULINGS.torsoZeroStunCheck), rolls
+   * Stun/Shock (1d10 <= Stun) at the start of each of its turns to stay
+   * conscious; the result goes to chat. A failed roll sets the Unconscious
+   * status, and no further roll is made while it's on (the GM removes it to
+   * wake the character). Not when head or torso is already dead or
+   * unconscious. Called from the updateCombat hook in mekton-fusion.js.
+   */
+  static async turnStunCheck(combat) {
+    // combatant.actor is the token's own actor for an unlinked token, the
+    // world actor for a linked one: the same actor the token HUD toggles.
+    const actor = combat.combatant?.actor;
+    if (!actor) return;
+    const locs = actor.system?.body?.locations;
+    const states = { ...locationStates(locs), isUnconscious: MektonActorSheet._isUnconscious(actor) };
+    if (!needsTurnStunRoll(states)) return;
+    const causes = turnStunCauses(states);
+    const stunVal = MektonActorSheet._num(actor.system?.substats?.stun, 0);
+    const roll = await new Roll('1d10').evaluate();
+    const conscious = roll.total <= stunVal;
+    if (!conscious) await MektonActorSheet._knockOut(actor);
+    const limbs = causes.map(k => k === 'torso' ? `${locs.torso?.label ?? 'Torso'} at 0 Hits` : `blown-off ${locs[k]?.label ?? k}`).join(', ');
+    await ChatMessage.create({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      rolls: [roll],
+      content: `<strong>${escapeHtml(actor.name)}</strong>: Stun/Shock (${escapeHtml(limbs)}), 1d10 &le; ${stunVal}: rolled <strong>${roll.total}</strong> &mdash; `
+        + `<strong style="color:${conscious ? '#2a2' : '#c0392b'}">${conscious ? 'CONSCIOUS' : 'DOWN (unconscious)'}</strong>`
+    });
+  }
+
+  /**
+   * A failed Stun/Shock roll or an automatic-unconscious result: the core
+   * Unconscious status ("unconscious", the id the token HUD toggles) on the
+   * actor, which for an unlinked token is the token's own actor. It stops
+   * further Stun/Shock rolls. Waking is manual (ROADMAP table ruling): the GM
+   * removes the status; nothing rolls to wake.
+   */
+  static async _knockOut(actor) {
+    try { await actor.toggleStatusEffect('unconscious', { active: true }); }
+    catch (e) { console.warn('mekton-fusion | could not set Unconscious on', actor?.name, e); }
+  }
+
+  /** Whether the actor has the core Unconscious status (set by an active effect). */
+  static _isUnconscious(actor) {
+    return !!actor?.statuses?.has('unconscious');
+  }
+
+  /**
    * Advance every burning actor on the combat's scene by one round: each
    * burning location takes half its previous damage (rounded down) straight to
    * Hits -- it's already past armor -- and the actor stops burning when no
@@ -2846,6 +2920,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       lines.push('Burning: the fire is out');
     }
     try { await this.actor.toggleStatusEffect('burning', { active: false }); } catch (e) { /* visual aid only */ }
+    if (MektonActorSheet._isUnconscious(this.actor)) {
+      try { await this.actor.toggleStatusEffect('unconscious', { active: false }); } catch (e) { /* visual aid only */ }
+      lines.push('Unconscious: awake');
+    }
     await this._postRecoveryCard('Full Recovery', lines);
   }
 
@@ -3265,7 +3343,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * with the defender's best in-hand weapon (1D10 + REF + Blade, or a sword's
    * better of Blade/Fencing, + DA; ties parry), or an Arm Block (1D10 + REF +
    * the better of Hand to Hand/Martial Art, -3 on a sprained arm; margin per
-   * armBlockOutcome). Rolled on the attacker's client, like Evade.
+   * armBlockOutcome). Both take the defender's wound penalty. Rolled on the
+   * attacker's client, like Evade.
    * @returns {Promise<{html:string, stopped:boolean, redirect?:string|null}|null>} null = no further defense
    */
   static async _secondDefense(targetActor, attackTotal, { attackKind, defenseMode }) {
@@ -3281,24 +3360,27 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     const name = escapeHtml(targetActor.name);
     const ref = MektonActorSheet._num(targetActor.system?.stats?.REF?.value, 0);
+    const wounds = MektonActorSheet._woundInfo(targetActor).total;
     const { total: die, plusDice, minusDice } = await MektonActorSheet._rollBidirectionalExplodingD10();
     const verdict = (ok, text) => `<strong style="color: ${ok ? 'green' : 'red'}">${text}</strong>`;
 
     if (kind === 'weapon') {
-      const total = die + ref + parry.skill.rank + parry.da;
+      const total = die + ref + parry.skill.rank + parry.da + wounds;
       const ok = parryOutcome(total, attackTotal) === 'parried';
       const what = `${escapeHtml(parry.weapon.system?.name || parry.weapon.name)}${parry.improvised ? ' (improvised)' : ''}`;
       const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `${parry.skill.label} ${parry.skill.rank}`, `DA ${parry.da}`];
+      if (wounds) parts.push(`Wounds ${wounds}`);
       return { html: `<br>${name} parries with ${what}: ${parts.join(' + ')} = ${total} &mdash; ${verdict(ok, ok ? 'PARRIED' : 'defense failed')}`, stopped: ok };
     }
 
     const hth = rank('Hand to Hand'), ma = rank('Martial Art (H)');
     const skill = ma > hth ? { label: 'Martial Art', rank: ma } : { label: 'HtH', rank: hth };
-    const total = die + ref + skill.rank + arm.penalty;
+    const total = die + ref + skill.rank + arm.penalty + wounds;
     const { result, margin } = armBlockOutcome(total, attackTotal);
     const armLabel = CLOSE_TARGETS[arm.key].label;
     const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `${skill.label} ${skill.rank}`];
     if (arm.penalty) parts.push(`Sprained ${arm.penalty}`);
+    if (wounds) parts.push(`Wounds ${wounds}`);
     const text = result === 'failed' ? 'defense failed'
       : result === 'arm' ? `blocked by ${margin}, damage to ${armLabel}` : `blocked by ${margin}, no damage`;
     return {
@@ -3325,6 +3407,33 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /** The ticked sprained limbs' total modifier in a roll dialog (0 when none). */
   static _sprainPenalty(html) {
     return TABLE_RULINGS.sprainedLimbPenalty * html.find('.mf-sprained:checked').length;
+  }
+
+  /**
+   * `actor`'s Realistic Damage penalties (wound-penalties.js) plus a short
+   * reason list ("Torso 1 Hit left, Right Arm broken") for dialogs and cards.
+   */
+  static _woundInfo(actor) {
+    const locs = actor?.system?.body?.locations ?? {};
+    const w = woundPenalties(locs);
+    const reasons = Object.entries(w.byLocation).filter(([, e]) => e.penalty)
+      .map(([k, e]) => `${locs[k]?.label ?? k} ${e.reason}`).join(', ');
+    return { ...w, reasons };
+  }
+
+  /**
+   * Roll-dialog row for the roller's wound penalty, ticked by default; the GM
+   * unticks it to leave it off this roll. Empty when there's no penalty.
+   */
+  _woundPenaltyHtml() {
+    const w = MektonActorSheet._woundInfo(this.actor);
+    if (!w.total) return '';
+    return `<div class="form-group"><label><input type="checkbox" class="mf-wound-penalty" checked/> Wounds ${w.total} (${escapeHtml(w.reasons)})</label></div>`;
+  }
+
+  /** The wound penalty a roll dialog applies: the actor's total unless its Wounds row is unticked. */
+  _woundPenalty(html) {
+    return appliedWoundPenalty(MektonActorSheet._woundInfo(this.actor).total, { ticked: html.find('.mf-wound-penalty').is(':checked') });
   }
 
   /** Names of the user's targeted tokens, for attack-card headers. */
@@ -3645,6 +3754,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <input type="number" name="other" value="0" style="width:100%"/>
             </div>
             ${this._sprainedLimbsHtml()}
+            ${this._woundPenaltyHtml()}
             ${this.constructor._difficultyPresetHtml()}
           </form>
         `,
@@ -3662,6 +3772,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
         callback: html => {
           const sprain = this.constructor._sprainPenalty(html);
+          const wounds = this._woundPenalty(html);
           const rangeMod = Number(html.find("[name='rangeChoice']").val()) || 0;
           const aim = Math.max(0, Math.min(4, Number(html.find("[name='aim']").val()) || 0));
           const other = Number(html.find("[name='other']").val()) || 0;
@@ -3681,12 +3792,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           const attackMode = html.find("[name='attackMode']").val() || 'shoot';
           const knockout = html.find("[name='knockout']").is(':checked');
           const defenseMode = html.find("[name='defenseMode']").val() || 'auto';
-          return { rangeMod, aim, coverMod, other, sprain, difficulty, defense, arcMod, fireMode, closeTarget, closeTarget2, quick, pickedDamageType, attackMode, knockout, defenseMode };
+          return { rangeMod, aim, coverMod, other, sprain, wounds, difficulty, defense, arcMod, fireMode, closeTarget, closeTarget2, quick, pickedDamageType, attackMode, knockout, defenseMode };
         }
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { aim, coverMod, other, sprain, difficulty, defense, arcMod, closeTarget, closeTarget2, quick, pickedDamageType, attackMode, defenseMode } = dlg;
+    const { aim, coverMod, other, sprain, wounds, difficulty, defense, arcMod, closeTarget, closeTarget2, quick, pickedDamageType, attackMode, defenseMode } = dlg;
     // Area blasts skip the friendly-fire prompt: the card lists friendlies hit instead.
     if (!blast && !(await this._confirmFriendlyFire())) return;
     // A club is a melee strike: Blade, no range, no burst, no Weapon Options.
@@ -3716,7 +3827,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const attackOnce = async ({ target: closeTarget, locPenalty }, n) => {
       // --- Attack roll: 1d10(exploding) + skillTotal + WA + rangeMod + aim + mods ---
       const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-      const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty + sprain + koMod;
+      const attackTotal = base + skillTotal + effectiveWa + rangeMod + aim + mods + locPenalty + sprain + wounds + koMod;
 
       const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
       const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -3731,6 +3842,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (aim) modParts.push(`Aim +${aim}`);
       if (mods) modParts.push(`Mods ${mods >= 0 ? '+' : ''}${mods}`);
       if (sprain) modParts.push(`Sprained ${sprain}`);
+      if (wounds) modParts.push(`Wounds ${wounds}`);
       if (closeTarget) modParts.push(`${CLOSE_TARGETS[closeTarget].label} ${locPenalty >= 0 ? '+' : ''}${locPenalty}`);
       if (koMod) modParts.push(`Knockout ${koMod}`);
 
@@ -3803,7 +3915,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         }
       }
 
-      const shown = await this.constructor._rollWithMods(roll, [skillTotal, effectiveWa, rangeMod, aim, mods, locPenalty, sprain, koMod]);
+      const shown = await this.constructor._rollWithMods(roll, [skillTotal, effectiveWa, rangeMod, aim, mods, locPenalty, sprain, wounds, koMod]);
       return { flavor, shown };
     };
 
@@ -3867,15 +3979,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         plan: closeAttackPlan(quick, targets, maneuverTargets(m, position), m.defaultGroup),
         other: Number(html.find("[name='other']").val()) || 0,
         sprain: this.constructor._sprainPenalty(html),
+        wounds: this._woundPenalty(html),
         skill: html.find("[name='skill']").val() || defaultSkill
       };
     };
     const refreshTotal = html => {
-      const { m, plan, other, sprain } = read(html);
-      const extra = (other ? ` + other ${sign(other)}` : '') + (sprain ? ` + sprained ${sign(sprain)}` : '');
+      const { m, plan, other, sprain, wounds } = read(html);
+      const extra = (other ? ` + other ${sign(other)}` : '') + (sprain ? ` + sprained ${sign(sprain)}` : '') + (wounds ? ` + wounds ${sign(wounds)}` : '');
       html.find('.mf-close-total').html(plan.map((a, i) =>
         `${plan.length > 1 ? `Attack ${i + 1}` : 'Modifier'}: WA ${sign(m.wa)} + location ${sign(a.locPenalty)}${extra}`
-        + ` = ${sign(m.wa + a.locPenalty + other + sprain)}`).join('<br>'));
+        + ` = ${sign(m.wa + a.locPenalty + other + sprain + wounds)}`).join('<br>'));
     };
 
     let dlg;
@@ -3912,6 +4025,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
               <input type="number" name="other" value="0" style="width:100%"/>
             </div>
             ${this._sprainedLimbsHtml()}
+            ${this._woundPenaltyHtml()}
             <p class="mf-close-total" style="font-weight:600; margin:6px 0;"></p>
             <div class="form-group">
               <label>Defense</label>
@@ -3954,7 +4068,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             html.find('.mf-quick-second').toggle(ev.currentTarget.checked);
             refreshTotal(html);
           });
-          html.find("[name='closeTarget'], [name='closeTarget2'], [name='other'], .mf-sprained").on('change input', () => refreshTotal(html));
+          html.find("[name='closeTarget'], [name='closeTarget2'], [name='other'], .mf-sprained, .mf-wound-penalty").on('change input', () => refreshTotal(html));
           fillTargets();
         },
         options: { classes: ['dialog', 'mekton-fusion-dialog'], width: 400 },
@@ -3971,7 +4085,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { m, position, plan, other, sprain, skill, defense, arcMod, difficulty, defenseMode } = dlg;
+    const { m, position, plan, other, sprain, wounds, skill, defense, arcMod, difficulty, defenseMode } = dlg;
     if (!(await this._confirmFriendlyFire())) return;
     const s = skills[skill];
     if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
@@ -3981,7 +4095,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // One attack of the plan (a Quick Chop is two Stun results); returns its card text and its Roll.
     const attackOnce = async ({ target, locPenalty }, n) => {
       const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-      const attackTotal = base + s.total + m.wa + locPenalty + other + sprain;
+      const attackTotal = base + s.total + m.wa + locPenalty + other + sprain + wounds;
       const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
       const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
       const tag = (explodedUp || explodedDown) ? ` <span style="color: #999; font-size: 0.85em;">[Exploding ${explodedUp}${explodedDown}]</span>` : '';
@@ -3989,6 +4103,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const parts = [chainText(plusDice, minusDice), `${s.name} ${s.total}`, `WA ${m.wa}`, `${CLOSE_TARGETS[target].label} ${sign(locPenalty)}`];
       if (other) parts.push(`Mods ${sign(other)}`);
       if (sprain) parts.push(`Sprained ${sign(sprain)}`);
+      if (wounds) parts.push(`Wounds ${sign(wounds)}`);
 
       // Unarmed: no weapon Parry, but an Arm Block may follow a failed Evade.
       const { targetActor, success, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,
@@ -4022,7 +4137,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         }
       }
 
-      const shown = await this.constructor._rollWithMods(roll, [s.total, m.wa, locPenalty, other, sprain]);
+      const shown = await this.constructor._rollWithMods(roll, [s.total, m.wa, locPenalty, other, sprain, wounds]);
       return { flavor, shown };
     };
 
@@ -4255,7 +4370,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
                 + `</select>`
                 + `<p><label><input type="checkbox" name="missile"/> Missile salvo (random location walks the chart)</label></p>`
                 + `<p style="font-size:0.85em;color:#666;">Arc reminder (not enforced): ${escapeHtml(row.arcLabel || 'n/a')}</p>`
-              : `<p><label><input type="checkbox" name="melee" checked/> Incoming attack is melee or an EMW</label></p>`),
+              : `<p><label><input type="checkbox" name="melee" checked/> Incoming attack is melee or an EMW</label></p>`)
+          + this._woundPenaltyHtml(),
         label: 'Roll Parry',
         callback: html => ({
           atk: Number(html.find("[name='atk']").val()) || 0,
@@ -4263,7 +4379,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           hits: Math.max(1, Math.floor(Number(html.find("[name='hits']").val()) || 1)),
           servoId: html.find("[name='loc']").val() || null,
           missile: html.find("[name='missile']").is(':checked'),
-          melee: isShield || html.find("[name='melee']").is(':checked')
+          melee: isShield || html.find("[name='melee']").is(':checked'),
+          wounds: this._woundPenalty(html)
         })
       });
     } catch (_) { return; }
@@ -4275,8 +4392,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const mr = Number(this.actor.system?.mecha?.config?.mr ?? 0);
     const da = isShield ? MektonActorSheet._num(row.da, 0) : MektonActorSheet._num(row.wa, 0);
     const { roll, total: base } = await this.constructor._rollBidirectionalExplodingD10();
-    const parry = base + mr + rank + da;
-    const head = `<strong>${escapeHtml(this.actor.name)}</strong> parries with ${row.name}: ${base} + MR ${mr} + Skill ${rank} + DA ${da} = <strong>${parry}</strong> vs ${form.atk}`;
+    const parry = base + mr + rank + da + form.wounds;
+    const head = `<strong>${escapeHtml(this.actor.name)}</strong> parries with ${row.name}: ${base} + MR ${mr} + Skill ${rank} + DA ${da}${form.wounds ? ` + Wounds ${form.wounds}` : ''} = <strong>${parry}</strong> vs ${form.atk}`;
 
     if (!parrySucceeds(parry, form.atk)) {
       await ChatMessage.create({ speaker, content: `${head} — <strong>fails, takes the hit</strong>.`, rolls: [roll] });
@@ -4357,7 +4474,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const wa = MektonActorSheet._num(row.wa, 0);
 
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
-    const finalTotal = base + mr + rank + wa;
+    const wounds = MektonActorSheet._woundInfo(this.actor).total;   // the pilot's; no dialog, so always applied
+    const finalTotal = base + mr + rank + wa + wounds;
 
     const explodedUp = plusDice.some(d => d === 10) ? 'Up' : '';
     const explodedDown = minusDice.some(d => d === 1) ? (explodedUp ? '/Down' : 'Down') : '';
@@ -4372,9 +4490,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const locStr = row.loc ? escapeHtml(row.locLabel) : 'unassigned';
     const dmgNum = Number(row.damage) || 0;
     const applyBtn = dmgNum > 0 ? ` <button type="button" class="mf-apply-mecha-salvo" data-kills="${dmgNum}" title="GM: roll hit location(s) and apply damage to the targeted mech">Apply hit</button>` : '';
-    const flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), `${weaponName} (${skillLabel})`)}${tag}${capTag} = ${chainText(plusDice, minusDice)} + MR ${mr} + Skill ${rank} + WA ${wa} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
+    const flavor = `${attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), `${weaponName} (${skillLabel})`)}${tag}${capTag} = ${chainText(plusDice, minusDice)} + MR ${mr} + Skill ${rank} + WA ${wa}${wounds ? ` + Wounds ${wounds}` : ''} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong><br><span style="font-size: 0.85em; color: #666;">Damage ${damageStr} &middot; Shots ${shotsStr} &middot; Loc ${locStr}</span>${applyBtn}`;
 
-    const shown = await this.constructor._rollWithMods(roll, [mr, rank, wa]);
+    const shown = await this.constructor._rollWithMods(roll, [mr, rank, wa, wounds]);
     await shown.toMessage({ speaker, flavor });
   }
 }

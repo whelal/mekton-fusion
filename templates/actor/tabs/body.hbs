@@ -66,7 +66,7 @@
               <th>Location</th>
               <th>Armor</th>
               <th>Hits</th>
-              <th>Status</th>
+              <th>Status{{#if woundTotal}} <span class="mf-wound-total" title="Realistic Damage Table: applies to every roll (stacked across locations)">Wounds {{woundTotal}}</span>{{/if}}</th>
             </tr>
           </thead>
           <tbody>
@@ -83,7 +83,7 @@
                   {{/each}}
                 </td>
                 <td class="mf-hits-cell">{{{tr.barHtml}}}<span class="mf-hits-text">{{tr.text}}</span></td>
-                <td>{{#if tr.badge}}<span class="mf-badge mf-badge-{{tr.state}}" title="{{tr.badgeTitle}}">{{tr.badge}}</span>{{/if}}</td>
+                <td>{{#if tr.badge}}<span class="mf-badge mf-badge-{{tr.state}}" title="{{tr.badgeTitle}}">{{tr.badge}}</span>{{/if}}{{#if tr.effect}} <span class="mf-wound-effect" title="Realistic Damage Table">{{tr.effect}}</span>{{/if}}</td>
               </tr>
               {{/with}}
               {{/with}}

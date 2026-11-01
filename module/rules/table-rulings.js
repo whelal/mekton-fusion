@@ -138,5 +138,25 @@ export const TABLE_RULINGS = {
    * unused; those tables heal Wounds only (natural-recovery.js). Used by Rest
    * and Recover.
    */
-  bruisesHealedPerHour: 1
+  bruisesHealedPerHour: 1,
+
+  /**
+   * Wound penalties (HOUSE choice to use MZ core's optional Referee's Section
+   * Realistic Damage Table): its penalties are automated on top of the core
+   * Human Damage Results states (wound-penalties.js). Wounds only; penalties
+   * from different locations stack (INTERPRETATION). false = core states only.
+   */
+  realisticDamagePenalties: true,
+
+  /**
+   * Torso at 0 Hits (HOUSE, after MZ core's Referee's Section Realistic Damage
+   * Table; overrides core Human Damage Results): a torso at 0 or -1 Wound Hits
+   * is not automatically unconscious. The character rolls Stun/Shock at the
+   * start of each of its turns in combat and takes -2 to all actions (Wounds
+   * only; stacks with other wound penalties). A torso track filled with
+   * Bruises also rolls each turn instead of going unconscious (overrides
+   * "Fists From Hell" for the torso only) but takes no -2. Torso at -2 is still
+   * dead; the head is unchanged. false = core: a full torso track is unconscious.
+   */
+  torsoZeroStunCheck: true
 };
