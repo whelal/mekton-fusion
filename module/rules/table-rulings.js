@@ -158,5 +158,23 @@ export const TABLE_RULINGS = {
    * "Fists From Hell" for the torso only) but takes no -2. Torso at -2 is still
    * dead; the head is unchanged. false = core: a full torso track is unconscious.
    */
-  torsoZeroStunCheck: true
+  torsoZeroStunCheck: true,
+
+  /**
+   * Helpless targets (HOUSE): the core status ids (CONFIG.statusEffects, the
+   * ones the token HUD toggles) that make a character helpless: Unconscious,
+   * Asleep, and Defeated ("dead", CONFIG.specialStatusEffects.DEFEATED, the
+   * combat tracker's skull). A head or torso that woundState() reports as
+   * unconscious or dead counts too. A helpless target gets no defense: melee
+   * and close combat hit on anything but a natural 1, with no called-shot
+   * penalty (helpless.js).
+   */
+  helplessStatuses: ["unconscious", "sleep", "dead"],
+
+  /**
+   * Helpless targets, ranged (HOUSE): no defense; the attack goes against a GM
+   * Difficulty, defaulting to Easy (10). Range, cover, WA and called-shot
+   * modifiers apply as normal.
+   */
+  helplessRangedDifficulty: 10
 };

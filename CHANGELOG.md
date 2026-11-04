@@ -1,3 +1,16 @@
+## [0.3.37] - 2026-11-04
+### Added
+- **Helpless targets** (table rulings `helplessStatuses`, `helplessRangedDifficulty`): a target with the core **Unconscious**, **Asleep** or **Defeated** (dead) status, or whose head or torso is unconscious or dead by its track, gets no defense: no Evade, Parry or Arm Block. Read from the targeted token's own actor, so linked and unlinked tokens both work.
+  - Melee and close combat: the attacker still rolls 1D10, only to check for a natural 1. Anything else hits automatically at the chosen location, with no called-shot penalty (the Location list shows +0 everywhere). A natural 1 misses for now (the fumble check comes later). Damage, armor and Wound/Bruise resolve as normal.
+  - Ranged: a GM Difficulty, pre-filled to Easy (10); range, cover and WA modifiers (improvised -2 included) apply as normal. Area blasts are unchanged.
+  - The attack dialogs show a helpless note and drop the Evade option; the card reads "<Target> is helpless: no defense".
+- `module/data/helpless.js` (`isHelpless`, `helplessAttack`), with tests.
+### Fixed
+- An unconscious target still rolled Evade and Arm Block against attacks.
+- A Bruise hit that wraps around a full track now always shows the Wound/Bruise split: a head at 0W/6B hit for 6 more Bruise reads "Hits: 0 → 0 (6W/0B)". The track math was already right (6W/0B); only the card hid the split once no Bruises were left. The split now shows whenever Bruises were on the location before the hit, are on it after, or the hit was Bruise damage (`trackSplitLabel`).
+### Changed
+- ROADMAP.md: helpless targets ticked (0.3.37); fumbles and human-scale ranged aimed shots added to 0.4; rulings and interpretations added.
+
 ## [0.3.36] - 2026-11-01
 ### Added
 - **Wound penalties** (MZ core, Referee's Section, Realistic Damage Table), automated on top of the core damage states, which are unchanged. From Wounds only; Bruises never cause them (Sprained is separate).

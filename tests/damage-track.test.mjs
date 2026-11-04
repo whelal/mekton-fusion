@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyTrackDamage, woundState, sprainedLimbs, shownHits, woundsOf, trackSegments } from "../module/data/damage-track.js";
+import { applyTrackDamage, woundState, sprainedLimbs, shownHits, woundsOf, trackSegments, trackSplitLabel } from "../module/data/damage-track.js";
 import { TABLE_RULINGS } from "../module/rules/table-rulings.js";
 import { resolveBruiseZoneHit, resolveZoneHit, HARDNESS_BY_NAME } from "../module/data/armor.js";
 import { CLOSE_MANEUVERS } from "../module/data/close-combat.js";
@@ -10,6 +10,23 @@ import { catalogWeaponUpdate, migrateActorWeapons } from "../module/migrate-acto
 
 const loc = (hitsMax, wounds, bruises = 0) => ({ hitsMax, hits: hitsMax - wounds, bruises });
 const wb = l => [woundsOf(l), l.bruises];
+
+test("wraparound: head 0W/6B, 6 more Bruise -> 6W/0B; the card shows 0 -> 0 (6W/0B)", () => {
+  const before = loc(6, 0, 6);
+  const after = { hitsMax: 6, ...applyTrackDamage(before, 6, "bruise") };
+  assert.deepEqual(wb(after), [6, 0]);
+  assert.equal(shownHits(before), 0);
+  assert.equal(shownHits(after), 0);
+  assert.equal(woundState("head", after), "unconscious");
+  assert.equal(trackSplitLabel({ wounds: 6, bruises: 0, bruisesBefore: 6, damageType: "bruise" }), " (6W/0B)");
+});
+
+test("track split label: shown when Bruises are or were involved, else empty", () => {
+  assert.equal(trackSplitLabel({ wounds: 3, bruises: 0, bruisesBefore: 0, damageType: "wound" }), "");
+  assert.equal(trackSplitLabel({ wounds: 3, bruises: 0, bruisesBefore: 2, damageType: "wound" }), " (3W/0B)");
+  assert.equal(trackSplitLabel({ wounds: 0, bruises: 2, bruisesBefore: 0, damageType: "wound" }), " (0W/2B)");
+  assert.equal(trackSplitLabel({ wounds: 0, bruises: 0, bruisesBefore: 0, damageType: "bruise" }), " (0W/0B)");
+});
 
 test("wraparound: capacity 10, 5 Wounds, then 7 Bruises -> 7W / 3B, track full", () => {
   const after = { hitsMax: 10, ...applyTrackDamage(loc(10, 5), 7, "bruise") };

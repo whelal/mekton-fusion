@@ -21,6 +21,18 @@ export function shownHits({ hits, bruises }) {
   return (Number(hits) || 0) - (Number(bruises) || 0);
 }
 
+/**
+ * The damage card's track split, " (6W/0B)", shown whenever Bruises are or
+ * were involved in a hit: the location carried Bruises before it, carries
+ * them after, or the hit was Bruise damage. Otherwise "" (shown Hits alone
+ * tell the story). Needed because a Bruise wraparound changes the split while
+ * shown Hits stay at 0 ("0 -> 0").
+ */
+export function trackSplitLabel({ wounds, bruises, bruisesBefore = 0, damageType = "wound" }) {
+  const involved = (Number(bruisesBefore) || 0) > 0 || (Number(bruises) || 0) > 0 || damageType === "bruise";
+  return involved ? ` (${Number(wounds) || 0}W/${Number(bruises) || 0}B)` : "";
+}
+
 /** The track is full (any mix of Wounds and Bruises). */
 export function trackFull(loc) {
   return shownHits(loc) <= 0;

@@ -3,7 +3,8 @@ import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreatureP
 import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
 import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit, piercedSP } from "../../module/data/armor.js";
-import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments } from "../../module/data/damage-track.js";
+import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments, trackSplitLabel } from "../../module/data/damage-track.js";
+import { isHelpless, helplessAttack } from "../../module/data/helpless.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../../module/data/close-combat.js";
 import { DEFENSE_MODES, KNOCKOUT, bestParryWeapon, pickBlockingArm, chooseDefense, parryOutcome, armBlockOutcome, clubDamage } from "../../module/data/defense.js";
@@ -417,7 +418,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     return {
       sp, counted, ap, spNow, belowThreshold, armorName: piece?.name ?? '', damageType, softIgnored,
-      before, after, hitsNow, wounds: woundsOf(next), bruises: next.bruises, state, stun
+      before, after, hitsNow, wounds: woundsOf(next), bruises: next.bruises, bruisesBefore: track.bruises, state, stun
     };
   }
 
@@ -502,7 +503,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, ap, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, state, stun } = applied;
+    const { sp, ap, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, bruisesBefore, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
     const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
@@ -512,8 +513,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const soak = softIgnored ? 'soft armor ignored'
       : ap ? `AP: SP ${sp}${piece} counts as ${applied.counted}${ablated}` : `SP ${sp}${piece} soaked${ablated}`;
     const prefix = damageType === 'bruise' ? '<strong>Bruise:</strong> ' : '';
-    // Once a location carries Bruises, show the track split (W = Wounds, B = Bruises).
-    const split = bruises ? ` (${wounds}W/${bruises}B)` : '';
+    // Whenever Bruises are or were involved, show the track split (W = Wounds, B = Bruises):
+    // a Bruise wraparound can change it while shown Hits stay at 0 ("0 -> 0 (6W/0B)").
+    const split = trackSplitLabel({ wounds, bruises, bruisesBefore, damageType });
     let html = `${prefix}${soak}, ${after} through. Hits: ${before} &rarr; <strong>${hitsNow}</strong>${split} &mdash; <strong style="color:${stateColor}">${stateLabel}</strong>`;
     if (stun) {
       const stunColor = stun.conscious ? '#2a2' : '#c0392b';
@@ -3303,14 +3305,29 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * clean Arm Block makes success false, and an Arm Block that only deflects
    * sets `redirect` (the blocking arm's location key). A GM Difficulty
    * (unaware target) gets no further defense.
+   * A helpless target (helpless.js) gets no defense whatever was picked: a
+   * melee/unarmed attack hits on any `natural` die but 1; a ranged one goes
+   * against the Difficulty, defaulting to TABLE_RULINGS.helplessRangedDifficulty.
    */
-  async _resolveAttackDefense(attackTotal, { defense, difficulty, arcMod, attackKind = 'ranged', defenseMode = 'auto' }) {
+  async _resolveAttackDefense(attackTotal, { defense, difficulty, arcMod, attackKind = 'ranged', defenseMode = 'auto', natural = null }) {
     const targets = Array.from(game.user.targets);
     const targetActor = targets.length === 1 ? targets[0].actor : null;
     let success = null;
     let margin = null;
     let resultTag = '';
     let redirect = null;
+    if (targetActor && MektonActorSheet._isHelplessActor(targetActor)) {
+      const h = helplessAttack({ attackKind, natural, difficulty });
+      const line = `<br>${escapeHtml(targetActor.name)} is helpless: no defense`;
+      if (h.defense === 'none') {
+        resultTag = `${line} &mdash; <strong style="color: ${h.hit ? 'green' : 'red'}">${h.hit ? 'HIT' : 'MISS (natural 1)'}</strong>`;
+        return { targetActor, success: h.hit, margin: null, resultTag, redirect: null };
+      }
+      success = attackTotal > h.difficulty; // ties go to the defender
+      margin = attackTotal - h.difficulty;
+      resultTag = ` vs Difficulty ${h.difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>${line}`;
+      return { targetActor, success, margin, resultTag, redirect: null };
+    }
     if (defense === 'evade' && targetActor) {
       const ev = await this.constructor._rollEvade(targetActor, arcMod);
       success = attackTotal > ev.total; // Evade >= attack: the attack fails (MZ p.92)
@@ -3436,6 +3453,35 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return appliedWoundPenalty(MektonActorSheet._woundInfo(this.actor).total, { ticked: html.find('.mf-wound-penalty').is(':checked') });
   }
 
+  /**
+   * Whether `actor` is helpless (helpless.js): its own statuses, so for an
+   * unlinked token the token's actor, plus its head/torso wound states.
+   */
+  static _isHelplessActor(actor) {
+    return isHelpless({ statuses: actor?.statuses, locations: actor?.system?.body?.locations });
+  }
+
+  /** The one targeted token's actor when it is helpless, else null (none, several, or not helpless). */
+  static _helplessTargetActor() {
+    const targets = Array.from(game.user.targets);
+    const actor = targets.length === 1 ? targets[0].actor : null;
+    return actor && MektonActorSheet._isHelplessActor(actor) ? actor : null;
+  }
+
+  /** Attack-dialog note for a helpless target (no Evade is offered); empty otherwise. */
+  static _helplessNoteHtml(actor) {
+    if (!actor) return '';
+    return `<p class="mf-helpless-note" style="font-weight:600; color:#c0392b; margin:4px 0;">${escapeHtml(actor.name)} is helpless: no defense. `
+      + `Melee hits on anything but a natural 1, with no location penalty; ranged goes against Difficulty `
+      + `${TABLE_RULINGS.helplessRangedDifficulty} unless the GM sets another.</p>`;
+  }
+
+  /** Pre-fill a roll dialog's Difficulty with `value` (the preset too, when one matches). */
+  static _prefillDifficulty(html, value) {
+    html.find('.mf-diff-preset').val(String(value));
+    html.find('.mf-diff-base').val(value).trigger('change');
+  }
+
   /** Names of the user's targeted tokens, for attack-card headers. */
   static _targetNames() {
     return Array.from(game.user.targets).map(t => t.name);
@@ -3491,11 +3537,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     return `<div class="form-group"><label>After a failed Evade (GM)</label><select name="defenseMode" style="width:100%">${options}</select></div>`;
   }
 
-  /** <option>s for a close-combat Location select, each showing its called-shot penalty. */
-  static _closeTargetOptions(groups, defaultGroup) {
+  /**
+   * <option>s for a close-combat Location select, each showing its called-shot
+   * penalty (+0 everywhere against a helpless target).
+   */
+  static _closeTargetOptions(groups, defaultGroup, { helpless = false } = {}) {
     const selected = defaultCloseTarget(groups, defaultGroup);
     return closeTargetsFor(groups).map(k => {
-      const p = closeCalledPenalty(groups, k, defaultGroup);
+      const p = helpless ? 0 : closeCalledPenalty(groups, k, defaultGroup);
       return `<option value="${k}"${k === selected ? ' selected' : ''}>${CLOSE_TARGETS[k].label} (${p >= 0 ? '+' : ''}${p})</option>`;
     }).join('');
   }
@@ -3653,8 +3702,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const knockoutChoice = (closeContact || !!clubFormula) && !blast;
     const targetsAtRoll = Array.from(game.user.targets);
     const oneTarget = targetsAtRoll.length === 1 && !!targetsAtRoll[0].actor;
+    // A helpless target (helpless.js) gets no defense: no Evade option, no location penalty.
+    const helplessAtRoll = this.constructor._helplessTargetActor();
     // Area weapons resolve vs a Difficulty (indirect fire, MZ p.97), never Evade.
-    const defaultDefense = (oneTarget && !blast) ? 'evade' : 'difficulty';
+    const defaultDefense = (oneTarget && !blast && !helplessAtRoll) ? 'evade' : 'difficulty';
 
     const COVER_MODS = [
       { key: 'silhouetted', label: 'Silhouetted', mod: 2 },
@@ -3676,10 +3727,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         title: `Attack: ${weaponName}`,
         content: `
           <form class="mf-attack-dialog">
+            ${blast ? '' : this.constructor._helplessNoteHtml(helplessAtRoll)}
             <div class="form-group">
               <label>Defense</label>
               <select name="defense" style="width:100%">
-                ${blast ? '' : `<option value="evade" ${defaultDefense === 'evade' ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>`}
+                ${blast || helplessAtRoll ? '' : `<option value="evade" ${defaultDefense === 'evade' ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>`}
                 <option value="difficulty" ${defaultDefense === 'difficulty' ? 'selected' : ''}>GM Difficulty (no defense roll -- unaware / sneak attack)</option>
               </select>
             </div>
@@ -3719,7 +3771,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             ${closeContact || clubFormula ? `
             <div class="form-group mf-close-location"${closeContact ? '' : ' style="display:none;"'}>
               <label>Location</label>
-              <select name="closeTarget" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS)}</select>
+              <select name="closeTarget" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS, undefined, { helpless: !!helplessAtRoll })}</select>
             </div>` : ''}
             ${knockoutChoice ? `
             <div class="form-group mf-knockout"${closeContact ? '' : ' style="display:none;"'}>
@@ -3731,7 +3783,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             </div>
             <div class="form-group mf-quick-second" style="display:none;">
               <label>Location (Attack 2)</label>
-              <select name="closeTarget2" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS)}</select>
+              <select name="closeTarget2" style="width:100%">${this.constructor._closeTargetOptions(MELEE_STRIKE_TARGETS, undefined, { helpless: !!helplessAtRoll })}</select>
             </div>` : ''}
             ${damageTypeChoice ? `
             <div class="form-group">
@@ -3761,6 +3813,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         label: "Attack",
         render: html => {
           this.constructor._bindDifficultyPresetListeners(html);
+          // Ranged vs a helpless target: GM Difficulty, pre-filled to Easy (helplessRangedDifficulty).
+          if (helplessAtRoll && !closeContact && !blast) this.constructor._prefillDifficulty(html, TABLE_RULINGS.helplessRangedDifficulty);
           html.find("[name='quick']").on('change', ev => html.find('.mf-quick-second').toggle(ev.currentTarget.checked));
           // Club with it: a melee strike, so it takes a location and may be a Knockout.
           html.find("[name='attackMode']").on('change', ev => {
@@ -3809,9 +3863,13 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const fireMode = club ? 'single' : dlg.fireMode;
     const skillTotal = resolveSkill(club ? TABLE_RULINGS.improvisedClub.skill : skillKey);
     const mods = coverMod + other;
-    // One attack, or two for Quick; a close-contact attack aims at its chosen location.
+    // A helpless target (re-read now: targets can change while the dialog is open).
+    const helpless = !blast && !!this.constructor._helplessTargetActor();
+    // One attack, or two for Quick; a close-contact attack aims at its chosen location,
+    // with no called-shot penalty against a helpless target.
     const plan = melee && closeTarget
       ? closeAttackPlan(quick && quickChoice, [closeTarget, closeTarget2], MELEE_STRIKE_TARGETS)
+        .map(a => helpless ? { ...a, locPenalty: 0 } : a)
       : [{ target: null, locPenalty: 0 }];
     const twoAttacks = plan.length > 1;
 
@@ -3847,7 +3905,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (koMod) modParts.push(`Knockout ${koMod}`);
 
       const { targetActor, success, margin, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,
-        { defense, difficulty, arcMod, attackKind: melee ? 'melee' : 'ranged', defenseMode });
+        { defense, difficulty, arcMod, attackKind: melee ? 'melee' : 'ranged', defenseMode, natural: plusDice[0] });
       // Where a hit lands: the blocking arm after a deflecting Arm Block, else the chosen or rolled location.
       const hitLocation = async () => redirect ? this.constructor._closeHit(redirect)
         : closeTarget ? this.constructor._closeHit(closeTarget) : this.constructor._rollHitLocationKey();
@@ -3958,6 +4016,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const defaultSkill = skills['martial-art'].total > skills['hand-to-hand'].total ? 'martial-art' : 'hand-to-hand';
     const targetsAtRoll = Array.from(game.user.targets);
     const oneTarget = targetsAtRoll.length === 1 && !!targetsAtRoll[0].actor;
+    // A helpless target (helpless.js): no defense, no called-shot penalty.
+    const helplessAtRoll = this.constructor._helplessTargetActor();
     const sign = n => `${n >= 0 ? '+' : ''}${n}`;
 
     const maneuverOptions = Object.entries(CLOSE_MANEUVERS)
@@ -3976,7 +4036,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const targets = [html.find("[name='closeTarget']").val(), html.find("[name='closeTarget2']").val()];
       return {
         m, position,
-        plan: closeAttackPlan(quick, targets, maneuverTargets(m, position), m.defaultGroup),
+        plan: closeAttackPlan(quick, targets, maneuverTargets(m, position), m.defaultGroup)
+          .map(a => helplessAtRoll ? { ...a, locPenalty: 0 } : a),
         other: Number(html.find("[name='other']").val()) || 0,
         sprain: this.constructor._sprainPenalty(html),
         wounds: this._woundPenalty(html),
@@ -3997,6 +4058,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         title: 'Close Combat',
         content: `
           <form class="mf-attack-dialog">
+            ${this.constructor._helplessNoteHtml(helplessAtRoll)}
             <div class="form-group">
               <label>Maneuver</label>
               <select name="maneuver" style="width:100%">${maneuverOptions}</select>
@@ -4030,8 +4092,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             <div class="form-group">
               <label>Defense</label>
               <select name="defense" style="width:100%">
-                <option value="evade" ${oneTarget ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>
-                <option value="difficulty" ${oneTarget ? '' : 'selected'}>GM Difficulty (no defense roll -- unaware / sneak attack)</option>
+                ${helplessAtRoll ? '' : `<option value="evade" ${oneTarget ? 'selected' : ''}>Target Evades (opposed: REF + Dodge &amp; Escape)</option>`}
+                <option value="difficulty" ${oneTarget && !helplessAtRoll ? '' : 'selected'}>GM Difficulty (no defense roll -- unaware / sneak attack)</option>
               </select>
             </div>
             <div class="form-group">
@@ -4057,7 +4119,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
             const m = CLOSE_MANEUVERS[key];
             html.find('.mf-close-position').toggle(!!m.positions);
             const groups = maneuverTargets(m, m.positions ? html.find("[name='position']").val() : null);
-            html.find("[name='closeTarget'], [name='closeTarget2']").html(this.constructor._closeTargetOptions(groups, m.defaultGroup));
+            html.find("[name='closeTarget'], [name='closeTarget2']").html(this.constructor._closeTargetOptions(groups, m.defaultGroup, { helpless: !!helplessAtRoll }));
             html.find('.mf-quick-toggle').toggle(isQuickManeuver(key));
             if (!isQuickManeuver(key)) html.find("[name='quick']").prop('checked', false);
             html.find('.mf-quick-second').toggle(html.find("[name='quick']").is(':checked'));
@@ -4085,8 +4147,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
     } catch (_) { return; } // dialog cancelled
 
-    const { m, position, plan, other, sprain, wounds, skill, defense, arcMod, difficulty, defenseMode } = dlg;
+    const { m, position, other, sprain, wounds, skill, defense, arcMod, difficulty, defenseMode } = dlg;
     if (!(await this._confirmFriendlyFire())) return;
+    // Re-read: the target may have become helpless (or stopped being) while the dialog was open.
+    const plan = this.constructor._helplessTargetActor() ? dlg.plan.map(a => ({ ...a, locPenalty: 0 })) : dlg.plan;
     const s = skills[skill];
     if (!s.has) ui.notifications.warn(`${this.actor.name} has no "${s.name}" skill -- rolling with skill total 0.`);
     const what = `${m.label}${position ? ` (${MOUTH_POSITIONS[position].toLowerCase()})` : ''}`;
@@ -4107,7 +4171,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
       // Unarmed: no weapon Parry, but an Arm Block may follow a failed Evade.
       const { targetActor, success, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,
-        { defense, difficulty, arcMod, attackKind: 'unarmed', defenseMode });
+        { defense, difficulty, arcMod, attackKind: 'unarmed', defenseMode, natural: plusDice[0] });
       const lead = twoAttacks ? `<br><strong>Attack ${n}</strong>` : attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), what);
       let flavor = `${lead}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
 

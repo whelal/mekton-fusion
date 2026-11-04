@@ -37,6 +37,8 @@ sentence goes in the Parking lot.
 - Realistic Damage Table penalties automated on the core damage states (`realisticDamagePenalties`).
 - Torso at 0 Hits: Stun/Shock roll each turn and -2 to all actions, not automatic unconsciousness (Realistic Damage Table) (`torsoZeroStunCheck`). A torso full of Bruises also rolls each turn, with no -2; the head is unchanged.
 - Waking from unconsciousness is manual: an unconscious character stays down until the GM removes the Unconscious status (an intervention by another character, or a hospital). No wake-up rolls. Removing the status doesn't change Hits.
+- Helpless targets (Unconscious, Asleep or Defeated/dead status, or a head/torso unconscious or dead by its track) get no defense (`helplessStatuses`). Melee and close combat hit on anything but a natural 1, at the chosen location with no called-shot penalty. Ranged goes against Difficulty 10 by default (`helplessRangedDifficulty`), with range, cover, WA and called-shot modifiers as normal.
+- Fumbles from Interlock Unlimited (p.37) on all 1D10 rolls (playtest).
 
 ### Interpretations
 Where the book is silent or ambiguous and the table decided. These are not settings toggles.
@@ -61,6 +63,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Personal armor ablates 1 SP only on hits of 5+ Hits (MZ ATM human-scale ablation rate, applied to the Personal Armor Table). Mecha unchanged.
 - Natural recovery injury type, re-read each day from the location's Wound Hits (from MZ human damage thresholds): Hits > 0 Wounds; a limb at 0 to -1 Broken, -2 or below Mangled, -5 or below severed (doesn't heal by the tables: needs prosthetic/regeneration); head or torso at 0 or below Internal, -2 or below dead (doesn't heal). Only a location with Wounds recovers or worsens.
 - Burns heal as Wounds (burn damage isn't tracked separately).
+- Fumbles: a roll with no skill (stat-only, or rank 0) always confirms a fumble on a natural 1. The fumble table is picked by the roll's skill/stat (combat -> Combat; REF/BODY physical -> Athletics; TECH -> Tech; EMP/ATTR/COOL social -> Social; INT/EDU -> INT; else a plain fumble). A fumble on a defense roll (Evade, Parry, Arm Block) uses the Combat table.
 - Wound penalties stack across locations; Wounds only (Bruises never trigger them; Sprained is separate). "At 1 Hit remaining" needs at least one Wound. Rolls with no dialog (Evade, Parry, Arm Block, mecha armament rows, shift-click rolls) always take the penalty.
 
 ### RAW notes
@@ -108,6 +111,9 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] GM recovery tools: Full Recovery, Repair Armor, Rest; natural Wound recovery stays manual (0.3.34)
 - [x] Natural recovery: Recover N days, Wounds per MZ Natural Recovery / Medical Attention tables, Bruises per hour rested, preview first, deterioration only when ticked (0.3.35)
 - [x] Wound penalties: Realistic Damage Table on every roll (stacked, GM can untick per roll), MA/Lift halving, Stun/Shock every turn with a blown-off limb or a torso at 0 Hits (0.3.36)
+- [x] Helpless targets: no defense vs Unconscious/Asleep/Defeated; melee auto-hits except a natural 1 with no called-shot penalty, ranged vs Difficulty 10; Bruise-wraparound split on the card (0.3.37)
+- [ ] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage
+- [ ] Human-scale ranged aimed shots (called location; reuse the close-combat location penalties unless the book gives human ranged values; spec pending)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
       scale and converted where an effect lands). Build steps, one patch each:
