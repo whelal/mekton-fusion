@@ -2,17 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chainText, attackHeader, targetLabel, damageTo, isFriendlyFire, sideLabel } from "../module/data/attack-card.js";
 
-test("chainText: plain die, upward chain, fumble chain", () => {
+test("chainText: plain die, upward chain, natural 1 subtracts one die (no chain)", () => {
   assert.equal(chainText([7]), "7");
   assert.equal(chainText([10, 7]), "10 (+7) = 17,");
   assert.equal(chainText([10, 10, 3]), "10 (+10, +3) = 23,");
-  assert.equal(chainText([1], [4]), "1 (fumble chain −4) = −3,");
-  assert.equal(chainText([1], [1]), "1 (fumble chain −1) = 0,");
+  assert.equal(chainText([1], [4]), "1 (fumble −4) = −3,");
+  assert.equal(chainText([1], [1]), "1 (fumble −1) = 0,");
 });
 
 test("chainText reads as the spec's Evade example", () => {
   const line = [chainText([1], [4]), "REF 5", "Dodge 0"].join(" + ") + " = 2";
-  assert.equal(line, "1 (fumble chain −4) = −3, + REF 5 + Dodge 0 = 2");
+  assert.equal(line, "1 (fumble −4) = −3, + REF 5 + Dodge 0 = 2");
 });
 
 test("attack header names attacker and target", () => {

@@ -1,3 +1,21 @@
+## [0.3.38] - 2026-11-04
+### Added
+- **Fumbles** (table ruling `fumbles`, from Interlock Unlimited p.37; playtest) on every human-scale 1D10 roll: stat and skill rolls, weapon and close-combat attacks, Evade, weapon Parry and Arm Block.
+  - MZ core is unchanged for the total: a natural 1 rolls a second d10 and subtracts it. That same die now also confirms the fumble: at or below the roll's skill rank it's just a bad roll ("Natural 1, saved by skill (confirm 2 ≤ 3)"); above it, a FUMBLE. No third die. A roll with no skill (a stat roll, or rank 0) fumbles on every natural 1.
+  - A fumble rolls 1D10 on a table picked by the roll: attacks and defenses use Combat; skill-list rolls go by skill and stat (combat skills Combat; REF/BODY physical Athletics, Dodge & Escape and Mecha Piloting included; TECH Tech; EMP/ATTR/COOL Social; INT/EDU INT; anything else a plain fumble). The mapping is in `table-rulings.js` (`fumbleTableByStat`, `fumbleCombatCategories`, `fumbleNonCombatSkills`, `fumbleDefenseTable`).
+  - Combat: 1-4 a screw-up; 5 drops the weapon (In hand cleared); 6 discharges or strikes something harmless; 7 jams: the weapon can't attack or parry until the start of its user's next turn in the combat, then clears itself with a chat note (outside combat it isn't tracked); 8 the user takes the weapon's damage at a random location, against their own armor; 9-10 the nearest friendly token in reach (melee: 1 grid space, `fumbleMeleeReachSpaces`) or in range with line of fire (ranged) takes the weapon's damage at a random location, or the card says no one qualifies for the GM. Unarmed: drop and jam are a screw-up, and self-damage is the maneuver's.
+  - Athletics: 1-4 a note; 5-7 1 Hit at a random location plus a Stun/Shock roll; 8-10 1D6 Hits plus a Stun/Shock roll at -1 (no armor; it's not an attack). Tech, Social (7-10 rolls a follow-up 1D10 for physical harm) and INT are chat notes.
+  - A confirmed fumble always fails: an attack misses with no defense roll, a defense fails (a fumbled Evade lets the attack hit), and a stat or skill roll fails its Difficulty.
+  - The card reads "FUMBLE (confirm 7 > skill 3): Combat 5 — drops Quarterstaff".
+- `module/data/fumble.js`, with tests.
+### Changed
+- Helpless targets: a natural 1 on a melee or close-combat attack now goes to the fumble check; saved by skill it still hits, a confirmed fumble misses and applies its effect.
+- `_applyLocationDamage` takes a `stunMod` for its Stun/Shock roll.
+- ROADMAP.md: fumbles ticked (0.3.38).
+### Fixed
+- Stat and skill roll cards no longer say "rolls Roll ..." (the card now reads "rolls Play Musical Instrument").
+- A natural 1 reads "1 (fumble −4) = −3" on every card (stat, skill, attack, Evade, Parry, Arm Block, mecha armament), not "fumble chain": MZ subtracts one die and doesn't chain. Upward 10s still read as a chain.
+
 ## [0.3.37] - 2026-11-04
 ### Added
 - **Helpless targets** (table rulings `helplessStatuses`, `helplessRangedDifficulty`): a target with the core **Unconscious**, **Asleep** or **Defeated** (dead) status, or whose head or torso is unconscious or dead by its track, gets no defense: no Evade, Parry or Arm Block. Read from the targeted token's own actor, so linked and unlinked tokens both work.

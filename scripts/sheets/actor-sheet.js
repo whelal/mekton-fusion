@@ -5,6 +5,7 @@ import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLoc
 import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit, piercedSP } from "../../module/data/armor.js";
 import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments, trackSplitLabel } from "../../module/data/damage-track.js";
 import { isHelpless, helplessAttack } from "../../module/data/helpless.js";
+import { confirmFumble, fumbleTableFor, fumbleResult, needsSecondDie, fumbleLine, pickPartyVictim, jamBlocks, jamClearsOnTurn, fumbleWeaponUpdate, fumbleDamageOptions } from "../../module/data/fumble.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
 import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../../module/data/close-combat.js";
 import { DEFENSE_MODES, KNOCKOUT, bestParryWeapon, pickBlockingArm, chooseDefense, parryOutcome, armBlockOutcome, clubDamage } from "../../module/data/defense.js";
@@ -351,9 +352,10 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    *   zone, or thigh/lower leg 50/50 for a leg. damageType: default "wound".
    *   forceStun: always roll Stun/Shock (Knockout), still not for the dead or unconscious.
    *   armorPiercing: an [AP] weapon's hit (piercedSP).
+   *   stunMod: added to the Stun number for this hit's Stun/Shock roll (a fumble's -1).
    * @returns {{sp:number, counted:number, ap:boolean, spNow:number, belowThreshold:boolean, armorName:string, damageType:string, softIgnored:boolean, before:number, after:number, hitsNow:number, wounds:number, bruises:number, state:string, stun:object|null}}
    */
-  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone, damageType = 'wound', forceStun = false, armorPiercing = false } = {}) {
+  static async _applyLocationDamage(targetActor, key, dmgTotal, { ignoreSp = false, zone, damageType = 'wound', forceStun = false, armorPiercing = false, stunMod = 0 } = {}) {
     const loc = targetActor.system?.body?.locations?.[key];
     zone ??= closeHitZone(key);
     const update = {};
@@ -409,7 +411,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     let stun = null;
     if (!out && (forceStun || (after > 0 && after > before / 2))) {
-      const stunVal = MektonActorSheet._num(targetActor.system?.substats?.stun, 0);
+      const stunVal = MektonActorSheet._num(targetActor.system?.substats?.stun, 0) + stunMod;
       const stunRoll = new Roll('1d10');
       await stunRoll.evaluate();
       stun = { total: stunRoll.total, stunVal, conscious: stunRoll.total <= stunVal, roll: stunRoll };
@@ -525,13 +527,145 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   }
 
   /**
+   * Fumble check (fumble.js, TABLE_RULINGS.fumbles) for a natural 1 on one of
+   * `actor`'s exploding 1D10 rolls: the die MZ already subtracted (minusDice[0])
+   * confirms against `rank`. A confirmed fumble rolls 1D10 on `table` and
+   * applies its effect (Combat: drop, jam, self-wound, party wound; Athletics:
+   * Hits + Stun/Shock); the rest are chat lines. Effects that touch a document
+   * the user can't update are posted for the GM instead.
+   * @param {Actor} actor - who rolled (the token's actor for an unlinked token)
+   * @param {object} o
+   * @param {number[]} o.plusDice
+   * @param {number[]} o.minusDice
+   * @param {number} [o.rank=0] - the roll's skill rank (0 = no skill: every natural 1 fumbles)
+   * @param {string} o.table - fumbleTableFor()
+   * @param {Item|null} [o.weapon] - the weapon used (drop, jam, its damage); none = unarmed
+   * @param {{formula:string, skillBonus?:number, damageType?:string, armorPiercing?:boolean}|null} [o.selfDamage] -
+   *   damage for self-wound / party wound (the weapon's, or an unarmed maneuver's); none = posted for the GM
+   * @param {boolean} [o.melee=true] - party-wound reach (melee) vs range and line of fire
+   * @param {number|null} [o.rangeMax] - ranged weapon's Max range (scene units)
+   * @returns {Promise<null|{fumbled:boolean, html:string}>} null when the natural die isn't a 1
+   */
+  static async _fumbleCheck(actor, { plusDice, minusDice, rank = 0, table, weapon = null, selfDamage = null, melee = true, rangeMax = null }) {
+    const confirm = confirmFumble({ plusDice, minusDice, rank });
+    if (!confirm) return null;
+    if (!confirm.fumble) return { fumbled: false, html: `<br><em>${escapeHtml(fumbleLine(confirm, null))}</em>` };
+    const d10 = async () => (await new Roll('1d10').evaluate()).total;
+    const die = table === 'plain' ? null : await d10();
+    const secondDie = needsSecondDie(table, die) ? await d10() : null;
+    const weaponName = weapon ? (weapon.system?.name || weapon.name) : undefined;
+    const result = fumbleResult(table, die, { unarmed: !weapon, weaponName, secondDie });
+    let html = `<br><strong style="color:#c0392b">${escapeHtml(fumbleLine(confirm, result))}</strong>`;
+    try {
+      html += await MektonActorSheet._applyFumbleEffect(actor, result, { weapon, selfDamage, melee, rangeMax });
+    } catch (e) {
+      console.error('mekton-fusion | fumble effect failed', e);
+      html += ` <em style="color:#c0392b;">(could not be applied, no permission? GM: apply it by hand)</em>`;
+    }
+    return { fumbled: true, html };
+  }
+
+  /** Apply one fumbleResult()'s effect; returns the card fragment (after the FUMBLE line). */
+  static async _applyFumbleEffect(actor, result, { weapon, selfDamage, melee, rangeMax }) {
+    const gm = text => ` <em style="color:#999;">(${text}: GM adjudicates)</em>`;
+    const rollDamage = async () => {
+      const sheet = actor.sheet;   // BODY damage mod is the roller's own
+      return sheet._rollDamageFormula(String(selfDamage.formula).trim(), selfDamage.skillBonus ?? 0);
+    };
+    const hitOn = async (victim, dmg) => {
+      const { key, label, zone } = await MektonActorSheet._rollHitLocationKey();
+      // A weapon hit: armor applies as normal (fumbleDamageOptions).
+      const applied = await MektonActorSheet._applyLocationDamage(victim, key, dmg.total, { zone, ...fumbleDamageOptions(result, selfDamage) });
+      return `<br>${dmg.total} ${damageTo(victim.name, label)}: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
+    };
+    switch (result.effect) {
+      case 'drop':
+        await weapon.update(fumbleWeaponUpdate('drop'));
+        return ' (no longer in hand)';
+      case 'jam': {
+        const update = fumbleWeaponUpdate('jam', { combatId: game.combat?.started ? game.combat.id : null });
+        if (!update) return ' <em style="color:#999;">(no combat running: unusable this turn, not tracked)</em>';
+        await weapon.update(update);
+        return '';
+      }
+      case 'selfWound': {
+        if (!selfDamage?.formula) return gm('no damage to roll');
+        return hitOn(actor, await rollDamage());
+      }
+      case 'partyWound': {
+        if (!selfDamage?.formula) return gm('no damage to roll');
+        const victim = MektonActorSheet._fumblePartyVictim(actor, { melee, rangeMax });
+        if (!victim) return gm(melee ? 'no friendly token in reach' : 'no friendly token in range and line of fire');
+        return hitOn(victim.actor, await rollDamage());
+      }
+      case 'selfHits': {
+        const roll = await new Roll(result.hits).evaluate();
+        const { key, label } = await MektonActorSheet._rollHitLocationKey();
+        // Not an attack: no armor; always a Stun/Shock roll, at result.stunMod (fumbleDamageOptions).
+        const applied = await MektonActorSheet._applyLocationDamage(actor, key, roll.total, fumbleDamageOptions(result));
+        return `<br>${roll.total} Hit${roll.total === 1 ? '' : 's'} ${damageTo(actor.name, label)}: ${MektonActorSheet._formatDamageAppliedHtml(applied)}`;
+      }
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * "Wound a party member": the nearest FRIENDLY token (same side as the
+   * roller's token, isFriendlyFire; not the roller) within reach (melee:
+   * TABLE_RULINGS.fumbleMeleeReachSpaces grid spaces) or within `rangeMax` with
+   * line of fire (no sight-blocking wall between the token centres). Null when
+   * none qualifies or the roller has no token on the canvas.
+   */
+  static _fumblePartyVictim(actor, { melee, rangeMax }) {
+    if (!canvas?.ready) return null;
+    const own = actor.token?.object ?? actor.getActiveTokens()[0];
+    if (!own) return null;
+    const maxDistance = melee ? TABLE_RULINGS.fumbleMeleeReachSpaces * (canvas.scene?.grid?.distance ?? 1) : Number(rangeMax);
+    if (!Number.isFinite(maxDistance)) return null;
+    const sight = CONFIG.Canvas.polygonBackends.sight;
+    const mine = own.document.disposition;
+    const candidates = canvas.tokens.placeables
+      .filter(t => t !== own && t.actor && t.actor !== actor && isFriendlyFire(mine, t.document.disposition))
+      .map(t => ({
+        id: t.id, token: t,
+        distance: canvas.grid.measurePath([own.center, t.center]).distance,
+        lineOfFire: melee || !sight.testCollision(own.center, t.center, { type: 'sight', mode: 'any' })
+      }));
+    return pickPartyVictim(candidates, { maxDistance, ranged: !melee })?.token ?? null;
+  }
+
+  /** Whether `weapon` is jammed (a fumble's Combat 7) in a combat that still exists. */
+  static _isJammed(weapon) {
+    return jamBlocks(weapon?.getFlag?.('mekton-fusion', 'jammed'), game.combats);
+  }
+
+  /**
+   * Start of a combatant's turn: clear its weapons' jams from this combat
+   * (fumble Combat 7: unusable until the start of the user's next turn).
+   * Called from the updateCombat hook in mekton-fusion.js (active GM only).
+   */
+  static async clearJams(combat) {
+    const actor = combat.combatant?.actor;
+    if (!actor) return;
+    for (const w of actor.items.filter(i => i.type === 'weapon')) {
+      if (!jamClearsOnTurn(w.getFlag('mekton-fusion', 'jammed'), combat.id)) continue;
+      await w.unsetFlag('mekton-fusion', 'jammed');
+      await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }),
+        content: `<strong>${escapeHtml(actor.name)}</strong>: ${escapeHtml(w.system?.name || w.name)} is usable again (jam cleared).` });
+    }
+  }
+
+  /**
    * Defender's Evade roll, human scale (MZ p.92): 1D10 (exploding) + REF +
    * Dodge & Escape, -1 if attacked from the flank, -2 from the rear, plus the
    * defender's wound penalty (no dialog, so always applied). Free,
    * once per attack. Rolled on the attacker's client (no socket round-trip).
    * @param {Actor} targetActor
    * @param {number} [arcMod=0] - 0 front, -1 flank, -2 rear
-   * @returns {Promise<{total:number, label:string, hasSkill:boolean}>}
+   * A natural 1 goes to the fumble check (Combat table, unarmed; a confirmed
+   * fumble fails the Evade; fumbleHtml is its card fragment).
+   * @returns {Promise<{total:number, label:string, hasSkill:boolean, fumbled:boolean, fumbleHtml:string}>}
    */
   static async _rollEvade(targetActor, arcMod = 0) {
     const ref = MektonActorSheet._num(targetActor.system?.stats?.REF?.value, 0);
@@ -543,7 +677,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `Dodge ${dodge}`];
     if (arcMod) parts.push(`Arc ${arcMod}`);
     if (wounds) parts.push(`Wounds ${wounds}`);
-    return { total, label: `${parts.join(' + ')} = ${total}`, hasSkill: !!skill };
+    const fumble = await MektonActorSheet._fumbleCheck(targetActor, { plusDice, minusDice, rank: dodge, table: fumbleTableFor({ kind: 'defense' }) });
+    return { total, label: `${parts.join(' + ')} = ${total}`, hasSkill: !!skill, fumbled: !!fumble?.fumbled, fumbleHtml: fumble?.html ?? '' };
   }
 
   /** @override */
@@ -1922,6 +2057,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const { roll, total: base, plusDice, minusDice, capped, maxExtra } = await this.constructor._rollBidirectionalExplodingD10();
     const finalTotal = base + statVal + (mod||0) + wounds;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    // A natural 1: fumble check; a stat roll has no skill, so every natural 1 fumbles (table by stat).
+    const fumble = await this.constructor._fumbleCheck(this.actor, { plusDice, minusDice, rank: 0, table: fumbleTableFor({ kind: 'stat', stat }) });
     
     const flavorParts = [chainText(plusDice, minusDice), `${stat} ${statVal}`];
     if (mod) flavorParts.push(`Mod ${mod >= 0 ? '+' : ''}${mod}`);
@@ -1934,15 +2071,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     
     let resultText = '';
     if (difficulty !== null) {
-      const success = finalTotal >= difficulty;
+      const success = !fumble?.fumbled && finalTotal >= difficulty;   // a confirmed fumble always fails
       resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
     }
     
     const rollTitle = difficulty !== null ? 
-      game.i18n.format('MF.RollWithDifficulty', { name: stat, difficulty }) :
-      game.i18n.format('MF.RollSimple', { name: stat });
+      game.i18n.format('MF.RollCardWithDifficulty', { name: stat, difficulty }) :
+      game.i18n.format('MF.RollCardSimple', { name: stat });
     
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}`;
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong>${finalTotal}</strong>${resultText}${fumble?.html ?? ''}`;
     const shown = await this.constructor._rollWithMods(roll, [statVal, mod, wounds]);
     await shown.toMessage({ speaker, flavor });
   }
@@ -2014,6 +2151,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const mr = isMecha && stat === 'REF' ? Number(this.actor.system?.mecha?.config?.mr ?? 0) : statVal;
     const finalTotal = base + mr + rank + (mod||0) + sprain + wounds;
     const speaker = ChatMessage.getSpeaker({ actor: this.actor });
+    // A natural 1: fumble check vs this skill's rank (table by skill/stat; no weapon on a skill-list roll).
+    const fumble = await this.constructor._fumbleCheck(this.actor, { plusDice, minusDice, rank,
+      table: fumbleTableFor({ kind: 'skill', stat, skillName: skill.name, category: skill.system?.category }) });
 
     const flavorParts = [chainText(plusDice, minusDice)];
     if (isMecha && stat === 'REF') {
@@ -2033,15 +2173,15 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     
     let resultText = '';
     if (difficulty !== null) {
-      const success = finalTotal >= difficulty;
+      const success = !fumble?.fumbled && finalTotal >= difficulty;   // a confirmed fumble always fails
       resultText = ` vs Difficulty ${difficulty} = <strong style="color: ${success ? 'green' : 'red'}">${success ? 'SUCCESS' : 'FAILURE'}</strong>`;
     }
     
     const rollTitle = difficulty !== null ? 
-      game.i18n.format('MF.RollWithDifficulty', { name: skill.name, difficulty }) :
-      game.i18n.format('MF.RollSimple', { name: skill.name });
+      game.i18n.format('MF.RollCardWithDifficulty', { name: skill.name, difficulty }) :
+      game.i18n.format('MF.RollCardSimple', { name: skill.name });
     
-    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}`;
+    const flavor = `<strong>${this.actor.name}</strong> rolls ${rollTitle} ${tag}${capTag} = ${flavorParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${finalTotal}</strong>${resultText}${fumble?.html ?? ''}`;
     const shown = await this.constructor._rollWithMods(roll, [mr, rank, mod, sprain, wounds]);
     await shown.toMessage({ speaker, flavor });
   }
@@ -3308,16 +3448,25 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * A helpless target (helpless.js) gets no defense whatever was picked: a
    * melee/unarmed attack hits on any `natural` die but 1; a ranged one goes
    * against the Difficulty, defaulting to TABLE_RULINGS.helplessRangedDifficulty.
+   * `fumbled` is the attacker's fumble check (true = confirmed fumble, false =
+   * natural 1 saved by skill, null = no natural 1): a confirmed fumble misses
+   * with no defense roll; a saved natural 1 still hits a helpless target. A
+   * defender's confirmed fumble fails that defense.
    */
-  async _resolveAttackDefense(attackTotal, { defense, difficulty, arcMod, attackKind = 'ranged', defenseMode = 'auto', natural = null }) {
+  async _resolveAttackDefense(attackTotal, { defense, difficulty, arcMod, attackKind = 'ranged', defenseMode = 'auto', natural = null, fumbled = null }) {
     const targets = Array.from(game.user.targets);
     const targetActor = targets.length === 1 ? targets[0].actor : null;
     let success = null;
     let margin = null;
     let resultTag = '';
     let redirect = null;
-    if (targetActor && MektonActorSheet._isHelplessActor(targetActor)) {
-      const h = helplessAttack({ attackKind, natural, difficulty });
+    const helpless = !!targetActor && MektonActorSheet._isHelplessActor(targetActor);
+    if (fumbled === true) {
+      const line = helpless ? `<br>${escapeHtml(targetActor.name)} is helpless: no defense` : '';
+      return { targetActor, success: false, margin: null, resultTag: `${line} &mdash; <strong style="color: red">MISS (fumble)</strong>`, redirect: null };
+    }
+    if (helpless) {
+      const h = helplessAttack({ attackKind, natural, difficulty, fumbled });
       const line = `<br>${escapeHtml(targetActor.name)} is helpless: no defense`;
       if (h.defense === 'none') {
         resultTag = `${line} &mdash; <strong style="color: ${h.hit ? 'green' : 'red'}">${h.hit ? 'HIT' : 'MISS (natural 1)'}</strong>`;
@@ -3330,10 +3479,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     }
     if (defense === 'evade' && targetActor) {
       const ev = await this.constructor._rollEvade(targetActor, arcMod);
-      success = attackTotal > ev.total; // Evade >= attack: the attack fails (MZ p.92)
-      margin = attackTotal - ev.total;
+      // Evade >= attack: the attack fails (MZ p.92). A fumbled Evade fails whatever
+      // the totals (a burst then lands at least 1 hit).
+      success = ev.fumbled || attackTotal > ev.total;
+      margin = ev.fumbled ? Math.max(1, attackTotal - ev.total) : attackTotal - ev.total;
       const noSkill = ev.hasSkill ? '' : ' <em style="font-size:0.85em; color:#999;">(no Dodge &amp; Escape skill)</em>';
-      resultTag = `<br>${escapeHtml(targetActor.name)} Evades: ${ev.label}${noSkill} &mdash; <strong style="color: ${success ? 'green' : 'red'}">${success ? `HIT by ${margin}` : 'EVADED'}</strong>`;
+      resultTag = `<br>${escapeHtml(targetActor.name)} Evades: ${ev.label}${noSkill}${ev.fumbleHtml} &mdash; <strong style="color: ${success ? 'green' : 'red'}">${success ? (ev.fumbled ? 'HIT (Evade fumbled)' : `HIT by ${margin}`) : 'EVADED'}</strong>`;
       if (success) {
         const second = await this.constructor._secondDefense(targetActor, attackTotal, { attackKind, defenseMode });
         if (second) {
@@ -3366,7 +3517,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    */
   static async _secondDefense(targetActor, attackTotal, { attackKind, defenseMode }) {
     const rank = name => MektonActorSheet._num(targetActor.items.find(i => i.type === 'skill' && i.name === name)?.system?.rank, 0);
-    const weapons = targetActor.items.filter(i => i.type === 'weapon' && !i.system?.isMecha);
+    // A jammed weapon (fumble, Combat 7) can't parry until its user's next turn.
+    const weapons = targetActor.items.filter(i => i.type === 'weapon' && !i.system?.isMecha && !MektonActorSheet._isJammed(i));
     const parry = bestParryWeapon(weapons, { blade: rank('Blade'), fencing: rank('Fencing (H)') });
     const locs = targetActor.system?.body?.locations ?? {};
     const armor = MektonActorSheet._bodyArmorView(targetActor);
@@ -3383,17 +3535,24 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
     if (kind === 'weapon') {
       const total = die + ref + parry.skill.rank + parry.da + wounds;
-      const ok = parryOutcome(total, attackTotal) === 'parried';
+      // A natural 1: fumble check (Combat table, with the parrying weapon); a confirmed fumble fails the Parry.
+      const pw = parry.weapon;
+      const fumble = await MektonActorSheet._fumbleCheck(targetActor, { plusDice, minusDice, rank: parry.skill.rank, table: fumbleTableFor({ kind: 'defense' }), weapon: pw,
+        selfDamage: pw.system?.damage ? { formula: pw.system.damage, skillBonus: MektonActorSheet._meleeSkillDamageBonus(targetActor, pw), damageType: pw.system?.damageType, armorPiercing: !!pw.system?.armorPiercing } : null,
+        melee: true });
+      const ok = !fumble?.fumbled && parryOutcome(total, attackTotal) === 'parried';
       const what = `${escapeHtml(parry.weapon.system?.name || parry.weapon.name)}${parry.improvised ? ' (improvised)' : ''}`;
       const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `${parry.skill.label} ${parry.skill.rank}`, `DA ${parry.da}`];
       if (wounds) parts.push(`Wounds ${wounds}`);
-      return { html: `<br>${name} parries with ${what}: ${parts.join(' + ')} = ${total} &mdash; ${verdict(ok, ok ? 'PARRIED' : 'defense failed')}`, stopped: ok };
+      return { html: `<br>${name} parries with ${what}: ${parts.join(' + ')} = ${total}${fumble?.html ?? ''} &mdash; ${verdict(ok, ok ? 'PARRIED' : 'defense failed')}`, stopped: ok };
     }
 
     const hth = rank('Hand to Hand'), ma = rank('Martial Art (H)');
     const skill = ma > hth ? { label: 'Martial Art', rank: ma } : { label: 'HtH', rank: hth };
     const total = die + ref + skill.rank + arm.penalty + wounds;
-    const { result, margin } = armBlockOutcome(total, attackTotal);
+    // A natural 1: fumble check (Combat table, unarmed); a confirmed fumble fails the block.
+    const fumble = await MektonActorSheet._fumbleCheck(targetActor, { plusDice, minusDice, rank: skill.rank, table: fumbleTableFor({ kind: 'defense' }) });
+    const { result, margin } = fumble?.fumbled ? { result: 'failed', margin: null } : armBlockOutcome(total, attackTotal);
     const armLabel = CLOSE_TARGETS[arm.key].label;
     const parts = [chainText(plusDice, minusDice), `REF ${ref}`, `${skill.label} ${skill.rank}`];
     if (arm.penalty) parts.push(`Sprained ${arm.penalty}`);
@@ -3401,7 +3560,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const text = result === 'failed' ? 'defense failed'
       : result === 'arm' ? `blocked by ${margin}, damage to ${armLabel}` : `blocked by ${margin}, no damage`;
     return {
-      html: `<br>${name} blocks with ${armLabel}: ${parts.join(' + ')} = ${total} &mdash; ${verdict(result !== 'failed', text)}`,
+      html: `<br>${name} blocks with ${armLabel}: ${parts.join(' + ')} = ${total}${fumble?.html ?? ''} &mdash; ${verdict(result !== 'failed', text)}`,
       stopped: result === 'clean',
       redirect: result === 'arm' ? arm.key : null
     };
@@ -3472,7 +3631,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   static _helplessNoteHtml(actor) {
     if (!actor) return '';
     return `<p class="mf-helpless-note" style="font-weight:600; color:#c0392b; margin:4px 0;">${escapeHtml(actor.name)} is helpless: no defense. `
-      + `Melee hits on anything but a natural 1, with no location penalty; ranged goes against Difficulty `
+      + `Melee hits with no location penalty (a natural 1 goes to the fumble check); ranged goes against Difficulty `
       + `${TABLE_RULINGS.helplessRangedDifficulty} unless the GM sets another.</p>`;
   }
 
@@ -3640,6 +3799,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     if (!weapon) return;
 
     const weaponName = weapon.system?.name || weapon.name;
+    // Jammed (fumble, Combat 7): unusable until the start of its user's next turn.
+    if (this.constructor._isJammed(weapon)) {
+      ui.notifications.warn(`${weaponName} is jammed until the start of ${this.actor.name}'s next turn.`);
+      return;
+    }
     const wa = MektonActorSheet._num(weapon.system?.wa, 0);
 
     // Weapon Options (Lasersight, Optical Scope, Smartgun, etc.) modify the
@@ -3674,6 +3838,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       }
       return MektonActorSheet._num(this.actor.system?.stats?.[String(skillItem.system?.stat || '').toUpperCase()]?.value, 0)
         + MektonActorSheet._num(skillItem.system?.rank, 0);
+    };
+    // The skill's rank alone (fumble confirmation; 0 when the actor lacks the skill).
+    const resolveRank = key => {
+      const displayName = key ? (SKILL_MAP[key] ?? key) : null;
+      const skillItem = displayName ? this.actor.items.find(i => i.type === 'skill' && i.name === displayName) : null;
+      return MektonActorSheet._num(skillItem?.system?.rank, 0);
     };
 
     // MZ range is Combat-Max, not a DV ladder -- the dialog only needs to know
@@ -3862,6 +4032,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const rangeMod = club ? 0 : dlg.rangeMod;
     const fireMode = club ? 'single' : dlg.fireMode;
     const skillTotal = resolveSkill(club ? TABLE_RULINGS.improvisedClub.skill : skillKey);
+    const skillRank = resolveRank(club ? TABLE_RULINGS.improvisedClub.skill : skillKey);
     const mods = coverMod + other;
     // A helpless target (re-read now: targets can change while the dialog is open).
     const helpless = !blast && !!this.constructor._helplessTargetActor();
@@ -3904,8 +4075,20 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (closeTarget) modParts.push(`${CLOSE_TARGETS[closeTarget].label} ${locPenalty >= 0 ? '+' : ''}${locPenalty}`);
       if (koMod) modParts.push(`Knockout ${koMod}`);
 
+      // A natural 1: fumble check (Combat table) with this weapon; a confirmed fumble misses.
+      const fumbleFormula = club ? clubFormula : (weapon.system?.damage ?? '').trim();
+      const fumble = await this.constructor._fumbleCheck(this.actor, {
+        plusDice, minusDice, rank: skillRank, table: fumbleTableFor({ kind: 'attack' }), weapon,
+        selfDamage: fumbleFormula ? {
+          formula: fumbleFormula, skillBonus: club ? 0 : MektonActorSheet._meleeSkillDamageBonus(this.actor, weapon),
+          damageType: club ? TABLE_RULINGS.improvisedClub.damageType : (pickedDamageType || weaponDamageType),
+          armorPiercing: !club && !!weapon.system?.armorPiercing
+        } : null,
+        melee, rangeMax: rangeInfo?.thrown ? this.actor.system?.derived?.throwM : (rangeInfo?.max ?? null)
+      });
+
       const { targetActor, success, margin, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,
-        { defense, difficulty, arcMod, attackKind: melee ? 'melee' : 'ranged', defenseMode, natural: plusDice[0] });
+        { defense, difficulty, arcMod, attackKind: melee ? 'melee' : 'ranged', defenseMode, natural: plusDice[0], fumbled: fumble ? fumble.fumbled : null });
       // Where a hit lands: the blocking arm after a deflecting Arm Block, else the chosen or rolled location.
       const hitLocation = async () => redirect ? this.constructor._closeHit(redirect)
         : closeTarget ? this.constructor._closeHit(closeTarget) : this.constructor._rollHitLocationKey();
@@ -3916,7 +4099,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const hitCount = burst && margin !== null ? Math.max(0, Math.min(margin, bv)) : 1;
 
       const lead = twoAttacks ? `<br><strong>Attack ${n}</strong>` : attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), weaponName);
-      let flavor = `${lead}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+      let flavor = `${lead}${tag}${capTag} = ${modParts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}${fumble?.html ?? ''}`;
 
       // --- On a hit (success !== false -- a miss is the only thing that skips this) ---
       if (success !== false && MektonActorSheet._blastOf(weapon)) {
@@ -4011,7 +4194,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const skills = Object.fromEntries(Object.entries(SKILLS).map(([k, name]) => {
       const it = this.actor.items.find(i => i.type === 'skill' && i.name === name);
       const stat = MektonActorSheet._num(this.actor.system?.stats?.[String(it?.system?.stat || '').toUpperCase()]?.value, 0);
-      return [k, { name, has: !!it, total: it ? stat + MektonActorSheet._num(it.system?.rank, 0) : 0 }];
+      const rank = it ? MektonActorSheet._num(it.system?.rank, 0) : 0;
+      return [k, { name, has: !!it, rank, total: it ? stat + rank : 0 }];
     }));
     const defaultSkill = skills['martial-art'].total > skills['hand-to-hand'].total ? 'martial-art' : 'hand-to-hand';
     const targetsAtRoll = Array.from(game.user.targets);
@@ -4170,10 +4354,16 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       if (wounds) parts.push(`Wounds ${sign(wounds)}`);
 
       // Unarmed: no weapon Parry, but an Arm Block may follow a failed Evade.
+      // A natural 1: fumble check (Combat table, unarmed: self-damage is the maneuver's); a confirmed fumble misses.
+      const fumble = await this.constructor._fumbleCheck(this.actor, {
+        plusDice, minusDice, rank: s.rank, table: fumbleTableFor({ kind: 'attack' }),
+        selfDamage: m.damage ? { formula: m.damage, skillBonus: MektonActorSheet._meleeSkillDamageBonus(this.actor, { system: { skill } }, { unarmed: true }), damageType: m.damageType ?? 'wound' } : null,
+        melee: true
+      });
       const { targetActor, success, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,
-        { defense, difficulty, arcMod, attackKind: 'unarmed', defenseMode, natural: plusDice[0] });
+        { defense, difficulty, arcMod, attackKind: 'unarmed', defenseMode, natural: plusDice[0], fumbled: fumble ? fumble.fumbled : null });
       const lead = twoAttacks ? `<br><strong>Attack ${n}</strong>` : attackHeader(escapeHtml(this.actor.name), MektonActorSheet._targetNames(), what);
-      let flavor = `${lead}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}`;
+      let flavor = `${lead}${tag}${capTag} = ${parts.join(' + ')} = <strong style="font-size: 1.2em; color: #4a90e2;">${attackTotal}</strong>${resultTag}${fumble?.html ?? ''}`;
 
       if (success !== false) {
         const { key, label: locLabel, zone } = this.constructor._closeHit(redirect ?? target);

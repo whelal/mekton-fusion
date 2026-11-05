@@ -292,13 +292,15 @@ Hooks.on("updateCombat", (combat, changes, options) => {
   MektonActorSheet.tickBurning(combat);
 });
 
-// Realistic Damage: a blown-off limb forces a Stun/Shock roll at the start of
-// that character's turn (see MektonActorSheet.turnStunCheck). Same guards as
+// Start of a character's turn: its jammed weapons (fumble, Combat 7) clear
+// (see MektonActorSheet.clearJams), then a blown-off limb or a torso at 0
+// forces a Stun/Shock roll (see MektonActorSheet.turnStunCheck). Same guards as
 // burning: active GM only, not when the tracker steps backwards.
-Hooks.on("updateCombat", (combat, changes, options) => {
+Hooks.on("updateCombat", async (combat, changes, options) => {
   if (!("turn" in changes) && !("round" in changes)) return;
   if ((options?.direction ?? 1) < 0) return;
   if (!game.users.activeGM?.isSelf) return;
+  await MektonActorSheet.clearJams(combat);
   MektonActorSheet.turnStunCheck(combat);
 });
 

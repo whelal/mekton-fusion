@@ -112,7 +112,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Natural recovery: Recover N days, Wounds per MZ Natural Recovery / Medical Attention tables, Bruises per hour rested, preview first, deterioration only when ticked (0.3.35)
 - [x] Wound penalties: Realistic Damage Table on every roll (stacked, GM can untick per roll), MA/Lift halving, Stun/Shock every turn with a blown-off limb or a torso at 0 Hits (0.3.36)
 - [x] Helpless targets: no defense vs Unconscious/Asleep/Defeated; melee auto-hits except a natural 1 with no called-shot penalty, ranged vs Difficulty 10; Bruise-wraparound split on the card (0.3.37)
-- [ ] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage
+- [x] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage (0.3.38)
 - [ ] Human-scale ranged aimed shots (called location; reuse the close-combat location penalties unless the book gives human ranged values; spec pending)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha

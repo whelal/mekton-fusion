@@ -176,5 +176,39 @@ export const TABLE_RULINGS = {
    * Difficulty, defaulting to Easy (10). Range, cover, WA and called-shot
    * modifiers apply as normal.
    */
-  helplessRangedDifficulty: 10
+  helplessRangedDifficulty: 10,
+
+  /**
+   * Fumbles (HOUSE, from Interlock Unlimited p.37; playtest): on a natural 1
+   * on any human-scale 1D10 roll, the die MZ already subtracts also confirms
+   * the fumble against the skill rank (fumble.js). A confirmed fumble rolls
+   * 1D10 on a table picked by the roll's skill/stat. false = MZ core only.
+   */
+  fumbles: true,
+
+  /**
+   * Fumble table by the roll's stat (INTERPRETATION): REF/BODY physical ->
+   * Athletics, TECH -> Tech, EMP/ATTR/COOL social -> Social, INT/EDU -> INT.
+   * A stat not listed is a plain fumble (no table).
+   */
+  fumbleTableByStat: { REF: "athletics", BODY: "athletics", TECH: "tech", EMP: "social", ATTR: "social", COOL: "social", INT: "int", EDU: "int" },
+
+  /** Skill categories whose rolls use the Combat table (INTERPRETATION). */
+  fumbleCombatCategories: ["REF:Combat", "REF:Mecha"],
+
+  /**
+   * Skills in those categories that use their stat's table instead when rolled
+   * from the skill list, outside an attack or defense (INTERPRETATION): Dodge
+   * outside combat, and piloting.
+   */
+  fumbleNonCombatSkills: ["Dodge & Escape", "Mecha Piloting (H)"],
+
+  /** A fumbled defense roll (Evade, Parry, Arm Block) uses this table (INTERPRETATION, playtest). */
+  fumbleDefenseTable: "combat",
+
+  /**
+   * "Wound a party member" with a melee weapon or unarmed: friendly tokens
+   * within this many grid spaces count as in reach (playtest).
+   */
+  fumbleMeleeReachSpaces: 1
 };

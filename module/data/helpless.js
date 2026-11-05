@@ -8,7 +8,8 @@
  *
  * Melee and close combat: the attacker still rolls 1D10, only to check for a
  * natural 1; anything else hits automatically, at the chosen location, with
- * no called-shot penalty. A natural 1 misses (the fumble check comes later).
+ * no called-shot penalty. A natural 1 goes to the fumble check (fumble.js):
+ * saved by skill it still hits; a confirmed fumble misses.
  * Ranged: GM Difficulty, defaulting to TABLE_RULINGS.helplessRangedDifficulty;
  * range, cover, WA and called-shot modifiers apply as normal.
  */
@@ -33,12 +34,14 @@ export const isHelplessAutoHitKind = attackKind => attackKind === "melee" || att
 
 /**
  * How an attack on a helpless target resolves.
- *  - melee / unarmed: { defense: "none", hit: natural !== 1, locPenalty: false }
+ *  - melee / unarmed: { defense: "none", hit, locPenalty: false }; hit unless
+ *    the natural die is a 1 and `fumbled` isn't false (a natural 1 saved by
+ *    skill still hits; with no fumble check, a natural 1 misses).
  *  - ranged: { defense: "difficulty", difficulty, locPenalty: true }, the
  *    Difficulty the GM set, else TABLE_RULINGS.helplessRangedDifficulty.
- * @param {{attackKind:string, natural?:number, difficulty?:number|null}} a
+ * @param {{attackKind:string, natural?:number, difficulty?:number|null, fumbled?:boolean|null}} a
  */
-export function helplessAttack({ attackKind, natural, difficulty = null }) {
-  if (isHelplessAutoHitKind(attackKind)) return { defense: "none", hit: natural !== 1, locPenalty: false };
+export function helplessAttack({ attackKind, natural, difficulty = null, fumbled = null }) {
+  if (isHelplessAutoHitKind(attackKind)) return { defense: "none", hit: natural !== 1 || fumbled === false, locPenalty: false };
   return { defense: "difficulty", difficulty: difficulty ?? TABLE_RULINGS.helplessRangedDifficulty, locPenalty: true };
 }

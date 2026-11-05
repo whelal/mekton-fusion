@@ -12,7 +12,7 @@ const signed = n => (n < 0 ? `${MINUS}${-n}` : `${n}`);
  * The exploding d10 in words (see _rollBidirectionalExplodingD10):
  *   no chain  "7"
  *   upward    "10 (+7) = 17", "10 (+10, +3) = 23"
- *   fumble    "1 (fumble chain −4) = −3,"
+ *   natural 1 "1 (fumble −4) = −3,"   (MZ subtracts one die; no chain)
  * A chain ends in a comma so the modifiers read as a separate step when the
  * caller joins the parts with " + ".
  * @param {number[]} plusDice
@@ -22,7 +22,7 @@ export function chainText(plusDice, minusDice = []) {
   const [first = 0, ...extra] = plusDice;
   if (minusDice.length) {
     const net = plusDice.reduce((a, b) => a + b, 0) - minusDice.reduce((a, b) => a + b, 0);
-    return `${first} (fumble chain ${MINUS}${minusDice.join(`, ${MINUS}`)}) = ${signed(net)},`;
+    return `${first} (fumble ${MINUS}${minusDice[0]}) = ${signed(net)},`;   // one subtracted die, no chain
   }
   if (!extra.length) return `${first}`;
   const net = plusDice.reduce((a, b) => a + b, 0);

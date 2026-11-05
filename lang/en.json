@@ -56,7 +56,9 @@
   "MF.NoPsiCategory": "No psionics category available",
   "MF.RollDifficultyPrompt": "Enter difficulty (optional):",
   "MF.RollWithDifficulty": "Roll {name} vs Difficulty {difficulty}",
-  "MF.RollSimple": "Roll {name}"
+  "MF.RollSimple": "Roll {name}",
+  "MF.RollCardWithDifficulty": "{name} vs Difficulty {difficulty}",
+  "MF.RollCardSimple": "{name}"
   , "MF.AddCustomSkill": "Add Custom Skill"
   , "MF.NewCustomSkill": "New Custom Skill"
   , "MF.CustomSkillsCategory": "Custom Skills"
