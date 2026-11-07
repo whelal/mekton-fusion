@@ -23,8 +23,8 @@
           "locations": {
             "head": {
               "label": "Head",
-              "sp": 4,
-              "spMax": 4,
+              "sp": 0,
+              "spMax": 0,
               "hits": 4,
               "hitsMax": 4,
               "ablates": true,
@@ -32,8 +32,8 @@
             },
             "torso": {
               "label": "Torso",
-              "sp": 10,
-              "spMax": 10,
+              "sp": 0,
+              "spMax": 0,
               "hits": 10,
               "hitsMax": 10,
               "ablates": true,
@@ -41,8 +41,8 @@
             },
             "rArm": {
               "label": "Right Arm",
-              "sp": 5,
-              "spMax": 5,
+              "sp": 0,
+              "spMax": 0,
               "hits": 5,
               "hitsMax": 5,
               "ablates": true,
@@ -50,8 +50,8 @@
             },
             "lArm": {
               "label": "Left Arm",
-              "sp": 5,
-              "spMax": 5,
+              "sp": 0,
+              "spMax": 0,
               "hits": 5,
               "hitsMax": 5,
               "ablates": true,
@@ -59,8 +59,8 @@
             },
             "rLeg": {
               "label": "Right Leg",
-              "sp": 6,
-              "spMax": 6,
+              "sp": 0,
+              "spMax": 0,
               "hits": 6,
               "hitsMax": 6,
               "ablates": true,
@@ -68,8 +68,8 @@
             },
             "lLeg": {
               "label": "Left Leg",
-              "sp": 6,
-              "spMax": 6,
+              "sp": 0,
+              "spMax": 0,
               "hits": 6,
               "hitsMax": 6,
               "ablates": true,

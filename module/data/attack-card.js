@@ -74,3 +74,20 @@ export function isFriendlyFire(attackerDisposition, targetDisposition) {
 export function sideLabel(disposition) {
   return disposition === FRIENDLY ? "Friendly" : disposition === HOSTILE ? "Hostile" : "";
 }
+
+/**
+ * The armor half of a damage line, from an _applyLocationDamage result:
+ * "no armor" (no piece and no natural armor at the location, 0.3.39),
+ * "soft armor ignored" (a Bruise past soft pieces), "SP 15 (Heavy Mesh) soaked
+ * (ablated to 14)", or for AP "AP: SP 15 (Heavy Mesh) counts as 7".
+ * HTML-escaped. `threshold`: the personal ablation threshold, for the
+ * "no ablation (<5)" note.
+ */
+export function armorSoakLabel({ sp = 0, counted, ap = false, spNow, belowThreshold = false, armorName = "", softIgnored = false }, threshold) {
+  if (softIgnored) return "soft armor ignored";
+  if (!sp && !armorName) return "no armor";
+  const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
+    : belowThreshold ? `, no ablation (&lt;${threshold})` : "";
+  const piece = armorName ? ` (${escapeHtml(armorName)})` : "";
+  return ap ? `AP: SP ${sp}${piece} counts as ${counted}${ablated}` : `SP ${sp}${piece} soaked${ablated}`;
+}

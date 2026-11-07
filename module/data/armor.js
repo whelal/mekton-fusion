@@ -1,5 +1,6 @@
 import { ARMOR_ZONES, ZONE_KEYS, ARMOR_KINDS, LEGACY_COVERAGE, cleanZones, effectiveCoverage, defaultHardness } from "./armor-coverage.js";
 import { TABLE_RULINGS } from "../rules/table-rulings.js";
+import { naturalArmorSP } from "./natural-armor.js";
 
 const LOCATIONS = ["head", "torso", "rArm", "lArm", "rLeg", "lLeg"];
 
@@ -170,8 +171,8 @@ export function locationWearMoves(locations, pieces) {
  * wearing it (no separate equipped flag in v1).
  * A leg counts as covered if either of its zones is. Since 0.3.28 hits resolve
  * per zone on each piece's currentSP (resolveZoneHit); this location-level view
- * only feeds the paperdoll icon and the natural-armor fallback (a location no
- * piece covers uses system.body.locations.*.sp).
+ * only feeds the paperdoll icon and spMax (a location no piece covers is 0,
+ * or a creature's natural armor -- natural-armor.js).
  * @param {Actor} actor
  * @param {string} [excludeId] - ignore this Item id (a delete hook can fire
  *   before/after the collection drops the Item; excluding it makes the
@@ -289,7 +290,8 @@ async function applyRecompute(actor, excludeId) {
     if (!cur) continue;
     const oldMax = Number(cur.spMax) || 0;
     const oldSp = Number(cur.sp) || 0;
-    const newMax = derived[loc].sp;
+    // No piece: a creature keeps its natural armor; anyone else drops to 0.
+    const newMax = derived[loc].sp || naturalArmorSP(actor.system);
     // Intact armor (sp at its old ceiling) tracks the new ceiling -- equipping
     // better armor raises it, removing armor lowers it. Already-ablated armor
     // keeps the damage it took, just clamped under the new ceiling.

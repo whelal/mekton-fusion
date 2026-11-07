@@ -2,6 +2,7 @@ import { WEAPON_CATALOG } from "./data/weapon-catalog.js";
 import { recomputeActorArmorSp, seedUnfilledPiece, armorPieces, locationWearMoves, HARDNESS_BY_NAME } from "./data/armor.js";
 import { effectiveCoverage } from "./data/armor-coverage.js";
 import { syncActorCoreItems } from "./seed.js";
+import { strayLocationSPUpdate } from "./data/natural-armor.js";
 
 /**
  * One-time refresh of existing characters and NPCs after the 0.3.x changes:
@@ -16,6 +17,10 @@ import { syncActorCoreItems } from "./seed.js";
  *     per-zone current SP, and reports anything the migration couldn't map
  *   - moves armor wear recorded on body locations onto the worn pieces' own
  *     per-zone SP (0.3.28, locationWearMoves)
+ *   - sets body-location sp/spMax to 0 where no armor piece covers the
+ *     location, on actors without creature natural armor (0.3.39: the old
+ *     schema default of 10 had been counted as natural armor), listing them;
+ *     once per world actor (flag mekton-fusion.locationSPCleared)
  *   - recomputes body-location armor SP from worn armor Items
  *   - runs the armor steps (0.3.28) and the weapon step (0.3.29) on unlinked
  *     tokens on every scene too
@@ -24,7 +29,7 @@ import { syncActorCoreItems } from "./seed.js";
  * Safe to re-run; each step only changes what differs.
  */
 export async function migrateAllActors() {
-  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [] };
+  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [], locationSPCleared: [] };
   const catalog = new Map(WEAPON_CATALOG.map(w => [w.name, w]));
 
   for (const actor of game.actors) {
@@ -47,7 +52,7 @@ export async function migrateAllActors() {
       if (!actor || !["character", "npc"].includes(actor.type)) continue;
       report.tokens++;
       await migrateActorWeapons(actor, catalog, report);
-      await migrateActorArmor(actor, report, { onlyChanged: true });
+      await migrateActorArmor(actor, report, { onlyChanged: true, label: `${actor.name} (token, ${scene.name})` });
     }
   }
   await migrateArmorItems(game.items, null, report);
@@ -134,13 +139,14 @@ export function catalogWeaponUpdate(item, entry) {
  * zone format with per-zone SP, location wear moved onto the pieces (0.3.28),
  * then location SP recomputed. Creatures (natural armor) skip the last two.
  */
-async function migrateActorArmor(actor, report, { onlyChanged = false } = {}) {
+async function migrateActorArmor(actor, report, { onlyChanged = false, label = actor.name } = {}) {
   await migrateArmorItems(actor.items, actor, report, { onlyChanged });
 
   if ((Number(actor.system?.creature?.armorSP) || 0) > 0) {
-    report.skippedCreatures.push(actor.name);
+    report.skippedCreatures.push(label);
     return;
   }
+  await clearStrayLocationSP(actor, report, { onlyChanged, label });
   // 0.3.28: wear recorded on body locations moves onto the pieces' own per-zone SP.
   const wear = locationWearMoves(actor.system?.body?.locations, armorPieces(actor));
   if (wear.moved) {
@@ -150,6 +156,24 @@ async function migrateActorArmor(actor, report, { onlyChanged = false } = {}) {
   }
   await recomputeActorArmorSp(actor);
   report.armorRecomputed++;
+}
+
+/**
+ * 0.3.39: sp/spMax 0 on every location no piece covers, for an actor without
+ * creature natural armor (strayLocationSPUpdate). A world actor runs this once
+ * (flag mekton-fusion.locationSPCleared, set even when nothing changed). An
+ * unlinked token is checked every run but written only when it changes, so it
+ * doesn't get a private copy of the flag.
+ */
+async function clearStrayLocationSP(actor, report, { onlyChanged = false, label = actor.name } = {}) {
+  if (!onlyChanged && actor.flags?.["mekton-fusion"]?.locationSPCleared) return;
+  const { update, locations } = strayLocationSPUpdate(actor.system, armorPieces(actor));
+  if (locations.length) {
+    const names = locations.map(k => actor.system.body.locations[k]?.label || k).join(", ");
+    report.locationSPCleared.push(`${label}: ${names}`);
+  }
+  if (!onlyChanged) update["flags.mekton-fusion.locationSPCleared"] = true;
+  if (Object.keys(update).length) await actor.update(update);
 }
 
 /**

@@ -1,3 +1,13 @@
+## [0.3.39] - 2026-11-07
+### Fixed
+- **Unarmored characters had SP 10 everywhere.** Every body location defaulted to SP 10 (a schema default from 0.0.5), and a hit on a location with no worn piece used it as natural armor, so an unarmored character stopped Bruises and bullets. New actors now start at SP 0 on every location (`body.locations.*.sp` / `spMax`, and `template.json`).
+- Natural armor is explicit: a location with no worn piece uses natural armor only when the actor has creature natural armor set (Body tab, Creature section, Natural Armor SP, or a creature preset). Otherwise it's SP 0, whatever the location's own sp/spMax hold. A location never stamped by a preset (Natural Armor SP typed in by hand) uses that value. This also applies to the Body tab's Armor column ("—"), the location editor, and Repair Armor (`module/data/natural-armor.js`).
+- A creature that wore an armor piece lost its natural armor on every location the piece didn't cover (the armor recompute set them to 0). Those locations now keep the natural armor.
+- An attack card's damage line reads "no armor, 4 through" for a location with no piece and no natural armor (it read "SP 0 soaked").
+### Changed
+- **Update Characters** (run it once): on actors without creature natural armor, every location no armor piece covers goes to SP 0, and the GM gets a whispered list of the actors and locations changed. It runs once per world actor (flag `mekton-fusion.locationSPCleared`). Unlinked tokens are checked every run but only written when something changes. Creatures are left untouched.
+- `armorSoakLabel` in `attack-card.js` builds the card's armor phrase. Tests in `tests/natural-armor.test.mjs`.
+
 ## [0.3.38] - 2026-11-04
 ### Added
 - **Fumbles** (table ruling `fumbles`, from Interlock Unlimited p.37; playtest) on every human-scale 1D10 roll: stat and skill rolls, weapon and close-combat attacks, Evade, weapon Parry and Arm Block.

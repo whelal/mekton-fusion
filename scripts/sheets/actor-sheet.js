@@ -13,10 +13,11 @@ import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleePar
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
 import { fullRecoveryUpdate, repairArmorUpdates, restUpdate } from "../../module/data/recovery.js";
+import { naturalArmorAt, hasNaturalArmor } from "../../module/data/natural-armor.js";
 import { recoverActor, injuryType, INJURY_LABELS } from "../../module/data/natural-recovery.js";
 import { woundPenalties, appliedWoundPenalty, turnStunCauses, needsTurnStunRoll, locationStates } from "../../module/data/wound-penalties.js";
 import { escapeHtml } from "../../module/util/escape.js";
-import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel } from "../../module/data/attack-card.js";
+import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel, armorSoakLabel } from "../../module/data/attack-card.js";
 
 // Tie-break picker for locationFromRoll (several equally valid servos, e.g. two right arms).
 const pickIndex = n => Math.floor(Math.random() * n);
@@ -332,7 +333,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * Worn armor (0.3.28, spec G): the zone's sticky active piece soaks with its
    * own current SP there (resolveZoneHit) and only that piece ablates, 1 SP at
    * most and only at the personal ablation threshold. A location no armor
-   * piece covers (natural armor, creatures) uses its own location SP as before.
+   * piece covers has SP 0, unless the actor is a creature with natural armor
+   * (naturalArmorAt, 0.3.39): then its natural armor soaks and ablates.
    * Not applied with ignoreSp (burning is already past the armor, not a new hit).
    * Bruise damage (0.3.29, "Fists From Hell" Bruise Damage addendum): soft
    * pieces are ignored, the best hard piece soaks (resolveBruiseZoneHit, leaving
@@ -375,10 +377,17 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       ({ sp, counted, spNow, belowThreshold, piece } = r);
       if (r.activeId !== stored) update[`system.body.armorZones.${zone}.activeArmorId`] = r.activeId;
     } else {
-      sp = MektonActorSheet._num(loc?.sp, 0);
+      // No piece on the location: natural armor only if the actor is a creature
+      // with natural armor set (naturalArmorAt); otherwise SP 0, whatever the
+      // location's leftover sp/spMax say.
+      const nat = naturalArmorAt(targetActor.system, key);
+      sp = nat.sp;
       counted = piercedSP(sp, ap);
       ({ spNow, belowThreshold } = ablatePersonalArmor(sp, dmgTotal));
-      if (spNow !== sp) update[`system.body.locations.${key}.sp`] = spNow;
+      if (spNow !== sp) {
+        update[`system.body.locations.${key}.sp`] = spNow;
+        if (MektonActorSheet._num(loc?.spMax, 0) !== nat.spMax) update[`system.body.locations.${key}.spMax`] = nat.spMax;
+      }
     }
     const track = {
       hits: MektonActorSheet._num(loc?.hits, 0),
@@ -444,8 +453,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       });
       const sum = k => zones.reduce((n, z) => n + z[k], 0);
       const worn = zones.some(z => z.pieceId);
-      out[loc] = { worn, multi: zones.length > 1, zones, sp: sum('sp'), spMax: sum('spMax'),
-        lines: MektonActorSheet._armorCellLines(zones, worn, actor.system.body.locations[loc]) };
+      const natural = naturalArmorAt(actor.system, loc);
+      out[loc] = { worn, multi: zones.length > 1, zones, sp: sum('sp'), spMax: sum('spMax'), natural,
+        lines: MektonActorSheet._armorCellLines(zones, worn, natural) };
     }
     return out;
   }
@@ -453,15 +463,12 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
   /**
    * Armor cell lines (0.3.30): "<piece> sp/max" with a bar percentage. A leg
    * shows Thigh and Lower separately unless both zones have the same piece at
-   * the same SP. No piece: the location's own SP as "Natural" if it has any,
-   * else no lines ("—").
+   * the same SP. No piece: the creature's natural armor (naturalArmorAt) as
+   * "Natural" if it has any, else no lines ("—").
    */
-  static _armorCellLines(zones, worn, loc) {
+  static _armorCellLines(zones, worn, natural) {
     const line = (label, name, sp, spMax) => ({ label, name, sp, spMax, none: !name, pct: spMax ? Math.round((sp / spMax) * 100) : 0 });
-    if (!worn) {
-      const spMax = Number(loc?.spMax) || 0;
-      return spMax ? [line('', 'Natural', Number(loc?.sp) || 0, spMax)] : [];
-    }
+    if (!worn) return natural?.spMax ? [line('', 'Natural', natural.sp, natural.spMax)] : [];
     const same = zones.every(z => z.pieceId === zones[0].pieceId && z.sp === zones[0].sp);
     if (same) return [line('', zones[0].name, zones[0].sp, zones[0].spMax)];
     return zones.map(z => line(z.zone.endsWith('Thigh') ? 'Thigh' : 'Lower', z.name, z.sp, z.spMax));
@@ -505,15 +512,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /** Format an _applyLocationDamage() result as the chat-card HTML fragment (SP/hits/state/stun). */
   static _formatDamageAppliedHtml(applied) {
-    const { sp, ap, spNow, belowThreshold, armorName, damageType, softIgnored, before, after, hitsNow, wounds, bruises, bruisesBefore, state, stun } = applied;
+    const { damageType, before, after, hitsNow, wounds, bruises, bruisesBefore, state, stun } = applied;
     const stateLabel = MektonActorSheet._woundStateLabel(state);
     const stateColor = state === 'ok' ? '#2a2' : '#c0392b';
-    const ablated = spNow !== undefined && spNow !== sp ? ` (ablated to ${spNow})`
-      : belowThreshold ? `, no ablation (&lt;${TABLE_RULINGS.personalArmorAblationThreshold})` : '';
-    const piece = armorName ? ` (${escapeHtml(armorName)})` : '';
-    // AP: "AP: SP 15 (Heavy Mesh) counts as 7, 9 through".
-    const soak = softIgnored ? 'soft armor ignored'
-      : ap ? `AP: SP ${sp}${piece} counts as ${applied.counted}${ablated}` : `SP ${sp}${piece} soaked${ablated}`;
+    // "no armor" / "soft armor ignored" / "SP 15 (Heavy Mesh) soaked" / AP: "AP: SP 15 (Heavy Mesh) counts as 7".
+    const soak = armorSoakLabel(applied, TABLE_RULINGS.personalArmorAblationThreshold);
     const prefix = damageType === 'bruise' ? '<strong>Bruise:</strong> ' : '';
     // Whenever Bruises are or were involved, show the track split (W = Wounds, B = Bruises):
     // a Bruise wraparound can change it while shown Hits stay at 0 ("0 -> 0 (6W/0B)").
@@ -1532,8 +1535,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
         ? stepper(`${ba.multi ? `${escapeHtml(z.label)}: ` : ''}${escapeHtml(z.name)}`, `${z.sp} / ${z.spMax}`, 'sp', ` data-zone="${z.zone}"`)
         : `<div class="mf-loc-step"><span class="mf-loc-step-label">${escapeHtml(z.label)}: &mdash;</span></div>`).join('')
         + `<button type="button" class="mf-loc-remove" data-step="remove">Remove armor&hellip;</button>`;
-    } else if (Number(loc.spMax) > 0) {
-      armor = stepper('Natural', `${Number(loc.sp) || 0} / ${loc.spMax}`, 'natural');
+    } else if (ba.natural.spMax > 0) {
+      armor = stepper('Natural', `${ba.natural.sp} / ${ba.natural.spMax}`, 'natural');
     } else {
       armor = '<p class="mf-loc-none">No armor</p>';
     }
@@ -1565,7 +1568,9 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
       const z = MektonActorSheet._bodyArmorView(this.actor)[key]?.zones.find(x => x.zone === zone && x.pieceId);
       if (z) await this.actor.items.get(z.pieceId)?.update({ [`system.currentSP.${zone}`]: clamp(z.sp + delta, z.spMax) });
     } else if (step === 'natural') {
-      await this.actor.update({ [`${path}.sp`]: clamp((Number(loc.sp) || 0) + delta, Number(loc.spMax) || 0) });
+      const nat = naturalArmorAt(this.actor.system, key);
+      if (!nat.spMax) return;
+      await this.actor.update({ [`${path}.sp`]: clamp(nat.sp + delta, nat.spMax), [`${path}.spMax`]: nat.spMax });
     } else if (step === 'remove') {
       await this._removeArmorAt(key);
     }
@@ -3080,7 +3085,8 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     const ok = await Dialog.confirm({ title: 'Repair Armor', content: `<p>Restore every armor piece on <strong>${escapeHtml(this.actor.name)}</strong> to its base SP (natural armor to max)? Wounds are unchanged.</p>` });
     if (!ok) return;
     const body = this.actor.system.body;
-    const r = repairArmorUpdates(armorPieces(this.actor), body.locations, body.armorZones);
+    // Natural armor is a creature's only (naturalArmorAt); anyone else's leftover location SP isn't armor to repair.
+    const r = repairArmorUpdates(armorPieces(this.actor), hasNaturalArmor(this.actor.system) ? body.locations : {}, body.armorZones);
     if (r.itemUpdates.length) await this.actor.updateEmbeddedDocuments('Item', r.itemUpdates);
     if (Object.keys(r.actorUpdate).length) await this.actor.update(r.actorUpdate);
     const lines = [

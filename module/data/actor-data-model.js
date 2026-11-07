@@ -266,8 +266,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                 locations: new fields.SchemaField({
                     head: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Head" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 6, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 6, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
@@ -277,8 +277,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     }),
                     torso: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Torso" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 12, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 12, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
@@ -288,8 +288,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     }),
                     rArm: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Right Arm" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
@@ -299,8 +299,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     }),
                     lArm: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Left Arm" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
@@ -310,8 +310,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     }),
                     rLeg: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Right Leg" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
@@ -321,8 +321,8 @@ export class ActorDataModel extends foundry.abstract.TypeDataModel {
                     }),
                     lLeg: new fields.SchemaField({
                         label: new fields.StringField({ initial: "Left Leg" }),
-                            sp: new fields.NumberField({ initial: 10, min: 0, integer: true }),
-                            spMax: new fields.NumberField({ initial: 10, min: 0, integer: true }),
+                            sp: new fields.NumberField({ initial: 0, min: 0, integer: true }), // natural armor only (creatures); worn armor lives on the pieces
+                            spMax: new fields.NumberField({ initial: 0, min: 0, integer: true }),
                             hits: new fields.NumberField({ initial: 9, integer: true }), // current wounds; no min so it can go negative (BOD table's negative Hits tiers)
                             hitsMax: new fields.NumberField({ initial: 9, min: 0, integer: true }),
                             bruises: new fields.NumberField({ initial: 0, min: 0, integer: true }), // Bruises on the same track (damage-track.js); shown Hits = hits - bruises
