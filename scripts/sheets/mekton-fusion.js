@@ -16,6 +16,7 @@ import { CHARGE_LEVELS, POWER_SOURCES } from "../../module/data/mecha-powerplant
 import { escapeHtml } from "../../module/util/escape.js";
 import { damageTo } from "../../module/data/attack-card.js";
 import { critTier, salvoCritCounts } from "../../module/data/mecha-damage.js";
+import { registerMookSettings, addMookDirectoryButton, MOOK_CREATE_OPTION } from "../../module/mook-generator.js";
 
 // Build a <option> list, HTML-escaping labels (data-driven, but keep this safe regardless).
 function buildOptions(entries, current) {
@@ -202,6 +203,9 @@ Hooks.once("init", () => {
     hint: "Short notice about homebrew policy and references."
   });
 
+  // Mook generator: the template folder name (module/mook-generator.js).
+  registerMookSettings();
+
   // Register DataModel for all actor types we use
   CONFIG.Actor.dataModels ||= {};
   for (const t of ["character", "npc", "vehicle"]) {
@@ -319,7 +323,9 @@ Hooks.on("preCreateActor", (actor) => {
   actor.updateSource(update);
 });
 
-Hooks.on("createActor", async (actor) => {
+Hooks.on("createActor", async (actor, options) => {
+  // A generated mook is a full copy of its template: seeding would re-add skills the GM removed from it.
+  if (options?.[MOOK_CREATE_OPTION]) return;
   if (["character", "npc"].includes(actor.type)) {
     console.log("mekton-fusion | Auto-seeding new actor:", actor.name);
     try {
@@ -332,6 +338,9 @@ Hooks.on("createActor", async (actor) => {
     }
   }
 });
+
+// Actors sidebar: GM-only "Generate Mooks" button (v13 ApplicationV2 render hook).
+Hooks.on("renderActorDirectory", addMookDirectoryButton);
 
 // Ensure actor sheet synchronization
 Hooks.on("updateActor", (actor, changes, options, userId) => {

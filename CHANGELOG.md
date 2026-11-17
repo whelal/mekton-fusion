@@ -1,3 +1,18 @@
+## [0.3.41] - 2026-11-17
+### Added
+- **Mook generator, human scale** (GM only): a **Generate Mooks** button in the Actors sidebar header (and the macro `macros/generate-mooks.macro.js`) copies a template NPC into fresh, separate world actors.
+  - Templates are NPCs the GM builds with the normal sheet (stats, skills including custom ones, armor with coverage, weapons with In hand set, notes) in an Actor folder named **Mook Templates**, subfolders included. The folder name is a world setting (`mookTemplateFolder`); if the folder is missing, the button offers to create it. No template content ships with the system.
+  - Dialog: Template, Count (1-20), Name (default "<Template name> N"; the last whole-word N is the number), Folder (default `Mooks/<Template name>`, e.g. `Mooks/PDF Soldier`; editable, e.g. `Mooks/Warehouse raid`; missing folders are created; a folder inside the template folder is refused) and **Place tokens on the current scene** (off by default).
+  - Each copy is a full copy of the template (owned items and their In hand states, ownership, the prototype token's disposition and art), reset to fresh: no Wounds or Bruises, recovery remainders 0, every armor piece back to its base SP on every zone, every zone's active piece cleared, natural armor back to max, no status effects (Unconscious, Dead, Burning, ...), the burning flag and weapon jams cleared. The template itself is never changed.
+  - The prototype token is linked to the mook's own actor (Link Actor Data on) and named after it, so damaging one token damages only that actor.
+  - Numbering continues past mooks with the same name pattern already in the target folder ("PDF Soldier 3" exists: the next is "PDF Soldier 4"). Gaps aren't refilled.
+  - Place tokens: one token per mook in a compact grid around the centre of the current view, skipping cells an existing token overlaps or that fall outside the scene (a plain grid if there's no room).
+  - The GM gets one whisper: "Generated 5 × PDF Soldier into Mooks/PDF Soldier." Cleanup is Foundry's own Delete Folder (and contents).
+- `module/data/mooks.js` (`resetMookData`, `nextMookNames`, `placementOffsets`), with tests; `module/mook-generator.js` is the Foundry side.
+### Changed
+- New actors created by the mook generator skip the default-skill auto-seed (create option `mfMook`): a mook is a full copy, so seeding would re-add skills the GM removed from the template.
+- ROADMAP.md: mook generator ticked (0.3.41); mook randomizer, mecha mooks, starter mook templates and "Expert: Heavy Weapons" as a weapon attack skill added to the Parking lot.
+
 ## [0.3.40] - 2026-11-17
 ### Fixed
 - **Weapon type has one definition** (`module/data/weapon-type.js`): `isMeleeWeapon`, `isThrownWeapon`, `supportsWeaponOptions`. The attack dialog, parry DA and Weapon Options all use them; Weapon Options no longer keeps its own skill list.

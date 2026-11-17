@@ -113,6 +113,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Wound penalties: Realistic Damage Table on every roll (stacked, GM can untick per roll), MA/Lift halving, Stun/Shock every turn with a blown-off limb or a torso at 0 Hits (0.3.36)
 - [x] Helpless targets: no defense vs Unconscious/Asleep/Defeated; melee auto-hits except a natural 1 with no called-shot penalty, ranged vs Difficulty 10; Bruise-wraparound split on the card (0.3.37)
 - [x] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage (0.3.38)
+- [x] Mook generator (human): GM copies a template NPC from the "Mook Templates" folder into fresh, numbered, linked actors, optionally placing tokens (0.3.41)
 - [ ] Human-scale ranged aimed shots (called location; reuse the close-combat location penalties unless the book gives human ranged values; spec pending)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
@@ -198,4 +199,8 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - Personal weapon Kill ratings, Hits, and attacking held weapons. Needed by Shock ammo. Human-scale weapons are built at Mekton scale in Kills (1K = 2.5 Hits, round down; dice from the K->D6 table), but catalog dice don't always map to a single K row (e.g. 3D6 sits between 6K = 2D6+3 and 7K = 3D6-1). Needs a rule for mapping.
 - Shield parry (needs a DA; the MZ Personal Armor Table lists only SP 15).
 - AP ammunition for firearms, as part of a separate personal ammo system (no AP-rounds toggle until then).
+- Mook randomizer: stats and skills rolled within ranges per template.
+- Mecha mooks: generator option to load a mecha preset onto each mook.
+- Starter mook templates (generic Soldier, Criminal/Gang Member, Mechajock from MZ core professions), shipped as a macro.
+- "Expert: Heavy Weapons" as a usable weapon attack skill for personal heavy weapons (grenade launchers, missile launchers); currently only a custom skill.
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).
