@@ -7,7 +7,7 @@ import { syncActorCoreItems } from "../../module/seed.js";
 import { recomputeActorArmorSp, armorPieces, armorLayerViolations } from "../../module/data/armor.js";
 import { ARMOR_ZONES, effectiveCoverage } from "../../module/data/armor-coverage.js";
 import { TABLE_RULINGS } from "../../module/rules/table-rulings.js";
-import { weaponSupportsOptions } from "../../module/data/weapon-options.js";
+import { supportsWeaponOptions } from "../../module/data/weapon-type.js";
 import { SERVO_CLASS_META, ARM_EXTREMITIES, LEG_EXTREMITIES, ARMOR, SENSORS, COCKPIT, SERVO_ROW_LOCATIONS, KIND_LABELS } from "../../module/data/mecha-construction.js";
 import { WEAPON_CATEGORIES, SHIELDS } from "../../module/data/mecha-weapons.js";
 import { BODY_PLANS } from "../../module/data/body-values.js";
@@ -44,8 +44,8 @@ Hooks.once("init", () => {
     });
     console.log('mekton-fusion | Handlebars helper "eq" registered');
 
-    // Weapon Options only apply to personal-scale ranged weapons (see weaponSupportsOptions).
-    Handlebars.registerHelper('weaponSupportsOptions', (item) => weaponSupportsOptions(item?.system, item?.type));
+    // Weapon Options only apply to personal-scale ranged weapons (see supportsWeaponOptions).
+    Handlebars.registerHelper('supportsWeaponOptions', (item) => supportsWeaponOptions(item));
 
     // Hexes -> meters (1 hex = 3 m in Mekton), 1 decimal, trailing .0 dropped.
     Handlebars.registerHelper('hexToM', (hexes) => {

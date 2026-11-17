@@ -1,4 +1,5 @@
-import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../data/weapon-options.js";
+import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, summarizeWeaponOption } from "../data/weapon-options.js";
+import { supportsWeaponOptions } from "../data/weapon-type.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage } from "../data/armor-coverage.js";
 import { seedZoneSP } from "../data/armor.js";
 import { coverageEditorHtml, bindCoverageEditor } from "./armor-coverage-ui.js";
@@ -58,8 +59,8 @@ export class MektonFusionItemSheet extends foundry.appv1.sheets.ItemSheet {
       }
     }
 
-    // Options are ranged-weapon accessories only (see weaponSupportsOptions).
-    context.supportsOptions = context.isWeapon && weaponSupportsOptions(context.system, this.object.type);
+    // Options are ranged-weapon accessories only (see supportsWeaponOptions).
+    context.supportsOptions = context.isWeapon && supportsWeaponOptions({ type: this.object.type, system: context.system });
     // A locked compendium (or a non-owner) renders every control disabled;
     // options are configured on a character's own copy of the weapon.
     context.optionsReadOnly = !this.isEditable;

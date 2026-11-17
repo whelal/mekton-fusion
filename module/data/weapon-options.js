@@ -53,27 +53,7 @@ export const WEAPON_OPTIONS = {
   }
 };
 
-// Skills that mark a weapon as melee or thrown (see the skill mapping in weapon-catalog.js).
-// (athletics = thrown weapons, which also carry a "T" range; fencing is an
-// alternative skill for blade weapons -- same exclusion)
-const MELEE_SKILLS = new Set(["blade", "fencing", "whip", "hand-to-hand", "athletics"]);
-
-/**
- * Weapon Options are ranged-weapon accessories (sights, silencers, magazines):
- * personal-scale ranged weapons only. Not melee (melee skill, or a bare
- * reach-1..2 range), not thrown ("T" range -- grenades, boomerangs), and not
- * Mecha-scale weapons (mecha-weapon items or anything flagged isMecha).
- * @param {object} system - weapon Item system data
- * @param {string} [itemType] - the Item's type ("weapon" | "mecha-weapon")
- */
-export function weaponSupportsOptions(system, itemType = "weapon") {
-  if (itemType === "mecha-weapon" || system?.isMecha) return false;
-  if (MELEE_SKILLS.has(String(system?.skill ?? "").toLowerCase())) return false;
-  const range = String(system?.range ?? "").trim().toUpperCase();
-  if (range === "T") return false;
-  if (/^\d+$/.test(range) && Number(range) <= 2) return false;
-  return true;
-}
+// Which weapons can take options: supportsWeaponOptions in weapon-type.js.
 
 /** One-line human summary of an option's mechanical effect, for pickers. */
 export function summarizeWeaponOption(opt) {

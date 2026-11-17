@@ -107,7 +107,7 @@
                 <td style="padding: 2px 4px; text-align: center;">
                   <button type="button" class="weapon-in-hand{{#if item.system.inHand}} mf-in-hand{{/if}}" title="{{#if item.system.inHand}}In hand (can parry) -- click to stow or drop{{else}}Not in hand -- click to draw (free){{/if}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-hand-paper"></i></button>
                   <button type="button" class="weapon-roll" title="Roll {{item.name}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-dice-d20"></i></button>
-                  {{#if (weaponSupportsOptions item)}}
+                  {{#if (supportsWeaponOptions item)}}
                   <button type="button" class="weapon-options" title="Weapon Options{{#if item.system.options.length}} ({{item.system.options.length}} installed){{/if}}" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;{{#if item.system.options.length}} color: #2a7;{{/if}}"><i class="fas fa-sliders"></i></button>
                   {{/if}}
                   <button type="button" class="item-control item-edit" title="Edit Weapon (Damage Type: {{#if (eq item.system.damageType 'bruise')}}Bruise{{else}}Wound{{/if}})" data-item-id="{{item.id}}" style="font-size: 0.7rem; padding: 0px 2px; margin-right: 2px; width: 18px;"><i class="fas fa-edit"></i></button>

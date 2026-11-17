@@ -1,13 +1,14 @@
 ﻿// module/script/sheets/actor-sheet.js
 import { MECHA_PRESETS, CREATURE_PRESETS, buildMechaPresetUpdate, buildCreaturePresetUpdate } from "../../module/data/mecha-presets.js";
-import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, weaponSupportsOptions, summarizeWeaponOption } from "../../module/data/weapon-options.js";
+import { WEAPON_OPTIONS, computeWeaponOptionsEffect, effectiveCombatWa, summarizeWeaponOption } from "../../module/data/weapon-options.js";
+import { isMeleeWeapon, isThrownWeapon, supportsWeaponOptions } from "../../module/data/weapon-type.js";
 import { ARMOR_ZONES, ARMOR_KINDS, effectiveCoverage, zoneForHitRoll, zonesOfLocation } from "../../module/data/armor-coverage.js";
 import { seedZoneSP, ablatePersonalArmor, armorPieces, pickActivePiece, resolveZoneHit, resolveBruiseZoneHit, piercedSP } from "../../module/data/armor.js";
 import { applyTrackDamage, woundState, woundsOf, shownHits, sprainedLimbs, trackSegments, trackSplitLabel } from "../../module/data/damage-track.js";
 import { isHelpless, helplessAttack } from "../../module/data/helpless.js";
 import { confirmFumble, fumbleTableFor, fumbleResult, needsSecondDie, fumbleLine, pickPartyVictim, jamBlocks, jamClearsOnTurn, fumbleWeaponUpdate, fumbleDamageOptions } from "../../module/data/fumble.js";
 import { pickArmorCoverage } from "../../module/sheets/armor-coverage-ui.js";
-import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, CLOSE_COMBAT_SKILLS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../../module/data/close-combat.js";
+import { CLOSE_TARGETS, CLOSE_MANEUVERS, MELEE_STRIKE_TARGETS, MOUTH_POSITIONS, maneuverTargets, closeTargetsFor, closeCalledPenalty, defaultCloseTarget, closeHitZone, isQuickManeuver, closeAttackPlan, runAttackPlan } from "../../module/data/close-combat.js";
 import { DEFENSE_MODES, KNOCKOUT, bestParryWeapon, pickBlockingArm, chooseDefense, parryOutcome, armBlockOutcome, clubDamage } from "../../module/data/defense.js";
 import { applyHit, applyPodHit, locationFromRoll, burstHitCount, resolveMeleeParry, resolveEmwParry, parrySucceeds, salvoHitCount, salvoRows, salvoCritCounts, resolveShieldParry } from "../../module/data/mecha-damage.js";
 import { SERVO_ROW_LOCATIONS } from "../../module/data/mecha-construction.js";
@@ -2334,14 +2335,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
 
   /**
    * Pick the Weapon Options installed on an owned weapon. Options are
-   * ranged-only (see weaponSupportsOptions); checkbox state is written
+   * ranged-only (see supportsWeaponOptions); checkbox state is written
    * straight to the Item, same as the standalone Item sheet does.
    */
   async _onEditWeaponOptions(ev) {
     ev.preventDefault();
     const weapon = this.actor.items.get(ev.currentTarget.dataset.itemId);
     if (!weapon) return;
-    if (!weaponSupportsOptions(weapon.system, weapon.type)) {
+    if (!supportsWeaponOptions(weapon)) {
       ui.notifications.warn(`${weapon.name} can't take weapon options (melee, thrown, and mecha weapons can't).`);
       return;
     }
@@ -3790,7 +3791,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
    * Burst fire (MZ p.95-96): one hit per point of margin, up to the weapon's
    * BV, each hit rolled and soaked separately. Human scale has no Crits or
    * Mega-Crits (table ruling: armor always applies to characters). Close-contact
-   * weapons (CLOSE_COMBAT_SKILLS) pick the hit location instead of rolling it,
+   * weapons (isMeleeWeapon) pick the hit location instead of rolling it,
    * with a called-shot penalty off the torso (see close-combat.js). A Quick
    * close-contact weapon (system.quick) can make two attacks in the Action, each
    * with its own location, attack roll, defense and damage, on one card. The standalone
@@ -3817,7 +3818,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Options only count on personal-scale ranged weapons (a weapon whose skill/range
     // was changed to melee after options were installed ignores them).
     const optionsEffect = computeWeaponOptionsEffect(
-      weaponSupportsOptions(weapon.system, weapon.type) ? weapon.system?.options : []);
+      supportsWeaponOptions(weapon) ? weapon.system?.options : []);
     const maxRangePenalty = optionsEffect.maxRangeMod ?? -4;
 
     // Resolve the mapped skill -- warn rather than silently treating the
@@ -3855,13 +3856,14 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // MZ range is Combat-Max, not a DV ladder -- the dialog only needs to know
     // which side of Combat Range applies; show the parsed numbers as a hint.
     const rangeInfo = parseRange(weapon.system?.range);
-    const rangeHint = rangeInfo?.thrown ? 'Thrown'
+    const thrown = isThrownWeapon(weapon);
+    const rangeHint = thrown ? 'Thrown'
       : rangeInfo ? `Combat ${rangeInfo.combat} / Max ${rangeInfo.max}`
       : 'No range data';
 
-    // Close contact (melee skill, not thrown): the player picks the location
+    // Close contact (isMeleeWeapon): the player picks the location
     // (torso free; others cost TABLE_RULINGS.closeCombatCalledPenalty) instead of rolling it.
-    const closeContact = CLOSE_COMBAT_SKILLS.has(String(skillKey ?? '').toLowerCase()) && !rangeInfo?.thrown;
+    const closeContact = isMeleeWeapon(weapon);
 
     // Burst Value: a bare number > 1 enables Burst fire ("na", "1", "" = single only).
     const bv = parseInt(weapon.system?.bv, 10) || 1;
@@ -3869,7 +3871,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     // Melee and thrown weapons (not blasts) let the attacker pick Wound or Bruise
     // for this roll, starting on the weapon's own Damage Type; others use it as is.
     const weaponDamageType = weapon.system?.damageType === 'bruise' ? 'bruise' : 'wound';
-    const damageTypeChoice = (closeContact || !!rangeInfo?.thrown) && !blast;
+    const damageTypeChoice = (closeContact || thrown) && !blast;
     // Quick (MZ+ ATM, Melee Weapons): two attacks in one Action, off by default.
     const quickChoice = closeContact && !blast && !!weapon.system?.quick;
     // Improvised club (TABLE_RULINGS.improvisedClub): a firearm swung as a club; a melee-weapon attack.
@@ -4090,7 +4092,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           damageType: club ? TABLE_RULINGS.improvisedClub.damageType : (pickedDamageType || weaponDamageType),
           armorPiercing: !club && !!weapon.system?.armorPiercing
         } : null,
-        melee, rangeMax: rangeInfo?.thrown ? this.actor.system?.derived?.throwM : (rangeInfo?.max ?? null)
+        melee, rangeMax: thrown ? this.actor.system?.derived?.throwM : (rangeInfo?.max ?? null)
       });
 
       const { targetActor, success, margin, resultTag, redirect } = await this._resolveAttackDefense(attackTotal,

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bestParryWeapon, parryDA, parrySkill, pickBlockingArm, chooseDefense, parryOutcome, armBlockOutcome, clubDamage, isMeleeBuilt } from "../module/data/defense.js";
+import { bestParryWeapon, parryDA, parrySkill, pickBlockingArm, chooseDefense, parryOutcome, armBlockOutcome, clubDamage } from "../module/data/defense.js";
+import { isMeleeWeapon } from "../module/data/weapon-type.js";
 import { closeAttackPlan, runAttackPlan, CLOSE_MANEUVERS } from "../module/data/close-combat.js";
 import { WEAPON_CATALOG } from "../module/data/weapon-catalog.js";
 import { martialArtWeaponUpdate, migrateActorWeapons } from "../module/migrate-actors.js";
@@ -39,7 +40,7 @@ test("ranged attacks get no further defense; None means none", () => {
 
 test("a shotgun parries at DA -2 even with WA +2", () => {
   const shotgun = { name: "Pump Shotgun", system: { skill: "rifle", wa: 2, range: "50", inHand: true } };
-  assert.equal(isMeleeBuilt(shotgun.system), false);
+  assert.equal(isMeleeWeapon(shotgun), false);
   assert.equal(parryDA(shotgun.system), -2);
   const p = bestParryWeapon([shotgun], ranks);
   assert.deepEqual([p.da, p.improvised, p.skill.label], [-2, true, "Blade"]);

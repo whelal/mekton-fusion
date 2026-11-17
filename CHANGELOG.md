@@ -1,3 +1,13 @@
+## [0.3.40] - 2026-11-17
+### Fixed
+- **Weapon type has one definition** (`module/data/weapon-type.js`): `isMeleeWeapon`, `isThrownWeapon`, `supportsWeaponOptions`. The attack dialog, parry DA and Weapon Options all use them; Weapon Options no longer keeps its own skill list.
+  - Thrown = range "T" or the Athletics skill. Melee = Blade, Fencing, Whip or Hand to Hand, and not thrown (a "T"-range blade is a thrown knife). Weapon Options = personal scale, not melee, not thrown.
+  - An Athletics weapon with a numeric range now attacks as thrown (Wound/Bruise choice, throw range for fumbles); it was treated as ranged in the attack dialog.
+  - Weapon Options no longer exclude a weapon just because its range is a bare 1 or 2; only melee and thrown weapons are excluded.
+  - No catalog weapon changes classification.
+### Removed
+- `weaponSupportsOptions` and its `MELEE_SKILLS` list (`weapon-options.js`), and `isMeleeBuilt` (`defense.js`). The Handlebars helper is now `supportsWeaponOptions`.
+
 ## [0.3.39] - 2026-11-07
 ### Fixed
 - **Unarmored characters had SP 10 everywhere.** Every body location defaulted to SP 10 (a schema default from 0.0.5), and a hit on a location with no worn piece used it as natural armor, so an unarmored character stopped Bruises and bullets. New actors now start at SP 0 on every location (`body.locations.*.sp` / `spMax`, and `template.json`).

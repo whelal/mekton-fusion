@@ -1,5 +1,5 @@
 import { TABLE_RULINGS } from "../rules/table-rulings.js";
-import { CLOSE_COMBAT_SKILLS } from "./close-combat.js";
+import { isMeleeWeapon } from "./weapon-type.js";
 import { woundState, shownHits } from "./damage-track.js";
 
 /**
@@ -23,16 +23,9 @@ export const DEFENSE_MODES = {
 /** Firearm weapon skills: a firearm can be used as an improvised club. */
 export const FIREARM_SKILLS = new Set(["handgun", "rifle", "automatic-weapon"]);
 
-const isThrown = sys => String(sys?.range ?? "").trim().toUpperCase() === "T";
-
-/** A weapon built for melee: a close-contact skill, not thrown. */
-export function isMeleeBuilt(sys) {
-  return CLOSE_COMBAT_SKILLS.has(String(sys?.skill ?? "").toLowerCase()) && !isThrown(sys);
-}
-
 /** Parry DA: a melee weapon's WA; anything else is improvised (TABLE_RULINGS.improvisedParryDA). */
 export function parryDA(sys) {
-  return isMeleeBuilt(sys) ? Number(sys?.wa) || 0 : TABLE_RULINGS.improvisedParryDA;
+  return isMeleeWeapon({ system: sys }) ? Number(sys?.wa) || 0 : TABLE_RULINGS.improvisedParryDA;
 }
 
 /** A sword (TABLE_RULINGS.fencingWeapons, or a weapon on the Fencing skill) parries with max(Blade, Fencing). */
@@ -62,7 +55,7 @@ export function bestParryWeapon(weapons, ranks) {
     if (!weapon?.system?.inHand) continue;
     const skill = parrySkill(weapon, ranks);
     const da = parryDA(weapon.system);
-    if (!best || skill.rank + da > best.skill.rank + best.da) best = { weapon, skill, da, improvised: !isMeleeBuilt(weapon.system) };
+    if (!best || skill.rank + da > best.skill.rank + best.da) best = { weapon, skill, da, improvised: !isMeleeWeapon(weapon) };
   }
   return best;
 }
