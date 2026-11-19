@@ -1,17 +1,18 @@
-import { CP2020_SKILLS } from "./data/skills.js";
+import { CP2020_SKILLS, LEGACY_MECHA_GUNNERY_NAMES, LEGACY_SKILL_RENAMES } from "./data/skills.js";
+import { planSkillRenames, psiFieldUpdate } from "./data/skill-cleanup.js";
 
 
 const HARD_MECHA_GUNNERY = "Mecha Gunnery (H)";
-// Legacy variants we want to collapse into canonical HARD_MECHA_GUNNERY
-const LEGACY_MECHA_GUNNERY_NAMES = ["Mecha Gunnery", "Mecha Gunnery [H]"];
-// Legacy skill renames introduced in 0.0.10
-const LEGACY_SKILL_RENAMES = {
-  "Resist Magic": "Resist Magic (2)",
-  "Spellcasting": "Spellcasting (2)",
-  "Military Intelligence": "Expert: Military Intelligence"
-};
-// Deprecated skill names to purge (non-PSI duplicates)
-const DEPRECATED_SKILL_NAMES = ["Stat Boost"]; // keep only Stat Boost (phys) in PSI list
+// LEGACY_MECHA_GUNNERY_NAMES (collapsed into HARD_MECHA_GUNNERY) and
+// LEGACY_SKILL_RENAMES live in data/skills.js, so the custom re-mark knows them.
+// Deprecated non-PSI duplicates to purge. Matched by category AND stat, never
+// name alone: the PSI "Stat Boost" (renamed from "Stat Boost (phys)") must survive.
+const DEPRECATED_SKILL_NAMES = ["Stat Boost"];
+function isDeprecatedSkill(item) {
+  const cat = String(item.system?.category ?? "").toUpperCase();
+  const stat = String(item.system?.stat ?? "").toUpperCase();
+  return DEPRECATED_SKILL_NAMES.includes(item.name) && cat !== "PSI" && stat !== "PSI";
+}
 
 async function ensureFolder(name, type) {
   let folder = game.folders.find(f => f.name === name && f.type === type);
@@ -68,13 +69,21 @@ async function ensureActorHasSkills(actor) {
       }
     }
   }
-  // Purge deprecated non-PSI duplicates
-  const toRemove = existingSkills.filter(it => DEPRECATED_SKILL_NAMES.includes(it.name) && String(it.system?.category).toUpperCase() !== 'PSI');
+  // Purge deprecated non-PSI duplicates (before the cleanup renames, so a
+  // renamed PSI "Stat Boost" is never in this list; isDeprecatedSkill checks category too)
+  const toRemove = existingSkills.filter(isDeprecatedSkill);
+  // Skill cleanup renames (Tactics -> Expert: Tactics, Stat Boost (phys) -> Stat Boost, ...),
+  // where the new name isn't taken; rank and IP stay. Deletes are Update Characters only.
+  const renames = planSkillRenames(existingSkills.filter(it => !toRemove.includes(it)));
+  if (renames.length) {
+    try { await actor.updateEmbeddedDocuments('Item', renames); }
+    catch (e) { console.warn('mekton-fusion | Failed skill cleanup renames', e); }
+  }
   if (toRemove.length) {
     try { await actor.deleteEmbeddedDocuments('Item', toRemove.map(i=>i.id)); }
     catch (e) { console.warn('mekton-fusion | Failed deleting deprecated skills', e); }
   }
-  const existingByName = new Map(existingSkills.map(it => [it.name, it]));
+  const existingByName = new Map(existingSkills.filter(it => !toRemove.includes(it)).map(it => [it.name, it]));
   const hardSkill = existingByName.get(HARD_MECHA_GUNNERY);
   const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
   const toDelete = [];
@@ -114,6 +123,7 @@ async function ensureActorHasSkills(actor) {
     if (currentSystem.rank === undefined || currentSystem.rank === null) patch["system.rank"] = skill.system.rank;
     if (currentSystem.favorite === undefined || currentSystem.favorite === null) patch["system.favorite"] = skill.system.favorite;
     if (currentSystem.ip === undefined || currentSystem.ip === null) patch["system.ip"] = skill.system.ip;
+    Object.assign(patch, psiFieldUpdate(skill.name, currentSystem));
     if (Object.keys(patch).length) toUpdate.push({ _id: current.id, ...patch });
   }
 
@@ -146,6 +156,17 @@ export async function seedWorldData() {
           existing.set(newName, current);
         } catch (e) { console.warn('mekton-fusion | Failed world skill legacy rename', oldName, '->', newName, e); }
       }
+    }
+    // Skill cleanup renames on the seeded world skills (CP2020 Skills folder only).
+    const seededSkills = game.items.filter(i => i.type === "skill" && i.folder?.id === skillFolder.id);
+    for (const { _id, name } of planSkillRenames(seededSkills)) {
+      const item = game.items.get(_id);
+      if (!item || existing.has(name)) continue;
+      try {
+        existing.delete(item.name);
+        await item.update({ name });
+        existing.set(name, item);
+      } catch (e) { console.warn('mekton-fusion | Failed world skill cleanup rename', item.name, '->', name, e); }
     }
     const legacyNames = LEGACY_MECHA_GUNNERY_NAMES;
     const hardSkill = existing.get(HARD_MECHA_GUNNERY);

@@ -1,3 +1,25 @@
+## [0.3.42] - 2026-11-18
+### Changed
+- **Skill list cleanup.** Seeded skills are now the MZ core Master Skill List, the profession skills the system uses mechanically (Oratory, EW, Forgery, Fencing, Martial Art, Demolitions, Whip, Archery) and the MZ+ ATM psionic skills (pp.121-123).
+  - Removed from the seed list: Resist Magic (2), Spellcasting (2), the EMP copy of Regeneration (the psionic one stays), Education/General, Endurance, Courage, Hacking (H), Cybertech, Electronics, Mechanics. Demolitions (H) stays (MZ core Professions). With Endurance gone, a new character has no BODY skill header.
+  - Renamed: Tactics -> Expert: Tactics.
+- **Psionic skills** follow the MZ+ ATM list, in four groups: Body (resisted with BODY), Force (LUCK), Mind (INT), Will (COOL). They still roll 1D10 + PSI + rank; the group's stat is the target's resisting stat.
+  - Added: Teleportation, Precognition, Mind Lock.
+  - Renamed: Stat Boost (phys) -> Stat Boost, Danger Sense -> Danger Sensing.
+  - Removed duplicates: Recognition (a typo for Precognition), Illusion Generation (= Illusion), Postcognition (= Retrocognition).
+  - Empathy (Will) stays for now; it isn't in the MZ+ ATM list and its source is unverified.
+  - Each psionic skill stores its group, resisting stat, Psi Points per level and whether an ESPer Lens can magnify it (the book's *). Data only: nothing spends Psi Points or reads the Lens flag yet.
+- PSI tab: powers are grouped under Body / Force / Mind / Will headers (custom powers under Other) with the resisting stat, a Cost column (Psi Points per level, "—" when unknown) and a * after Lens-magnifiable powers.
+- **Update Characters** cleans up each actor's skills once (flag `skillListCleaned`): a removed skill is deleted only at rank 0 with no IP; otherwise it's kept and the GM gets a whisper ("Kai: kept Postcognition rank 2"). Renames keep rank and IP (Recognition becomes Precognition only if the actor has no Precognition yet). Existing psionic skills get the new fields and the missing ones are added at rank 0. Unlinked tokens get the same rules, written only on change. Seeded world skill Items (CP2020 Skills folder) get the same deletes and renames, listed in a whisper.
+- The default-skill sync (new actors, Add Skills, the world seeding macro) applies the renames too, so it never adds "Stat Boost" next to an old "Stat Boost (phys)". The old non-PSI "Stat Boost" purge now checks category and stat, so it can't hit the psionic Stat Boost.
+- ROADMAP.md: Interpretations note which skills are seeded; "Advanced psionic powers" in the Parking lot lists the MZ+ rules to build later; "Remove or load styles/partials/" added to the Parking lot.
+### Removed
+- `PSIONIC_SKILL_NAMES` (unused duplicate of the psionic seed list).
+- The 0.0.10 renames of "Resist Magic"/"Spellcasting" to the now-removed "(2)" names; the old names are removed skills too.
+### Added
+- `custom` on the skill schema. The sheet's custom skill and psionic power buttons always set it, but Foundry dropped it on save because the schema lacked it, so custom skills lost their custom marker (and delete button). Update Characters re-marks them once per actor, before the skill cleanup: a skill whose name was never seeded (not in the seed list, the removed skills, or any old pre-rename name) gets `custom` back, and the GM gets a whisper ("Kai: re-marked 2 custom skills"). A custom skill sharing a seeded or removed name can't be told apart and stays unmarked. The skill cleanup never deletes or renames a skill marked custom.
+- `module/data/skill-cleanup.js` (`planSkillCleanup`, `planSkillRenames`, `psiFieldUpdate`) and `PSI_POWERS`/`PSI_GROUPS`/`groupPsiSkills` in `module/data/skills.js`, with tests.
+
 ## [0.3.41] - 2026-11-17
 ### Added
 - **Mook generator, human scale** (GM only): a **Generate Mooks** button in the Actors sidebar header (and the macro `macros/generate-mooks.macro.js`) copies a template NPC into fresh, separate world actors.

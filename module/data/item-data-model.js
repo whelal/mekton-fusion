@@ -72,7 +72,15 @@ export class SkillDataModel extends ItemDataModel {
       rank: new fields.NumberField({ initial: 0, integer: true }),
       favorite: new fields.BooleanField({ initial: false }),
       ip: new fields.NumberField({ initial: 0, integer: true }),
-      hard: new fields.BooleanField({ initial: false })
+      hard: new fields.BooleanField({ initial: false }),
+      // Made with the sheet's custom skill / psionic power buttons. Before 0.3.42 the schema
+      // lacked it, so Foundry dropped it on save. The skill cleanup never deletes or renames these.
+      custom: new fields.BooleanField({ initial: false }),
+      // Psionic skills only (MZ+ ATM pp.121-123; module/data/skills.js PSI_POWERS). Data only for now.
+      group: new fields.StringField({ initial: "", blank: true }),            // body | force | mind | will ("" = none)
+      resistStat: new fields.StringField({ initial: "", blank: true }),   // the TARGET's resisting stat
+      costPerLevel: new fields.NumberField({ initial: null, nullable: true, integer: true, min: 0 }),   // Psi Points per level; null = unknown
+      lensMagnifiable: new fields.BooleanField({ initial: false })        // the book's * marker (ESPer Lens)
     });
   }
 }

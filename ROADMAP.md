@@ -65,6 +65,7 @@ Where the book is silent or ambiguous and the table decided. These are not setti
 - Burns heal as Wounds (burn damage isn't tracked separately).
 - Fumbles: a roll with no skill (stat-only, or rank 0) always confirms a fumble on a natural 1. The fumble table is picked by the roll's skill/stat (combat -> Combat; REF/BODY physical -> Athletics; TECH -> Tech; EMP/ATTR/COOL social -> Social; INT/EDU -> INT; else a plain fumble). A fumble on a defense roll (Evade, Parry, Arm Block) uses the Combat table.
 - Wound penalties stack across locations; Wounds only (Bruises never trigger them; Sprained is separate). "At 1 Hit remaining" needs at least one Wound. Rolls with no dialog (Evade, Parry, Arm Block, mecha armament rows, shift-click rolls) always take the penalty.
+- Seeded skills = MZ core Master Skill List + mechanically used profession skills (Oratory, EW, Forgery, Fencing, Martial Art, Demolitions, Whip, Archery) + MZ+ psionic skills. Profession flavor skills and online-supplement skills are custom skills.
 
 ### RAW notes
 Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
@@ -114,6 +115,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Helpless targets: no defense vs Unconscious/Asleep/Defeated; melee auto-hits except a natural 1 with no called-shot penalty, ranged vs Difficulty 10; Bruise-wraparound split on the card (0.3.37)
 - [x] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage (0.3.38)
 - [x] Mook generator (human): GM copies a template NPC from the "Mook Templates" folder into fresh, numbered, linked actors, optionally placing tokens (0.3.41)
+- [x] Skill list cleanup: seed = MZ core + used profession skills + MZ+ psionics; psionic groups, resist stat, cost and Lens flag; Update Characters keeps ranked removed skills (0.3.42)
 - [ ] Human-scale ranged aimed shots (called location; reuse the close-combat location penalties unless the book gives human ranged values; spec pending)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
@@ -178,7 +180,12 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - Weapon Linkage enforcement
 - Transformation, stealth, and other cost multipliers (manual override exists)
 - Verify the Powerplant Source cost against a worked book example
-- Advanced psionic powers
+- Advanced psionic powers (MZ+ ATM Psionic Skills, pp.121-123; group, resisting stat, cost per level and the Lens flag are stored since 0.3.42):
+  - Opposed resist roll: PSI + skill + extra Psi Points + 1D10 vs the target's group stat + PSI + Psi Points + 1D10.
+  - Psi Point spending per level (activating at a lower level is allowed); points regained after 8 hours' rest.
+  - Skill cap = PSI stat; psionic skills cost double IP.
+  - ESPer Lens magnification (powers marked *).
+  - Concentration: a COOL roll at Difficulty 10-25 when distracted.
 - CP2020-only mechanics (BTM, cyberware/Humanity, netrunning)
 - Localization
 - Public release (manifest, compendium packs, docs)
@@ -204,3 +211,4 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - Starter mook templates (generic Soldier, Criminal/Gang Member, Mechajock from MZ core professions), shipped as a macro.
 - "Expert: Heavy Weapons" as a usable weapon attack skill for personal heavy weapons (grenade launchers, missile launchers); currently only a custom skill.
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).
+- Remove or load styles/partials/ (currently unused; only mekton-fusion.css is loaded).

@@ -1193,6 +1193,11 @@ html.theme-dark .mekton-fusion {
 /* ---------- Custom flags & rows ---------- */
 .mekton-fusion.sheet.actor .custom-skill { background: var(--mf-gold-bg); }
 .mekton-fusion.sheet.actor .custom-flag { color: #ff6b35; font-weight: bold; margin-left: 0.25rem; font-size: 0.9rem; }
+/* PSI tab: group header rows (Body/Force/Mind/Will), cost column, Lens * marker */
+.mekton-fusion .tab.psi .psi-group-header th { text-align: left; padding-top: 0.4rem; border-bottom: 1px solid var(--mf-psi, #6f42c1); color: var(--mf-psi, #6f42c1); }
+.mekton-fusion .tab.psi .psi-group-header .psi-resist { font-weight: normal; font-size: 0.85em; opacity: 0.8; }
+.mekton-fusion .tab.psi .psi-cost { text-align: center; white-space: nowrap; }
+.mekton-fusion .tab.psi .psi-lens-flag { color: var(--mf-psi, #6f42c1); font-weight: bold; margin-left: 0.15rem; cursor: help; }
 
 /* ---------- Drag/Sort ---------- */
 .mekton-fusion.sheet.actor .skill-drag-handle {

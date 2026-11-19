@@ -18,6 +18,7 @@ import { naturalArmorAt, hasNaturalArmor } from "../../module/data/natural-armor
 import { recoverActor, injuryType, INJURY_LABELS } from "../../module/data/natural-recovery.js";
 import { woundPenalties, appliedWoundPenalty, turnStunCauses, needsTurnStunRoll, locationStates } from "../../module/data/wound-penalties.js";
 import { escapeHtml } from "../../module/util/escape.js";
+import { groupPsiSkills } from "../../module/data/skills.js";
 import { chainText, attackHeader, damageTo, targetLocation, isFriendlyFire, sideLabel, armorSoakLabel } from "../../module/data/attack-card.js";
 
 // Tie-break picker for locationFromRoll (several equally valid servos, e.g. two right arms).
@@ -902,7 +903,11 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
           category,
           hard,
           hasHardMarker: nameHasHard,
-          custom
+          custom,
+          // Psionic skills: Psi Points per level (null = unknown) and the book's * (ESPer Lens) marker
+          costPerLevel: it.system?.costPerLevel ?? null,
+          hasCost: Number.isFinite(it.system?.costPerLevel),
+          lensMagnifiable: !!it.system?.lensMagnifiable
         };
       });
 
@@ -973,6 +978,7 @@ export class MektonActorSheet extends foundry.appv1.sheets.ActorSheet {
     ctx.skillGroups = grouped;
     ctx.customSkills = customSkills || [];
     ctx.psiSkills = psiSkills;
+    ctx.psiGroups = groupPsiSkills(psiSkills);   // Body / Force / Mind / Will / Other, each in the active sort order
   ctx.skillItems = flatSkills; // full flat list (pre-tab filtering, for potential use)
     ctx.hasSkillItems = nonPsi.length > 0;
     ctx.hasPsiSkills = psiSkills.length > 0;

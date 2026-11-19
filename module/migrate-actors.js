@@ -3,9 +3,20 @@ import { recomputeActorArmorSp, seedUnfilledPiece, armorPieces, locationWearMove
 import { effectiveCoverage } from "./data/armor-coverage.js";
 import { syncActorCoreItems } from "./seed.js";
 import { strayLocationSPUpdate } from "./data/natural-armor.js";
+import { planSkillCleanup, keptSkillLines, planCustomRemarks } from "./data/skill-cleanup.js";
 
 /**
  * One-time refresh of existing characters and NPCs after the 0.3.x changes:
+ *   - re-marks lost custom skills, once per world actor (flag
+ *     mekton-fusion.customSkillsRemarked): a skill whose name was never seeded
+ *     gets system.custom = true (planCustomRemarks), listed for the GM. Before
+ *     the cleanup, so the cleanup leaves those skills alone.
+ *   - skill list cleanup, once per world actor (flag mekton-fusion.skillListCleaned):
+ *     removed skills are deleted only at rank 0 with no IP, otherwise kept and
+ *     listed for the GM; renames keep rank and IP; psionic skills get their
+ *     PSI fields (planSkillCleanup). Unlinked tokens get the same rules every
+ *     run, written only on change. Seeded world skill Items (the CP2020 Skills
+ *     folder) get the same deletes and renames, listed.
  *   - adds any CP2020 skills added since the actor was created (existing ranks untouched)
  *   - sets the skill on owned weapons whose name matches a catalog entry, and
  *     their damage type, Quick and Armor Piercing once (0.3.29, catalogWeaponUpdate)
@@ -29,13 +40,15 @@ import { strayLocationSPUpdate } from "./data/natural-armor.js";
  * Safe to re-run; each step only changes what differs.
  */
 export async function migrateAllActors() {
-  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [], locationSPCleared: [] };
+  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [], locationSPCleared: [], skillsDeleted: 0, skillsRenamed: 0, skillsKept: [], worldSkillChanges: [], customRemarked: [] };
   const catalog = new Map(WEAPON_CATALOG.map(w => [w.name, w]));
 
   for (const actor of game.actors) {
     if (!["character", "npc"].includes(actor.type)) continue;
     report.actors++;
 
+    await remarkCustomSkills(actor, report);
+    await cleanupActorSkills(actor, report);
     const seeded = await syncActorCoreItems(actor);
     report.skillsAdded += seeded.created ?? 0;
 
@@ -44,19 +57,71 @@ export async function migrateAllActors() {
   }
 
   // Unlinked tokens carry their own copy of the actor (its weapons and armor),
-  // which the world-actor loop above never touches: run the weapon and armor
-  // steps on each.
+  // which the world-actor loop above never touches: run the skill cleanup,
+  // weapon and armor steps on each.
   for (const scene of game.scenes) {
     for (const token of scene.tokens) {
       const actor = token.actorLink ? null : token.actor;
       if (!actor || !["character", "npc"].includes(actor.type)) continue;
       report.tokens++;
+      const label = `${actor.name} (token, ${scene.name})`;
+      await remarkCustomSkills(actor, report, { onlyChanged: true, label });
+      await cleanupActorSkills(actor, report, { onlyChanged: true, label, baseActor: token.baseActor });
       await migrateActorWeapons(actor, catalog, report);
-      await migrateActorArmor(actor, report, { onlyChanged: true, label: `${actor.name} (token, ${scene.name})` });
+      await migrateActorArmor(actor, report, { onlyChanged: true, label });
     }
   }
   await migrateArmorItems(game.items, null, report);
+  await cleanupWorldSkills(report);
   return report;
+}
+
+/**
+ * Re-mark custom skills the pre-0.3.42 schema dropped the marker from
+ * (planCustomRemarks). A world actor runs it once (flag
+ * mekton-fusion.customSkillsRemarked, set even when nothing changed); an
+ * unlinked token is checked every run and written only on change.
+ */
+async function remarkCustomSkills(actor, report, { onlyChanged = false, label = actor.name } = {}) {
+  if (!onlyChanged && actor.flags?.["mekton-fusion"]?.customSkillsRemarked) return;
+  const updates = planCustomRemarks(actor.items.filter(i => i.type === "skill"));
+  if (updates.length) {
+    await actor.updateEmbeddedDocuments("Item", updates);
+    report.customRemarked.push(`${label}: re-marked ${updates.length} custom skill${updates.length === 1 ? "" : "s"}`);
+  }
+  if (!onlyChanged) await actor.setFlag("mekton-fusion", "customSkillsRemarked", true);
+}
+
+/**
+ * The skill list cleanup for one actor (planSkillCleanup). A world actor runs
+ * it once (flag mekton-fusion.skillListCleaned, set even when nothing
+ * changed). An unlinked token is checked every run and written only on
+ * change; a kept skill it inherits from its base actor isn't listed again.
+ */
+async function cleanupActorSkills(actor, report, { onlyChanged = false, label = actor.name, baseActor = null } = {}) {
+  if (!onlyChanged && actor.flags?.["mekton-fusion"]?.skillListCleaned) return;
+  const plan = planSkillCleanup(actor.items.filter(i => i.type === "skill"));
+  if (plan.deletes.length) await actor.deleteEmbeddedDocuments("Item", plan.deletes);
+  if (plan.updates.length) await actor.updateEmbeddedDocuments("Item", plan.updates);
+  report.skillsDeleted += plan.deletes.length;
+  report.skillsRenamed += plan.renamed.length;
+  const inherited = name => !!baseActor?.items?.some(i => i.type === "skill" && i.name === name);
+  report.skillsKept.push(...keptSkillLines(label, plan.kept.filter(k => !inherited(k.name))));
+  if (!onlyChanged) await actor.setFlag("mekton-fusion", "skillListCleaned", true);
+}
+
+/** The same cleanup on the world skill Items the seeding macro made (the CP2020 Skills folder), listed. */
+async function cleanupWorldSkills(report) {
+  const folder = game.folders.find(f => f.type === "Item" && f.name === "CP2020 Skills");
+  if (!folder) return;
+  const items = game.items.filter(i => i.type === "skill" && i.folder?.id === folder.id);
+  const plan = planSkillCleanup(items);
+  const deleted = plan.deletes.map(id => game.items.get(id)?.name).filter(Boolean);
+  if (plan.deletes.length) await Item.deleteDocuments(plan.deletes);
+  if (plan.updates.length) await Item.updateDocuments(plan.updates);
+  for (const name of deleted) report.worldSkillChanges.push(`deleted ${name}`);
+  for (const r of plan.renamed) report.worldSkillChanges.push(`renamed ${r.from} -> ${r.to}`);
+  report.worldSkillChanges.push(...keptSkillLines("(world item)", plan.kept));
 }
 
 /**

@@ -41,6 +41,7 @@
         <col /> <!-- Fav -->
         <col /> <!-- Name -->
         <col /> <!-- Stat -->
+        <col /> <!-- Cost -->
         <col /> <!-- Rank -->
         <col /> <!-- IP -->
         <col /> <!-- Total -->
@@ -52,6 +53,7 @@
           <th>{{localize 'MF.ColFav'}}</th>
           <th>{{localize 'MF.ColName'}}</th>
           <th>{{localize 'MF.ColStat'}}</th>
+          <th title="{{localize 'MF.PsiCostTooltip'}}">{{localize 'MF.ColPsiCost'}}</th>
           <th>{{localize 'MF.ColRank'}}</th>
           <th>{{localize 'MF.ColIP'}}</th>
           <th>{{localize 'MF.ColTotal'}}</th>
@@ -60,16 +62,21 @@
         </tr>
       </thead>
       <tbody class="sortable-skills">
-        {{#each psiSkills as |sk|}}
+        {{#each psiGroups as |grp|}}
+          <tr class="psi-group-header" data-group="{{grp.key}}">
+            <th colspan="9">{{grp.label}}{{#if grp.resistStat}} <span class="psi-resist">{{localize 'MF.PsiResist'}} {{grp.resistStat}}</span>{{/if}}</th>
+          </tr>
+        {{#each grp.skills as |sk|}}
           <tr data-skill-id="{{sk.id}}" class="skill-item-row {{#if sk.custom}}custom-skill{{/if}}" data-favorite="{{sk.favorite}}" data-category="PSI" draggable="true">
             <td class="skill-fav-cell"><a class="skill-fav" title="Toggle Favorite">{{#if sk.favorite}}★{{else}}☆{{/if}}</a></td>
             <td class="skill-name">
               <span class="skill-drag-handle" title="Drag to reorder">⋮⋮</span>
-              {{sk.name}} 
+              {{sk.name}}{{#if sk.lensMagnifiable}}<span class="psi-lens-flag" title="{{localize 'MF.PsiLensTooltip'}}">*</span>{{/if}}
               {{#if sk.custom}}<span class="custom-flag" title="Custom/Homebrew Power">✦</span>{{/if}}
               {{#if (and sk.hard (not sk.hasHardMarker))}}<span class="hard-flag" title="Hard Skill">(H)</span>{{/if}}
             </td>
             <td class="skill-stat">{{sk.stat}}</td>
+            <td class="psi-cost">{{#if sk.hasCost}}{{#if sk.costPerLevel}}{{sk.costPerLevel}}/lvl{{else}}0{{/if}}{{else}}&mdash;{{/if}}</td>
             <td class="skill-rank-cell"><input class="skill-rank short-input" type="number" min="0" max="50" step="1" value="{{sk.rank}}"/></td>
             <td class="skill-ip-cell"><input class="skill-ip short-input" type="number" min="0" max="999" step="1" value="{{sk.system.ip}}" title="{{localize 'MF.IPTooltip'}}"/></td>
             <td class="skill-total">{{sk.total}}</td>
@@ -79,6 +86,7 @@
               {{#if sk.custom}}<a class="item-control psi-delete" title="{{localize 'MF.Delete'}}" data-item-id="{{sk.id}}"><i class="fas fa-trash"></i></a>{{/if}}
             </td>
           </tr>
+        {{/each}}
         {{/each}}
       </tbody>
 
