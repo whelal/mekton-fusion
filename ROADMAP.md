@@ -116,6 +116,7 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - [x] Fumbles (Interlock Unlimited p.37, playtest): confirm a natural 1 vs skill rank, then the Combat / Athletics / Tech / Social / INT table; automate Combat drop, jam, self-wound and party wound, and Athletics damage (0.3.38)
 - [x] Mook generator (human): GM copies a template NPC from the "Mook Templates" folder into fresh, numbered, linked actors, optionally placing tokens (0.3.41)
 - [x] Skill list cleanup: seed = MZ core + used profession skills + MZ+ psionics; psionic groups, resist stat, cost and Lens flag; Update Characters keeps ranked removed skills (0.3.42)
+- [x] Catalog icons: personal armor and weapons use verified Foundry v13 core icons; Update Characters moves owned copies off the old paths once (0.3.43)
 - [ ] Human-scale ranged aimed shots (called location; reuse the close-combat location penalties unless the book gives human ranged values; spec pending)
 - [ ] Medical drugs
 - [ ] Ammunition system (projectile weapons only; MZ+ ATM Ammunition; scale-neutral, built at mecha
@@ -212,3 +213,4 @@ Easy to mistake for house rules. RAW, so no entry in `table-rulings.js`.
 - "Expert: Heavy Weapons" as a usable weapon attack skill for personal heavy weapons (grenade launchers, missile launchers); currently only a custom skill.
 - Grenades and thrown blasts: a miss scatters, the target can be a grid square/hex instead of a token, and the blast radius hits every token in it (currently needs exactly one targeted token as the point of impact).
 - Remove or load styles/partials/ (currently unused; only mekton-fusion.css is loaded).
+- When moving to Foundry v14, re-check the catalog icons. The original 0.3.2 paths (modern vests, tech helmets, suits) may exist in v14 and suit modern gear better than v13's fantasy art.

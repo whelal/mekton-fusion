@@ -4,6 +4,7 @@ import { effectiveCoverage } from "./data/armor-coverage.js";
 import { syncActorCoreItems } from "./seed.js";
 import { strayLocationSPUpdate } from "./data/natural-armor.js";
 import { planSkillCleanup, keptSkillLines, planCustomRemarks } from "./data/skill-cleanup.js";
+import { catalogIconUpdates } from "./data/catalog-icons.js";
 
 /**
  * One-time refresh of existing characters and NPCs after the 0.3.x changes:
@@ -20,6 +21,9 @@ import { planSkillCleanup, keptSkillLines, planCustomRemarks } from "./data/skil
  *   - adds any CP2020 skills added since the actor was created (existing ranks untouched)
  *   - sets the skill on owned weapons whose name matches a catalog entry, and
  *     their damage type, Quick and Armor Piercing once (0.3.29, catalogWeaponUpdate)
+ *   - moves owned catalog armor and weapons onto the new catalog icons, once
+ *     per world actor (flag mekton-fusion.catalogIconsUpdated), only where the
+ *     item's img is still the old catalog img (catalogIconUpdates)
  *   - moves any weapon on the Martial Art skill to Hand to Hand, listing them
  *     (Martial Art is unarmed-only, martialArtWeaponUpdate)
  *   - gives owned force screens hard hardness when unset (0.3.29)
@@ -40,7 +44,7 @@ import { planSkillCleanup, keptSkillLines, planCustomRemarks } from "./data/skil
  * Safe to re-run; each step only changes what differs.
  */
 export async function migrateAllActors() {
-  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [], locationSPCleared: [], skillsDeleted: 0, skillsRenamed: 0, skillsKept: [], worldSkillChanges: [], customRemarked: [] };
+  const report = { actors: 0, skillsAdded: 0, weaponsFixed: 0, martialArtWeapons: [], armorMigrated: 0, armorProblems: [], armorRecomputed: 0, armorSeeded: 0, wearMoved: 0, tokens: 0, skippedCreatures: [], locationSPCleared: [], skillsDeleted: 0, skillsRenamed: 0, skillsKept: [], worldSkillChanges: [], customRemarked: [], iconsUpdated: 0 };
   const catalog = new Map(WEAPON_CATALOG.map(w => [w.name, w]));
 
   for (const actor of game.actors) {
@@ -53,6 +57,7 @@ export async function migrateAllActors() {
     report.skillsAdded += seeded.created ?? 0;
 
     await migrateActorWeapons(actor, catalog, report);
+    await updateCatalogIcons(actor, report);
     await migrateActorArmor(actor, report);
   }
 
@@ -68,6 +73,7 @@ export async function migrateAllActors() {
       await remarkCustomSkills(actor, report, { onlyChanged: true, label });
       await cleanupActorSkills(actor, report, { onlyChanged: true, label, baseActor: token.baseActor });
       await migrateActorWeapons(actor, catalog, report);
+      await updateCatalogIcons(actor, report, { onlyChanged: true });
       await migrateActorArmor(actor, report, { onlyChanged: true, label });
     }
   }
@@ -108,6 +114,22 @@ async function cleanupActorSkills(actor, report, { onlyChanged = false, label = 
   const inherited = name => !!baseActor?.items?.some(i => i.type === "skill" && i.name === name);
   report.skillsKept.push(...keptSkillLines(label, plan.kept.filter(k => !inherited(k.name))));
   if (!onlyChanged) await actor.setFlag("mekton-fusion", "skillListCleaned", true);
+}
+
+/**
+ * Owned catalog armor and weapons still on an old catalog img get the new one
+ * (catalogIconUpdates). A world actor runs it once (flag
+ * mekton-fusion.catalogIconsUpdated, set even when nothing changed); an
+ * unlinked token is checked every run and written only on change.
+ */
+async function updateCatalogIcons(actor, report, { onlyChanged = false } = {}) {
+  if (!onlyChanged && actor.flags?.["mekton-fusion"]?.catalogIconsUpdated) return;
+  const updates = catalogIconUpdates(actor.items);
+  if (updates.length) {
+    await actor.updateEmbeddedDocuments("Item", updates);
+    report.iconsUpdated += updates.length;
+  }
+  if (!onlyChanged) await actor.setFlag("mekton-fusion", "catalogIconsUpdated", true);
 }
 
 /** The same cleanup on the world skill Items the seeding macro made (the CP2020 Skills folder), listed. */

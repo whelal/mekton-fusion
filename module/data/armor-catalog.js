@@ -29,13 +29,13 @@
  *     table (left 0; unlike the Personal Weapons Table, this table has no TL
  *     column).
  *
- * Icons: verified against the actual Foundry install's
- * public/icons/equipment/{chest,head,body,shield}/ and public/icons/svg/
- * trees (same methodology as weapon-catalog.js, after two earlier
- * guessed-path failures there). Foundry's set skews fantasy/modern-mundane,
- * so exact "personal force screen" art doesn't exist -- the two Force
- * Screen entries use svg/shield.svg and svg/mage-shield.svg as the closest
- * available reads.
+ * Icons: core Foundry paths only, each listed in
+ * tests/fixtures/verified-icons-v13.txt (checked against the local v13.351
+ * install; a test enforces it). v13's core art is fantasy-only, so these are
+ * the closest reads: mesh = cloth/padded vests, plate = breastplates,
+ * helmets = full-face helms, suits have no real match (white robe, sculpted
+ * breastplate, helmeted figure), force screens = magic barrier icons. The
+ * replaced paths are in module/data/catalog-icons.js (OLD_CATALOG_IMGS).
  */
 
 import { ARMOR_KINDS, effectiveCoverage } from "./armor-coverage.js";
@@ -54,31 +54,31 @@ function armor(name, { category, kind, tier = "", hardness = "", baseSP = 0, spN
 
 export const ARMOR_CATALOG = [
   // --- BALLISTIC MESH (soft; garment shape chosen per piece; weight/cost per Single location) ---
-  armor("Light Mesh",  { category: "Ballistic Mesh", kind: "mesh", tier: "light",  hardness: "soft", baseSP: 10, weight: 0.2, cost: 38, img: "icons/equipment/chest/vest-bulletproof-body-camo.webp" }),
-  armor("Medium Mesh", { category: "Ballistic Mesh", kind: "mesh", tier: "medium", hardness: "soft", baseSP: 12, weight: 0.3, cost: 47, img: "icons/equipment/chest/vest-bulletproof-body-green.webp" }),
-  armor("Heavy Mesh",  { category: "Ballistic Mesh", kind: "mesh", tier: "heavy",  hardness: "soft", baseSP: 15, weight: 0.4, cost: 56, img: "icons/equipment/chest/vest-bulletproof-body-armor.webp" }),
-  armor("Flak Mesh",   { category: "Ballistic Mesh", kind: "mesh", tier: "flak",   hardness: "soft", baseSP: 18, weight: 0.5, cost: 65, img: "icons/equipment/chest/bullet-proof-vest-kevlar.webp" }),
+  armor("Light Mesh",  { category: "Ballistic Mesh", kind: "mesh", tier: "light",  hardness: "soft", baseSP: 10, weight: 0.2, cost: 38, img: "icons/equipment/chest/shirt-collared-grey.webp" }),
+  armor("Medium Mesh", { category: "Ballistic Mesh", kind: "mesh", tier: "medium", hardness: "soft", baseSP: 12, weight: 0.3, cost: 47, img: "icons/equipment/chest/vest-leather-brown.webp" }),
+  armor("Heavy Mesh",  { category: "Ballistic Mesh", kind: "mesh", tier: "heavy",  hardness: "soft", baseSP: 15, weight: 0.4, cost: 56, img: "icons/equipment/chest/breastplate-quilted-brown.webp" }),
+  armor("Flak Mesh",   { category: "Ballistic Mesh", kind: "mesh", tier: "flak",   hardness: "soft", baseSP: 18, weight: 0.5, cost: 65, img: "icons/equipment/chest/breastplate-layered-leather-black.webp" }),
 
   // --- FULL UTILITY HELMET (hard; always head only) ---
-  armor("Light Helmet",  { category: "Full Utility Helmet", kind: "helmet", tier: "light",  hardness: "hard", baseSP: 20, weight: 1.6, cost: 106, img: "icons/equipment/head/helmet-tech-light.webp" }),
-  armor("Medium Helmet", { category: "Full Utility Helmet", kind: "helmet", tier: "medium", hardness: "hard", baseSP: 23, weight: 1.8, cost: 117, img: "icons/equipment/head/helmet-tech-tactical.webp" }),
-  armor("Heavy Helmet",  { category: "Full Utility Helmet", kind: "helmet", tier: "heavy",  hardness: "hard", baseSP: 25, weight: 2.0, cost: 128, img: "icons/equipment/head/helm-armored-tech-heavy.webp" }),
+  armor("Light Helmet",  { category: "Full Utility Helmet", kind: "helmet", tier: "light",  hardness: "hard", baseSP: 20, weight: 1.6, cost: 106, img: "icons/equipment/head/helm-barbute-thin-steel.webp" }),
+  armor("Medium Helmet", { category: "Full Utility Helmet", kind: "helmet", tier: "medium", hardness: "hard", baseSP: 23, weight: 1.8, cost: 117, img: "icons/equipment/head/helm-barbute-reinforced.webp" }),
+  armor("Heavy Helmet",  { category: "Full Utility Helmet", kind: "helmet", tier: "heavy",  hardness: "hard", baseSP: 25, weight: 2.0, cost: 128, img: "icons/equipment/head/greathelm-reticulated-steel.webp" }),
 
   // --- MULTI-POLYMER PLATE (hard; garment shape chosen per piece; weight/cost per Single location) ---
-  armor("Light Plate",  { category: "Multi-Polymer Plate", kind: "plate", tier: "light",  hardness: "hard", baseSP: 20, weight: 0.5, cost: 98,  img: "icons/equipment/chest/vest-tactical-reinforced.webp" }),
-  armor("Medium Plate", { category: "Multi-Polymer Plate", kind: "plate", tier: "medium", hardness: "hard", baseSP: 23, weight: 0.6, cost: 108, img: "icons/equipment/chest/vest-improvised-plated-medium.webp" }),
-  armor("Heavy Plate",  { category: "Multi-Polymer Plate", kind: "plate", tier: "heavy",  hardness: "hard", baseSP: 25, weight: 1.0, cost: 119, img: "icons/equipment/chest/vest-improvised-plated-heavy.webp" }),
+  armor("Light Plate",  { category: "Multi-Polymer Plate", kind: "plate", tier: "light",  hardness: "hard", baseSP: 20, weight: 0.5, cost: 98,  img: "icons/equipment/chest/breastplate-collared-steel.webp" }),
+  armor("Medium Plate", { category: "Multi-Polymer Plate", kind: "plate", tier: "medium", hardness: "hard", baseSP: 23, weight: 0.6, cost: 108, img: "icons/equipment/chest/breastplate-cuirass-steel-grey.webp" }),
+  armor("Heavy Plate",  { category: "Multi-Polymer Plate", kind: "plate", tier: "heavy",  hardness: "hard", baseSP: 25, weight: 1.0, cost: 119, img: "icons/equipment/chest/breastplate-layered-steel.webp" }),
 
   // --- SPACE SUIT (all 8 zones; Standard/Industrial soft, Military hard) ---
-  armor("Standard Suit",   { category: "Space Suit", kind: "suit", tier: "standard",   hardness: "soft", baseSP: 5,  weight: 1.6, cost: 260, img: "icons/equipment/body/suit-biohazard-protection.webp" }),
-  armor("Industrial Suit", { category: "Space Suit", kind: "suit", tier: "industrial", hardness: "soft", baseSP: 15, weight: 3.4, cost: 502, img: "icons/equipment/body/suit-medical-biohazard-protection.webp" }),
-  armor("Military Suit",   { category: "Space Suit", kind: "suit", tier: "military",   hardness: "hard", baseSP: 25, weight: 7.0, cost: 785, img: "icons/equipment/body/suit-military-flight.webp" }),
+  armor("Standard Suit",   { category: "Space Suit", kind: "suit", tier: "standard",   hardness: "soft", baseSP: 5,  weight: 1.6, cost: 260, img: "icons/equipment/chest/robe-layered-white.webp" }),
+  armor("Industrial Suit", { category: "Space Suit", kind: "suit", tier: "industrial", hardness: "soft", baseSP: 15, weight: 3.4, cost: 502, img: "icons/equipment/chest/breastplate-sculpted-grey.webp" }),
+  armor("Military Suit",   { category: "Space Suit", kind: "suit", tier: "military",   hardness: "hard", baseSP: 25, weight: 7.0, cost: 785, img: "icons/equipment/chest/breastplate-helmet-metal.webp" }),
 
   // --- OTHER ARMOR ---
-  armor("Flight Jacket", { category: "Other Armor", kind: "flightJacket", hardness: "soft", baseSP: 12, weight: 1.2,  cost: 300,  img: "icons/equipment/chest/jacket-military-flight-green.webp" }),
-  armor("Powered Armor", { category: "Other Armor", kind: "poweredArmor", hardness: "hard", baseSP: 28, weight: 43.0, cost: 1056, img: "icons/equipment/body/armor-coveralls.webp" }),
+  armor("Flight Jacket", { category: "Other Armor", kind: "flightJacket", hardness: "soft", baseSP: 12, weight: 1.2,  cost: 300,  img: "icons/equipment/chest/coat-leather-blue.webp" }),
+  armor("Powered Armor", { category: "Other Armor", kind: "poweredArmor", hardness: "hard", baseSP: 28, weight: 43.0, cost: 1056, img: "icons/environment/people/infantry-armored.webp" }),
   // Parked (ROADMAP.md): shields at human scale and force screens. Kind "other", hardness unset.
   armor("Shield",                { category: "Other Armor", kind: "other", baseSP: 15, coverage: [], weight: 1.5, cost: 142,  img: "icons/equipment/shield/heater-steel-grey.webp" }),
-  armor("Personal Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 0, spNote: "3D6", coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 5.0, cost: 1800, img: "icons/svg/shield.svg" }),
-  armor("Advanced Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 18, coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 0.5, cost: 2500, img: "icons/svg/mage-shield.svg" })
+  armor("Personal Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 0, spNote: "3D6", coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 5.0, cost: 1800, img: "icons/magic/defensive/barrier-shield-dome-deflect-blue.webp" }),
+  armor("Advanced Force Screen", { category: "Other Armor", kind: "other", hardness: "hard", baseSP: 18, coverage: ["head", "torso", "rArm", "lArm", "rThigh", "rLowerLeg", "lThigh", "lLowerLeg"], weight: 0.5, cost: 2500, img: "icons/magic/defensive/shield-barrier-glowing-blue.webp" })
 ];

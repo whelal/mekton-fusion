@@ -1,3 +1,13 @@
+## [0.3.43] - 2026-11-23
+### Fixed
+- **Personal armor and weapon icons.** 44 of the 64 catalog icons pointed at files that don't exist in Foundry v13 and showed as broken images. Every armor and weapon catalog entry now uses a core Foundry icon verified in the v13.351 install. v13's core art is fantasy-only, so these are the closest match by kind: mesh = cloth and padded vests, plate = breastplates, helmets = full-face helms, Flight Jacket = leather coat, Powered Armor = an armored infantry figure, force screens = energy barrier icons, firearms = the closest flintlock/blunderbuss shape. The three space suits, Boomerang, Chainsaw, Hand Taser and Nunchaku/Tonfa are weak matches. 46 entries changed; 18 kept their (existing) icons.
+- The Personal Armor (MZ) and Personal Weapons (MZ) compendium packs carry the new icons (document IDs unchanged).
+### Changed
+- **Update Characters** moves owned catalog armor and weapons onto the new icons, once per world actor (flag `catalogIconsUpdated`), only where the item's image is still the old catalog image (missing or not). A GM-chosen image is never changed. Unlinked tokens are checked every run and written only on change. The notification counts "item icons updated".
+- ROADMAP.md: catalog icons ticked under 0.4 (0.3.43); "re-check catalog icons on Foundry v14" added to the Parking lot.
+### Added
+- `module/data/catalog-icons.js` (`OLD_CATALOG_IMGS`, `catalogIconUpdates`) and `tests/fixtures/verified-icons-v13.txt` (the verified core icon paths), with tests: every catalog img must be in the verified list.
+
 ## [0.3.42] - 2026-11-18
 ### Changed
 - **Skill list cleanup.** Seeded skills are now the MZ core Master Skill List, the profession skills the system uses mechanically (Oratory, EW, Forgery, Fencing, Martial Art, Demolitions, Whip, Archery) and the MZ+ ATM psionic skills (pp.121-123).

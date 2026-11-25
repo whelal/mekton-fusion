@@ -27,7 +27,7 @@
     const { migrateAllActors } = await import(`${modulePath}?v=${game.system.version}`);
     const r = await migrateAllActors();
     const skipped = r.skippedCreatures.length ? ` Skipped creatures (natural armor): ${r.skippedCreatures.join(", ")}.` : "";
-    ui.notifications.info(`Updated ${r.actors} actors: ${r.skillsAdded} skills added, ${r.weaponsFixed} weapons fixed, ${r.armorMigrated} armor pieces converted (${r.armorSeeded} given per-zone SP), wear moved onto pieces at ${r.wearMoved} locations, ${r.tokens} unlinked tokens checked, armor recomputed on ${r.armorRecomputed}.${skipped}`);
+    ui.notifications.info(`Updated ${r.actors} actors: ${r.skillsAdded} skills added, ${r.weaponsFixed} weapons fixed, ${r.iconsUpdated} item icons updated, ${r.armorMigrated} armor pieces converted (${r.armorSeeded} given per-zone SP), wear moved onto pieces at ${r.wearMoved} locations, ${r.tokens} unlinked tokens checked, armor recomputed on ${r.armorRecomputed}.${skipped}`);
     if (r.martialArtWeapons.length) {
       const list = r.martialArtWeapons.map(p => `<li>${foundry.utils.escapeHTML(p)}</li>`).join("");
       ChatMessage.create({ whisper: [game.user.id], content: `<p><strong>Weapons moved from Martial Art to Hand to Hand</strong> (Martial Art is unarmed-only):</p><ul>${list}</ul>` });
